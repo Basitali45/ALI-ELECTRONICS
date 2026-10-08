@@ -14,7 +14,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     const saved = localStorage.getItem('ali_theme');
     if (saved === 'light' || saved === 'dark') return saved;
-    return 'dark'; // High-end professional dark theme by default
+    return 'light'; // Light premium theme by default as requested
   });
 
   useEffect(() => {

@@ -197,6 +197,7 @@ function MainContent() {
             trendingProducts={products}
             onBrowseClick={() => handleNavigate('products')}
             onOffersClick={() => handleNavigate('trending-offers')}
+            onContactClick={() => handleNavigate('contact')}
             onViewProduct={(prod) => setSelectedProduct(prod)}
           />
         )}

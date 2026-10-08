@@ -87,22 +87,22 @@ export function Header({ settings, announcementBar, onOpenSearch, onOpenAdmin, o
                 Home
               </button>
               <button
-                onClick={() => handleNavClick('trending-offers')}
-                className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-cyan-400 hover:text-blue-700 dark:hover:text-cyan-300 transition-colors cursor-pointer flex items-center gap-1"
-              >
-                <span>Offers & Trending</span>
-              </button>
-              <button
                 onClick={() => handleNavClick('products')}
                 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
               >
-                Catalogue
+                Products
               </button>
               <button
                 onClick={() => handleNavClick('categories')}
                 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
               >
                 Categories
+              </button>
+              <button
+                onClick={() => handleNavClick('trending-offers')}
+                className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-cyan-400 hover:text-blue-700 dark:hover:text-cyan-300 transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <span>Offers</span>
               </button>
               <button
                 onClick={() => handleNavClick('about')}
@@ -201,22 +201,22 @@ export function Header({ settings, announcementBar, onOpenSearch, onOpenAdmin, o
                   Home
                 </button>
                 <button
-                  onClick={() => handleNavClick('trending-offers')}
-                  className="text-left px-3 py-2 rounded-lg text-sm font-bold text-blue-600 dark:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  ⚡ Offers & Trending
-                </button>
-                <button
                   onClick={() => handleNavClick('products')}
                   className="text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
-                  Browse Products
+                  Products
                 </button>
                 <button
                   onClick={() => handleNavClick('categories')}
                   className="text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
-                  All Categories
+                  Categories
+                </button>
+                <button
+                  onClick={() => handleNavClick('trending-offers')}
+                  className="text-left px-3 py-2 rounded-lg text-sm font-bold text-blue-600 dark:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  ⚡ Offers & Promotions
                 </button>
                 <button
                   onClick={() => handleNavClick('about')}

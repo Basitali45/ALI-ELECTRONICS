@@ -57,9 +57,9 @@ export function ProductCard({
   const showWhatsApp = whatsappButtonEnabled && (product.whatsappEnabled !== false);
 
   return (
-    <div className="group relative flex flex-col bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden hover:border-blue-500/70 dark:hover:border-blue-500/60 shadow-xs hover:shadow-xl transition-all duration-300">
+    <div className="group relative flex flex-col bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden card-3d-lift shadow-xs hover:shadow-xl hover:shadow-blue-500/10 dark:hover:shadow-black/40 hover:border-blue-400/60 dark:hover:border-blue-500/50 transition-all duration-300">
       
-      {/* Product Image Container */}
+      {/* Product Image Container with 3D Depth Zoom */}
       <div 
         className="relative aspect-square w-full overflow-hidden bg-slate-100 dark:bg-slate-800/80 cursor-pointer" 
         onClick={() => onViewDetails(product)}
@@ -68,37 +68,37 @@ export function ProductCard({
           src={product.image}
           alt={product.name}
           loading="lazy"
-          className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+          className="h-full w-full object-cover object-center group-hover:scale-106 transition-transform duration-500"
           onError={(e) => {
             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80';
           }}
         />
 
-        {/* Badges / Discount */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1 z-10 pointer-events-none">
+        {/* Floating Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
           {product.badge && (
-            <span className={`px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase shadow-xs ${getBadgeStyle(product.badge)}`}>
+            <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black tracking-wider uppercase shadow-xs ${getBadgeStyle(product.badge)}`}>
               {product.badge}
             </span>
           )}
           {displayDiscount && (
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider bg-rose-600 text-white shadow-xs">
+            <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-black tracking-wider bg-rose-600 text-white shadow-xs">
               {displayDiscount}
             </span>
           )}
         </div>
 
-        {/* Featured Badge */}
+        {/* Featured Tag */}
         {product.featured && (
-          <div className="absolute top-3 right-3 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider bg-blue-600 text-white shadow-xs">
+          <div className="absolute top-3 right-3 px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-wider bg-blue-600 text-white shadow-xs">
             Featured
           </div>
         )}
 
-        {/* Quick View overlay */}
+        {/* Quick View Hover Glass Overlay */}
         <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-          <span className="px-3 py-1.5 rounded-lg bg-white/95 dark:bg-slate-900/95 text-xs font-bold text-slate-900 dark:text-white shadow-md flex items-center gap-1.5 backdrop-blur-xs">
-            <Eye className="w-3.5 h-3.5" />
+          <span className="px-3.5 py-1.5 rounded-xl bg-white/95 dark:bg-slate-900/95 text-xs font-bold text-slate-900 dark:text-white shadow-lg flex items-center gap-1.5 backdrop-blur-md transform group-hover:scale-100 scale-90 transition-transform">
+            <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
             View Details
           </span>
         </div>
@@ -107,7 +107,7 @@ export function ProductCard({
       {/* Product Body */}
       <div className="flex flex-col flex-1 p-4 sm:p-5 space-y-3">
         
-        {/* Category & Availability */}
+        {/* Category & Availability Status */}
         <div className="flex items-center justify-between text-xs">
           <span className="font-bold text-blue-600 dark:text-cyan-400 truncate max-w-[130px]">
             {product.category}
@@ -120,7 +120,7 @@ export function ProductCard({
               </span>
             ) : isLimited ? (
               <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" /> Limited Stock
+                <AlertCircle className="w-3 h-3" /> Limited
               </span>
             ) : (
               <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
@@ -139,7 +139,7 @@ export function ProductCard({
           {product.name}
         </h3>
 
-        {/* Description snippet - High Contrast */}
+        {/* Short Description */}
         <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
           {product.shortDescription || product.description}
         </p>
@@ -156,11 +156,11 @@ export function ProductCard({
           )}
         </div>
 
-        {/* Actions: Direct WhatsApp & Details */}
+        {/* Actions: Direct WhatsApp & Details Buttons */}
         <div className={`grid gap-2 pt-2 ${showWhatsApp ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <button
             onClick={() => onViewDetails(product)}
-            className="w-full py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            className="w-full py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
           >
             <span>Details</span>
             <Eye className="w-3.5 h-3.5" />
@@ -172,10 +172,10 @@ export function ProductCard({
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`Order ${product.name} on WhatsApp`}
-              className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-[#25D366]/20 ${
+              className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-[#25D366]/20 active:scale-95 ${
                 isOutOfStock
                   ? 'bg-amber-600 hover:bg-amber-700 text-white'
-                  : 'bg-[#25D366] hover:bg-[#20ba59] text-white active:scale-95'
+                  : 'bg-[#25D366] hover:bg-[#20ba59] text-white'
               }`}
             >
               <WhatsAppIcon className="w-3.5 h-3.5 fill-white text-white shrink-0" />

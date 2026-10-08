@@ -1,6 +1,6 @@
 {
   "name": "Ali Electronics",
-  "description": "Ali Electronics — Your trusted electronics store at Main Bus Stop, Islam Shaheed Road, Hassan Abdal. Explore electronics products, competitive prices and contact us through WhatsApp.",
+  "description": "Ali Electronics — Premium electronics showroom in Hassan Abdal. Explore mobile accessories, high-speed chargers, wireless sound, and smart tech with direct WhatsApp ordering.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { 
   ArrowRight, 
-  CheckCircle2, 
   Sparkles, 
   Flame, 
   Zap, 
   ShieldCheck, 
-  ChevronRight 
+  PhoneCall, 
+  CheckCircle2, 
+  Layers, 
+  Cpu, 
+  Radio, 
+  Volume2, 
+  BatteryCharging 
 } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { StoreSettings, HomepageConfig, Product } from '../types';
@@ -17,42 +22,59 @@ interface HeroProps {
   trendingProducts?: Product[];
   onBrowseClick: () => void;
   onOffersClick: () => void;
+  onContactClick?: () => void;
   onViewProduct?: (product: Product) => void;
 }
 
-const sampleTrendingSpotlights = [
+interface SpotlightItem {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  oldPrice?: number;
+  discount?: string;
+  badge: string;
+  image: string;
+  features: string[];
+  specs: string;
+}
+
+const defaultSpotlights: SpotlightItem[] = [
   {
     id: 'spot-1',
-    name: 'Wireless Bluetooth Earbuds',
-    category: 'Audio & Earphones',
+    name: 'Pro Wireless ANC Earbuds',
+    category: 'Audio & Wireless',
     price: 2499,
-    oldPrice: 2999,
-    discount: '17% OFF',
-    tag: 'Trending #1',
+    oldPrice: 3200,
+    discount: '22% OFF',
+    badge: 'FLAGSHIP SOUND',
     image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80',
-    specs: ['Deep Bass ANC', '40-Hour Battery', 'Type-C Fast Charge'],
+    features: ['Active Noise Cancelling', '40h Total Playtime', 'Type-C Quick Sync'],
+    specs: 'Bluetooth 5.3 · Deep Bass'
   },
   {
     id: 'spot-2',
-    name: 'Super Fast 65W GaN Charger',
+    name: 'Super Fast 65W GaN Dual Charger',
     category: 'Fast Chargers',
     price: 1850,
-    oldPrice: 2200,
-    discount: '16% OFF',
-    tag: 'Hot Seller',
+    oldPrice: 2400,
+    discount: '23% OFF',
+    badge: 'SUPER CHARGE',
     image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&auto=format&fit=crop&q=80',
-    specs: ['65W Quick PD', 'Dual USB-C Ports', 'Surge Protected'],
+    features: ['65W Power Delivery', 'Dual Port Output', 'Surge & Heat Protection'],
+    specs: 'Laptop & Mobile Compatible'
   },
   {
     id: 'spot-3',
-    name: '20,000mAh Ultra Power Bank',
+    name: '20,000mAh Ultra Slim Power Bank',
     category: 'Power Banks',
     price: 3499,
     oldPrice: 4200,
     discount: '17% OFF',
-    tag: 'Popular',
+    badge: 'HIGH CAPACITY',
     image: 'https://images.unsplash.com/photo-1609592424109-dd9892f1b177?w=800&auto=format&fit=crop&q=80',
-    specs: ['22.5W Fast Charge', 'LED Battery Display', 'Flight Approved'],
+    features: ['22.5W Two-Way Fast Charge', 'Smart LED Power Display', 'Aircraft Approved'],
+    specs: 'Multi-Device Quick Charging'
   },
 ];
 
@@ -62,21 +84,23 @@ export function Hero({
   trendingProducts,
   onBrowseClick, 
   onOffersClick,
+  onContactClick,
   onViewProduct 
 }: HeroProps) {
   if (homepage.heroEnabled === false) return null;
 
-  const [activeSpotlightIdx, setActiveSpotlightIdx] = useState(0);
+  const [activeIdx, setActiveIdx] = useState(0);
 
-  const cleanWhatsApp = settings.whatsappNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const cleanWhatsApp = (settings.whatsappNumber || '03115321647')
+    .replace(/^0/, '92')
+    .replace(/[^0-9]/g, '');
 
-  const headingText = homepage.heroHeading || 'Next-Gen Electronics & Premium Gear';
-  const subtitleText = homepage.heroSubtitle || settings.supportingText || 'Explore genuine electronics, high-speed charging accessories, studio-grade wireless sound, and smart tech with verified quality.';
-  const bgImage = homepage.heroBackgroundImage || 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=1600&auto=format&fit=crop&q=80';
-  const overlayOpacity = (homepage.heroOverlayOpacity ?? 80) / 100;
+  const headingText = homepage.heroHeading || 'Smart Technology. Better Living.';
+  const subtitleText = homepage.heroSubtitle || 
+    'Ali Electronics brings you premium, authentic electronics, high-speed charging accessories, studio-quality sound, and modern smart technology in Hassan Abdal.';
 
-  // Use real products if passed and available, otherwise curated tech highlights
-  const spotlightList = (trendingProducts && trendingProducts.length >= 3)
+  // Map trending products if provided, otherwise fallback to high-end spotlights
+  const spotlights: SpotlightItem[] = (trendingProducts && trendingProducts.length >= 3)
     ? trendingProducts.slice(0, 3).map((p, idx) => ({
         id: p.id,
         name: p.name,
@@ -84,193 +108,216 @@ export function Hero({
         price: p.price,
         oldPrice: p.oldPrice,
         discount: p.discount || (p.oldPrice ? `${Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100)}% OFF` : 'SPECIAL'),
-        tag: idx === 0 ? 'Trending #1' : idx === 1 ? 'Hot Deal' : 'Popular Choice',
+        badge: idx === 0 ? 'TOP SELLER' : idx === 1 ? 'HOT OFFER' : 'FEATURED',
         image: p.image,
-        specs: (p.specifications && p.specifications.length > 0) 
-          ? p.specifications.slice(0, 3) 
-          : ['Tested Quality', 'Shop Warranty', 'Instant Stock'],
-        rawProduct: p
+        features: (p.specifications && p.specifications.length > 0)
+          ? p.specifications.slice(0, 3)
+          : ['Tested Genuine', 'Shop Warranty', 'Ready Stock'],
+        specs: p.shortDescription || 'Verified Ali Electronics Stock'
       }))
-    : sampleTrendingSpotlights;
+    : defaultSpotlights;
 
-  const activeSpotlight = spotlightList[activeSpotlightIdx] || spotlightList[0];
+  const currentItem = spotlights[activeIdx] || spotlights[0];
 
-  const waSpotlightUrl = `https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(
-    `Assalam-o-Alaikum Ali Electronics, I want to inquire/order trending product: ${activeSpotlight.name} (Rs. ${activeSpotlight.price.toLocaleString()}). Please confirm availability.`
+  const waOrderUrl = `https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(
+    `Assalam-o-Alaikum Ali Electronics, I want to inquire about ${currentItem.name} (Rs. ${currentItem.price.toLocaleString()}). Please confirm stock and delivery in Hassan Abdal.`
   )}`;
 
   return (
-    <section id="home" className="relative pt-28 pb-16 md:pt-36 md:pb-24 overflow-hidden">
-      {/* Dynamic Background Image & Subtle Dark Tech Overlay */}
-      <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
-        <img
-          src={bgImage}
-          alt="Ali Electronics Storefront"
-          className="w-full h-full object-cover object-center transform scale-105"
-        />
-        <div 
-          className="absolute inset-0 bg-[#0B0F19]"
-          style={{ opacity: overlayOpacity }}
-        />
-        {/* Aesthetic radial tech ambient glow */}
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-10 right-0 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+    <section id="home" className="relative pt-24 pb-16 md:pt-32 md:pb-24 overflow-hidden hero-light-grid transition-colors duration-500">
+      
+      {/* 3D Ambient Lighting Spheres (Light & Dark Compatible) */}
+      <div className="absolute top-10 left-1/4 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-blue-400/20 dark:bg-blue-600/20 blur-3xl pointer-events-none animate-pulse-glow" />
+      <div className="absolute top-1/3 right-10 w-80 sm:w-[480px] h-80 sm:h-[480px] rounded-full bg-cyan-300/25 dark:bg-cyan-500/15 blur-3xl pointer-events-none animate-float-reverse" />
+      <div className="absolute -bottom-10 left-10 w-64 h-64 rounded-full bg-indigo-300/20 dark:bg-purple-600/15 blur-3xl pointer-events-none" />
+
+      {/* Floating 3D Geometric Accents */}
+      <div className="hidden lg:block absolute top-28 left-8 text-blue-500/20 dark:text-cyan-400/20 animate-float-slow pointer-events-none">
+        <Cpu className="w-16 h-16" />
+      </div>
+      <div className="hidden lg:block absolute bottom-20 left-1/3 text-indigo-400/20 dark:text-indigo-400/20 animate-float-reverse pointer-events-none">
+        <Radio className="w-12 h-12" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-14 items-center">
           
-          {/* Main Hero Copy (Left Column) */}
-          <div className="lg:col-span-7 space-y-6">
+          {/* ================= LEFT COLUMN: HERO CONTENT ================= */}
+          <div className="lg:col-span-7 space-y-6 sm:space-y-7 text-left">
             
-            {/* Aesthetic Tech Pill Tagline */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/15 border border-blue-400/30 text-cyan-300 text-xs font-bold tracking-wide backdrop-blur-md">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="uppercase tracking-wider">Hassan Abdal · Trusted Electronics Hub</span>
+            {/* Brand Kicker with Soft Glow */}
+            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-blue-50/90 dark:bg-blue-950/70 border border-blue-200/80 dark:border-blue-800/80 shadow-xs backdrop-blur-md">
+              <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-cyan-400 animate-ping" />
+              <span className="text-[11px] sm:text-xs font-black tracking-widest uppercase text-blue-700 dark:text-cyan-300 font-mono">
+                ALI ELECTRONICS · HASSAN ABDAL
+              </span>
             </div>
 
-            {/* Aesthetic Large Headline */}
-            <div className="space-y-4">
-              <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.1]">
-                {headingText}
+            {/* Main Headline */}
+            <div className="space-y-3">
+              <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.08]">
+                {headingText.includes('Smart') ? (
+                  <>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-indigo-600 to-cyan-600 dark:from-white dark:via-blue-200 dark:to-cyan-300">
+                      Smart Technology.
+                    </span>{' '}
+                    <span>Better Living.</span>
+                  </>
+                ) : (
+                  headingText
+                )}
               </h1>
 
-              <p className="text-base sm:text-lg text-slate-300 max-w-xl leading-relaxed font-normal">
+              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-xl leading-relaxed font-normal">
                 {subtitleText}
               </p>
             </div>
 
-            {/* Action Buttons: Clean & Product Focused */}
-            <div className="flex flex-wrap items-center gap-3.5 pt-2">
+            {/* Primary Action Buttons: Explore Products, Contact Us, WhatsApp */}
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-1">
+              
+              {/* Explore Products Button */}
               <button
-                onClick={onOffersClick}
-                className="px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/25 transition-all flex items-center gap-2 group cursor-pointer"
+                onClick={onBrowseClick}
+                className="px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 transition-all flex items-center gap-2 group cursor-pointer active:scale-95"
               >
-                <Flame className="w-4 h-4 text-amber-300 fill-amber-300" />
-                <span>View Hot Offers</span>
+                <span>Explore Products</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
 
+              {/* Contact Us Button */}
               <button
-                onClick={onBrowseClick}
-                className="px-5 py-3.5 rounded-xl font-semibold text-xs uppercase tracking-wider text-slate-200 bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 transition-all shadow-xs backdrop-blur-md cursor-pointer"
+                onClick={onContactClick || onBrowseClick}
+                className="px-5 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm transition-all flex items-center gap-2 cursor-pointer active:scale-95"
               >
-                {homepage.heroCtaText || 'Explore Catalogue'}
+                <PhoneCall className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span>Contact Us</span>
               </button>
 
-              {settings.whatsappFloatingEnabled && (
-                <a
-                  href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronics, I want to inquire about products.')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-[#25D366] hover:bg-[#20ba59] text-white transition-all flex items-center gap-2 shadow-md shadow-[#25D366]/25 cursor-pointer"
-                >
-                  <WhatsAppIcon className="w-4 h-4 fill-white text-white" />
-                  <span className="hidden sm:inline">WhatsApp</span>
-                </a>
-              )}
+              {/* WhatsApp Button */}
+              <a
+                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronics, I would like to inquire about your products.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-5 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-[#25D366] hover:bg-[#20ba59] text-white shadow-md shadow-[#25D366]/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+              >
+                <WhatsAppIcon className="w-4 h-4 fill-white text-white" />
+                <span>WhatsApp Us</span>
+              </a>
             </div>
 
-            {/* Professional Trust Badges */}
-            <div className="flex flex-wrap items-center gap-y-2.5 gap-x-6 text-xs text-slate-300 pt-4 border-t border-slate-800/80">
+            {/* Quality & Trust Badges */}
+            <div className="pt-4 border-t border-slate-200/80 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-600 dark:text-slate-400">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>100% Tested Genuine Products</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="font-medium">100% Tested Authentic</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Competitive Pakistani Rupee Rates</span>
+                <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-cyan-400 shrink-0" />
+                <span className="font-medium">Store Warranty Support</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Instant WhatsApp Order Confirmation</span>
+                <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+                <span className="font-medium">Direct WhatsApp Orders</span>
               </div>
             </div>
 
           </div>
 
-          {/* Right Column: High-End Live Trending Spotlight Card */}
-          <div className="lg:col-span-5">
-            <div className="relative mx-auto max-w-md lg:max-w-none">
+          {/* ================= RIGHT COLUMN: 3D CINEMATIC SHOWCASE STAGE ================= */}
+          <div className="lg:col-span-5 relative perspective-1000">
+            
+            {/* 3D Floating Stage Container */}
+            <div className="relative mx-auto max-w-md lg:max-w-none transform-style-3d">
               
-              {/* Outer Glow container with Drop-Down entrance */}
-              <div className="relative rounded-3xl overflow-hidden bg-slate-900/90 border border-slate-800 shadow-2xl backdrop-blur-xl animate-product-drop">
+              {/* Outer Decorative 3D Glass Layer Card */}
+              <div className="relative rounded-3xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800/90 shadow-2xl shadow-blue-500/10 dark:shadow-black/50 backdrop-blur-xl overflow-hidden card-3d-lift">
                 
-                {/* Spotlight Header Bar */}
-                <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
+                {/* 3D Depth Header */}
+                <div className="px-5 py-3.5 bg-gradient-to-r from-slate-50 via-blue-50/50 to-indigo-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 border-b border-slate-200/70 dark:border-slate-800 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="p-1 rounded-lg bg-rose-500/20 text-rose-400">
-                      <Flame className="w-4 h-4 fill-rose-500" />
+                    <span className="p-1 rounded-lg bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-cyan-400">
+                      <Sparkles className="w-4 h-4" />
                     </span>
-                    <span className="font-heading font-extrabold text-xs uppercase tracking-wider text-white">
-                      Trending in Hassan Abdal
+                    <span className="font-heading font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white">
+                      Featured Technology Showcase
                     </span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-black tracking-widest uppercase bg-blue-600/30 text-blue-300 border border-blue-500/40">
-                    {activeSpotlight.tag}
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-widest uppercase bg-blue-600 text-white shadow-xs">
+                    {currentItem.badge}
                   </span>
                 </div>
 
-                {/* Spotlight Image & Visual */}
-                <div className="relative aspect-video sm:aspect-4/3 w-full overflow-hidden bg-slate-950 group">
+                {/* 3D Visual Screen */}
+                <div className="relative aspect-4/3 w-full overflow-hidden bg-slate-100 dark:bg-slate-950 group">
                   <img
-                    src={activeSpotlight.image}
-                    alt={activeSpotlight.name}
+                    src={currentItem.image}
+                    alt={currentItem.name}
                     className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
                   
-                  {activeSpotlight.discount && (
-                    <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-black tracking-wider bg-rose-600 text-white shadow-lg">
-                      {activeSpotlight.discount}
+                  {/* Subtle Cinematic Vignette */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+
+                  {/* Floating 3D Discount Badge */}
+                  {currentItem.discount && (
+                    <div className="absolute top-3.5 left-3.5 px-3 py-1 rounded-xl text-xs font-black tracking-wider bg-rose-600 text-white shadow-md animate-float-slow">
+                      {currentItem.discount}
                     </div>
                   )}
 
-                  <div className="absolute bottom-3 left-3 right-3 text-white">
-                    <span className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider">
-                      {activeSpotlight.category}
-                    </span>
-                    <h3 className="font-heading font-extrabold text-lg sm:text-xl text-white truncate">
-                      {activeSpotlight.name}
+                  {/* Floating Depth Specification Pill */}
+                  <div className="absolute top-3.5 right-3.5 px-3 py-1 rounded-xl text-[10px] font-bold bg-white/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 shadow-md backdrop-blur-md">
+                    {currentItem.category}
+                  </div>
+
+                  {/* Bottom Image Info Banner */}
+                  <div className="absolute bottom-3.5 left-4 right-4 text-white">
+                    <p className="text-[11px] font-mono font-medium text-cyan-300">
+                      {currentItem.specs}
+                    </p>
+                    <h3 className="font-heading font-extrabold text-xl text-white truncate drop-shadow-md">
+                      {currentItem.name}
                     </h3>
                   </div>
                 </div>
 
-                {/* Specs Chips */}
-                <div className="p-4 space-y-3.5 bg-slate-900/80">
-                  <div className="flex flex-wrap gap-1.5">
-                    {activeSpotlight.specs.map((spec, i) => (
+                {/* Feature Specs */}
+                <div className="p-5 space-y-4 bg-white/80 dark:bg-slate-900/80">
+                  <div className="flex flex-wrap gap-2">
+                    {currentItem.features.map((feat, i) => (
                       <span
                         key={i}
-                        className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-800/80 text-slate-300 border border-slate-700/60"
+                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700/70"
                       >
-                        {spec}
+                        {feat}
                       </span>
                     ))}
                   </div>
 
-                  {/* Pricing and Action */}
-                  <div className="pt-2 flex items-center justify-between border-t border-slate-800">
+                  {/* Price & Direct Order Action */}
+                  <div className="pt-2 flex items-center justify-between border-t border-slate-200/80 dark:border-slate-800">
                     <div>
-                      <div className="text-[10px] text-slate-400 uppercase tracking-wider">Special Price</div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">
+                        Hassan Abdal Store Price
+                      </span>
                       <div className="flex items-baseline gap-2">
-                        <span className="font-mono font-extrabold text-xl text-white">
-                          Rs. {activeSpotlight.price.toLocaleString()}
+                        <span className="font-mono font-black text-2xl text-slate-900 dark:text-white">
+                          Rs. {currentItem.price.toLocaleString()}
                         </span>
-                        {activeSpotlight.oldPrice && (
-                          <span className="font-mono text-xs text-slate-500 line-through">
-                            Rs. {activeSpotlight.oldPrice.toLocaleString()}
+                        {currentItem.oldPrice && (
+                          <span className="font-mono text-xs text-slate-400 dark:text-slate-500 line-through">
+                            Rs. {currentItem.oldPrice.toLocaleString()}
                           </span>
                         )}
                       </div>
                     </div>
 
                     <a
-                      href={waSpotlightUrl}
+                      href={waOrderUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-4 py-2.5 rounded-xl font-bold text-xs bg-[#25D366] hover:bg-[#20ba59] text-white shadow-md shadow-[#25D366]/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-2.5 rounded-xl font-bold text-xs bg-[#25D366] hover:bg-[#20ba59] text-white shadow-md shadow-[#25D366]/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
                     >
                       <WhatsAppIcon className="w-3.5 h-3.5 fill-white text-white" />
                       <span>Order on WA</span>
@@ -278,16 +325,16 @@ export function Hero({
                   </div>
                 </div>
 
-                {/* Quick Toggle Tabs */}
-                <div className="grid grid-cols-3 border-t border-slate-800 bg-slate-950/60">
-                  {spotlightList.map((item, idx) => (
+                {/* Interactive Product Tabs */}
+                <div className="grid grid-cols-3 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60">
+                  {spotlights.map((item, idx) => (
                     <button
-                      key={idx}
-                      onClick={() => setActiveSpotlightIdx(idx)}
-                      className={`p-2.5 text-center text-[11px] font-semibold transition-all border-b-2 cursor-pointer ${
-                        activeSpotlightIdx === idx
-                          ? 'border-blue-500 text-white bg-blue-500/10'
-                          : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
+                      key={item.id}
+                      onClick={() => setActiveIdx(idx)}
+                      className={`p-2.5 text-center text-[11px] font-bold transition-all border-b-2 cursor-pointer ${
+                        activeIdx === idx
+                          ? 'border-blue-600 text-blue-700 dark:text-white bg-blue-50/60 dark:bg-blue-600/20'
+                          : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'
                       }`}
                     >
                       <span className="block truncate">{item.name.split(' ')[0]} {item.name.split(' ')[1] || ''}</span>
@@ -296,7 +343,11 @@ export function Hero({
                 </div>
 
               </div>
+
+              {/* 3D Perspective Floating Back Accent */}
+              <div className="absolute -bottom-3 -right-3 -left-3 h-6 rounded-3xl bg-blue-600/10 dark:bg-blue-600/20 blur-md -z-10 pointer-events-none" />
             </div>
+
           </div>
 
         </div>
