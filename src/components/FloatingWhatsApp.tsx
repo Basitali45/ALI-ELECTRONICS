@@ -11,7 +11,7 @@ export function FloatingWhatsApp({ settings }: FloatingWhatsAppProps) {
   const [showTooltip, setShowTooltip] = useState(true);
   const cleanWhatsApp = settings.whatsappNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
 
-  const defaultMessage = 'Assalam-o-Alaikum Ali Electronics, I would like to inquire about your products.';
+  const defaultMessage = 'Assalam-o-Alaikum Ali Electronic, I would like to inquire about your products.';
   const whatsappUrl = `https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(defaultMessage)}`;
 
   return (
@@ -21,7 +21,7 @@ export function FloatingWhatsApp({ settings }: FloatingWhatsAppProps) {
       {showTooltip && (
         <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl text-xs text-slate-800 dark:text-slate-100 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-          <span className="font-semibold text-slate-800 dark:text-slate-100">Need help? Chat with Ali Electronics on WhatsApp</span>
+          <span className="font-semibold text-slate-800 dark:text-slate-100">Need help? Chat with Ali Electronic on WhatsApp</span>
           <button
             onClick={() => setShowTooltip(false)}
             className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ml-1 cursor-pointer"
@@ -36,7 +36,7 @@ export function FloatingWhatsApp({ settings }: FloatingWhatsAppProps) {
         href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="Chat with Ali Electronics on WhatsApp"
+        aria-label="Chat with Ali Electronic on WhatsApp"
         className="w-14 h-14 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white shadow-xl shadow-[#25D366]/40 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center relative focus:outline-none focus:ring-4 focus:ring-[#25D366]/40 cursor-pointer"
       >
         {/* Subtle pulsing glow */}

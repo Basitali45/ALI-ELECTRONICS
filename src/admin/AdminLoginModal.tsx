@@ -52,7 +52,7 @@ export function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLoginModalP
             <ShieldCheck className="w-6 h-6" />
           </div>
           <h3 className="font-heading font-extrabold text-2xl text-slate-900 dark:text-white">
-            Ali Electronics Portal
+            Ali Electronic Portal
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Sign in to manage products, update prices, inventory, and shop settings.

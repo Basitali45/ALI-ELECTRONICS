@@ -1,7 +1,8 @@
 import React from 'react';
-import { Eye, Check, AlertCircle, XCircle } from 'lucide-react';
+import { Eye, Check, AlertCircle, XCircle, ShoppingBag, Heart } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { Product } from '../types';
+import { useCart } from '../context/CartContext';
 
 interface ProductCardProps {
   product: Product;
@@ -18,13 +19,15 @@ export function ProductCard({
   onViewDetails, 
   onDirectOrder 
 }: ProductCardProps) {
+  const { addToCart, isInWishlist, toggleWishlist } = useCart();
   const isOutOfStock = product.availability === 'Out of Stock';
   const isLimited = product.availability === 'Limited Stock';
+  const inWishlist = isInWishlist(product.id);
 
   const cleanPhone = (whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
 
   const waOrderUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-    `Assalam-o-Alaikum Ali Electronics, I want to ${isOutOfStock ? 'inquire about stock for' : 'order'}: ${product.name} (Price: Rs. ${product.price.toLocaleString()}). Please confirm availability.`
+    `Assalam-o-Alaikum Ali Electronic, I want to ${isOutOfStock ? 'inquire about stock for' : 'order'}: ${product.name} (Price: Rs. ${product.price.toLocaleString()}). Please confirm availability.`
   )}`;
 
   // Calculate discount percentage if oldPrice exists
@@ -55,6 +58,17 @@ export function ProductCard({
   };
 
   const showWhatsApp = whatsappButtonEnabled && (product.whatsappEnabled !== false);
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isOutOfStock) return;
+    addToCart(product, 1);
+  };
+
+  const handleToggleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleWishlist(product.id);
+  };
 
   return (
     <div className="group relative flex flex-col bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden card-3d-lift shadow-xs hover:shadow-xl hover:shadow-blue-500/10 dark:hover:shadow-black/40 hover:border-blue-400/60 dark:hover:border-blue-500/50 transition-all duration-300">
@@ -88,12 +102,20 @@ export function ProductCard({
           )}
         </div>
 
-        {/* Featured Tag */}
-        {product.featured && (
-          <div className="absolute top-3 right-3 px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-wider bg-blue-600 text-white shadow-xs">
-            Featured
-          </div>
-        )}
+        {/* Top Right Actions: Wishlist Heart & Featured Tag */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+          <button
+            onClick={handleToggleWishlist}
+            aria-label="Add to wishlist"
+            className={`p-2 rounded-xl backdrop-blur-md transition-all shadow-sm ${
+              inWishlist
+                ? 'bg-rose-500 text-white'
+                : 'bg-white/90 dark:bg-slate-900/90 text-slate-600 dark:text-slate-300 hover:text-rose-500'
+            }`}
+          >
+            <Heart className={`w-3.5 h-3.5 ${inWishlist ? 'fill-current' : ''}`} />
+          </button>
+        </div>
 
         {/* Quick View Hover Glass Overlay */}
         <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
@@ -145,25 +167,34 @@ export function ProductCard({
         </p>
 
         {/* Pricing */}
-        <div className="pt-1 mt-auto flex items-baseline gap-2">
-          <span className="text-lg font-black text-slate-950 dark:text-white font-mono tracking-tight">
-            Rs. {product.price.toLocaleString()}
-          </span>
-          {product.oldPrice && (
-            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 line-through font-mono">
-              Rs. {product.oldPrice.toLocaleString()}
+        <div className="pt-1 mt-auto flex items-baseline justify-between gap-2">
+          <div className="flex items-baseline gap-2">
+            <span className="text-lg font-black text-slate-950 dark:text-white font-mono tracking-tight">
+              Rs. {product.price.toLocaleString()}
+            </span>
+            {product.oldPrice && (
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 line-through font-mono">
+                Rs. {product.oldPrice.toLocaleString()}
+              </span>
+            )}
+          </div>
+
+          {product.sku && (
+            <span className="text-[10px] text-slate-400 font-mono">
+              {product.sku}
             </span>
           )}
         </div>
 
-        {/* Actions: Direct WhatsApp & Details Buttons */}
-        <div className={`grid gap-2 pt-2 ${showWhatsApp ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {/* Actions: Add to Cart & WhatsApp */}
+        <div className="grid grid-cols-2 gap-2 pt-2">
           <button
-            onClick={() => onViewDetails(product)}
-            className="w-full py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+            onClick={handleAddToCart}
+            disabled={isOutOfStock}
+            className="w-full py-2.5 px-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:cursor-not-allowed text-white shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
           >
-            <span>Details</span>
-            <Eye className="w-3.5 h-3.5" />
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>{isOutOfStock ? 'Sold Out' : 'Add to Cart'}</span>
           </button>
 
           {showWhatsApp && (
@@ -179,7 +210,7 @@ export function ProductCard({
               }`}
             >
               <WhatsAppIcon className="w-3.5 h-3.5 fill-white text-white shrink-0" />
-              <span className="truncate">{isOutOfStock ? 'Ask on WA' : 'Order on WA'}</span>
+              <span className="truncate">{isOutOfStock ? 'Inquire WA' : 'WhatsApp'}</span>
             </a>
           )}
         </div>

@@ -29,7 +29,7 @@ export function OffersManager({ offers, products, onRefresh, showToast }: Offers
     setEditingOffer(null);
     setForm({
       title: 'MEGA ELECTRONICS SALE',
-      description: 'Up to 30% OFF on Selected Products at Ali Electronics Hassan Abdal',
+      description: 'Up to 30% OFF on Selected Products at Ali Electronic Hassan Abdal',
       discountType: 'percentage',
       discountValue: 30,
       bannerImage: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=1200&auto=format&fit=crop&q=80',

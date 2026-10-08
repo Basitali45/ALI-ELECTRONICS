@@ -1,0 +1,2 @@
+-- Refer to /supabase/schema.sql for the complete SQL migration.
+-- Copy and paste the entire script into your Supabase Dashboard -> SQL Editor and click RUN.

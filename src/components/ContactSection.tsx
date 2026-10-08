@@ -88,7 +88,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
             Get In Touch
           </span>
           <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
-            Visit Us or Contact Ali Electronics
+            Visit Us or Contact Ali Electronic
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
             We are always happy to assist with product availability, prices, and technical questions.
@@ -187,7 +187,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
 
               {/* Direct WhatsApp Action */}
               <a
-                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronics, I would like to inquire about products.')}`}
+                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronic, I would like to inquire about products.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba59] text-white transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer"
@@ -230,7 +230,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
                 <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>
-                    Thank you! Your message has been received by Ali Electronics. We will get back to you promptly.
+                    Thank you! Your message has been received by Ali Electronic. We will get back to you promptly.
                   </span>
                 </div>
               )}
@@ -298,7 +298,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
                   </button>
 
                   <a
-                    href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(`Assalam-o-Alaikum Ali Electronics, my name is ${name || 'Customer'}. I am contacting you from your website.`)}`}
+                    href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(`Assalam-o-Alaikum Ali Electronic, my name is ${name || 'Customer'}. I am contacting you from your website.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1.5"
@@ -332,7 +332,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
 
               <div className="relative h-64 sm:h-72 w-full bg-slate-200 dark:bg-slate-800">
                 <iframe
-                  title="Ali Electronics Hassan Abdal Location Map"
+                  title="Ali Electronic Hassan Abdal Location Map"
                   src={googleMapsEmbedUrl}
                   className="w-full h-full border-0"
                   loading="lazy"

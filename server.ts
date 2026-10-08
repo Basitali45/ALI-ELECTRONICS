@@ -87,7 +87,7 @@ const initialSalt = crypto.randomBytes(16).toString('hex');
 
 const defaultHomepageConfig: HomepageConfig = {
   heroHeading: 'Your Trusted Electronics Store in Hassan Abdal',
-  heroSubtitle: 'Explore quality electronics, competitive prices and reliable service at Ali Electronics.',
+  heroSubtitle: 'Explore quality electronics, competitive prices and reliable service at Ali Electronic.',
   heroBackgroundImage: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=1600&auto=format&fit=crop&q=80',
   heroOverlayOpacity: 75,
   heroCtaText: 'Browse Products',
@@ -102,7 +102,7 @@ const defaultHomepageConfig: HomepageConfig = {
     { id: 'categories', name: 'Categories Department', enabled: true, order: 4 },
     { id: 'featured', name: 'Featured Products', enabled: true, order: 5 },
     { id: 'newArrivals', name: 'New Arrivals', enabled: true, order: 6 },
-    { id: 'about', name: 'About Ali Electronics', enabled: true, order: 7 },
+    { id: 'about', name: 'About Ali Electronic', enabled: true, order: 7 },
     { id: 'whyUs', name: 'Why Choose Us', enabled: true, order: 8 },
     { id: 'contact', name: 'Contact & Store Hours', enabled: true, order: 9 },
     { id: 'map', name: 'Google Map Location', enabled: true, order: 10 },
@@ -116,7 +116,7 @@ const defaultHomepageConfig: HomepageConfig = {
   promoPopup: {
     enabled: false,
     title: 'MEGA ELECTRONICS SALE',
-    description: 'Get amazing discounts and authentic accessories at Ali Electronics today.',
+    description: 'Get amazing discounts and authentic accessories at Ali Electronic today.',
     image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80',
     buttonText: 'Shop Special Offers',
     buttonLink: '#products',
@@ -126,9 +126,9 @@ const defaultHomepageConfig: HomepageConfig = {
 };
 
 const defaultSettings: StoreSettings = {
-  businessName: 'Ali Electronics',
+  businessName: 'Ali Electronic',
   tagline: 'Your Trusted Electronics Store in Hassan Abdal',
-  supportingText: 'Explore quality electronics, competitive prices and reliable service at Ali Electronics.',
+  supportingText: 'Explore quality electronics, competitive prices and reliable service at Ali Electronic.',
   location: 'Main Bus Stop, Islam Shaheed Road, Opposite New Sethi Flour Mills, Hassan Abdal, Pakistan',
   googleMapsUrl: 'https://maps.google.com/?q=Main+Bus+Stop+Islam+Shaheed+Road+Hassan+Abdal+Pakistan',
   phone1: '03115321647',
@@ -138,12 +138,12 @@ const defaultSettings: StoreSettings = {
   whatsappNumber: '03115321647',
   whatsappFloatingEnabled: true,
   whatsappProductButtonEnabled: true,
-  whatsappTemplate: 'Assalam-o-Alaikum Ali Electronics, I am interested in {product_name}. Current price is {price}. Please confirm availability.',
+  whatsappTemplate: 'Assalam-o-Alaikum Ali Electronic, I am interested in {product_name}. Current price is {price}. Please confirm availability.',
   businessHours: 'Opening Hours — Contact us for current timings',
   email: 'contact@alielectronics-hassanabdal.pk',
-  aboutText: 'Ali Electronics is a local electronics business serving customers in Hassan Abdal with quality electronics products, competitive pricing and customer-focused service.',
+  aboutText: 'Ali Electronic is a local electronics business serving customers in Hassan Abdal with quality electronics products, competitive pricing and customer-focused service.',
   logoUrl: '',
-  footerText: '© 2026 Ali Electronics. All Rights Reserved. Hassan Abdal, Pakistan.',
+  footerText: '© 2026 Ali Electronic. All Rights Reserved. Hassan Abdal, Pakistan.',
   themePreset: 'ocean-blue',
 };
 
@@ -1178,7 +1178,7 @@ app.post('/api/inquiries', (req: Request, res: Response) => {
   const product = data.products.find(p => p.id === productId);
   const categoryStr = product?.category || 'Electronics';
 
-  let template = data.settings.whatsappTemplate || 'Assalam-o-Alaikum Ali Electronics, I am interested in {product_name}. Current price is {price}. Please confirm availability.';
+  let template = data.settings.whatsappTemplate || 'Assalam-o-Alaikum Ali Electronic, I am interested in {product_name}. Current price is {price}. Please confirm availability.';
   
   template = template
     .replace('{product_name}', newInquiry.productName)
@@ -1246,7 +1246,7 @@ app.post('/api/contact', (req: Request, res: Response) => {
   writeData(data);
 
   const cleanPhone = data.settings.whatsappNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
-  const text = `Assalam-o-Alaikum Ali Electronics, my name is ${name.trim()} (${phone.trim()}). ${message.trim()}`;
+  const text = `Assalam-o-Alaikum Ali Electronic, my name is ${name.trim()} (${phone.trim()}). ${message.trim()}`;
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
 
   res.status(201).json({ success: true, message: 'Thank you! Your message has been received.', whatsappUrl });
@@ -1315,7 +1315,7 @@ async function startServer() {
   }
 
   app.listen(PORT, () => {
-    console.log(`Ali Electronics Server listening on port ${PORT} (mode: ${isProduction ? 'production' : 'development'})`);
+    console.log(`Ali Electronic Server listening on port ${PORT} (mode: ${isProduction ? 'production' : 'development'})`);
   });
 }
 

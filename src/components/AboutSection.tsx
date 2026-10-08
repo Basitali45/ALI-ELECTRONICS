@@ -21,7 +21,7 @@ export function AboutSection({ settings }: AboutSectionProps) {
             <div className="relative rounded-3xl overflow-hidden bg-slate-900 shadow-xl border border-slate-800">
               <img
                 src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1000&auto=format&fit=crop&q=80"
-                alt="Technology team Ali Electronics Hassan Abdal"
+                alt="Technology team Ali Electronic Hassan Abdal"
                 className="w-full h-80 object-cover object-center opacity-85"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
@@ -58,7 +58,7 @@ export function AboutSection({ settings }: AboutSectionProps) {
           <div className="lg:col-span-7 space-y-6">
             <div className="space-y-2">
               <span className="text-xs font-bold tracking-wider text-blue-600 dark:text-blue-400 uppercase">
-                About Ali Electronics
+                About Ali Electronic
               </span>
               <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white leading-tight">
                 Your Neighborhood Hub for Modern Electronics & Accessories
@@ -67,7 +67,7 @@ export function AboutSection({ settings }: AboutSectionProps) {
 
             <p className="text-base text-slate-600 dark:text-slate-300 leading-relaxed">
               {settings.aboutText || (
-                'Ali Electronics is a local electronics business serving customers in Hassan Abdal with quality electronics products, competitive pricing and customer-focused service.'
+                'Ali Electronic is a local electronics business serving customers in Hassan Abdal with quality electronics products, competitive pricing and customer-focused service.'
               )}
             </p>
 
@@ -137,7 +137,7 @@ export function AboutSection({ settings }: AboutSectionProps) {
               </a>
 
               <a
-                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronics, I would like to inquire about your products.')}`}
+                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronic, I would like to inquire about your products.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba59] text-white transition-all flex items-center gap-2 shadow-sm shadow-[#25D366]/20 cursor-pointer"

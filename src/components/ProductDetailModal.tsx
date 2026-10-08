@@ -9,11 +9,14 @@ import {
   Plus, 
   ShieldCheck, 
   Share2, 
-  Tag 
+  Tag,
+  ShoppingBag,
+  Zap,
+  Truck
 } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { Product, StoreSettings } from '../types';
-import { api } from '../services/api';
+import { useCart } from '../context/CartContext';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -22,6 +25,7 @@ interface ProductDetailModalProps {
 }
 
 export function ProductDetailModal({ product, settings, onClose }: ProductDetailModalProps) {
+  const { addToCart, setIsCartOpen, setIsCheckoutOpen } = useCart();
   const [activeImage, setActiveImage] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -58,9 +62,23 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
 
   const handleWhatsAppOrder = () => {
     const qtyText = quantity > 1 ? ` (Quantity: ${quantity}, Total: Rs. ${(product.price * quantity).toLocaleString()})` : ` (Price: Rs. ${product.price.toLocaleString()})`;
-    const text = `Assalam-o-Alaikum Ali Electronics, I want to ${isOutOfStock ? 'inquire about stock for' : 'order'}: ${product.name}${qtyText}. Please confirm availability.`;
+    const text = `Assalam-o-Alaikum Ali Electronic, I want to ${isOutOfStock ? 'inquire about stock for' : 'order'}: ${product.name}${qtyText}. Product Image: ${product.image}. Please confirm availability in Hassan Abdal.`;
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
     window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleAddToCart = () => {
+    if (isOutOfStock) return;
+    addToCart(product, quantity);
+    setIsCartOpen(true);
+    onClose();
+  };
+
+  const handleBuyNow = () => {
+    if (isOutOfStock) return;
+    addToCart(product, quantity);
+    onClose();
+    setIsCheckoutOpen(true);
   };
 
   const handleShare = () => {
@@ -98,94 +116,81 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
                 src={activeImage || product.image}
                 alt={product.name}
                 className="w-full h-full object-cover object-center"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80';
-                }}
               />
+
               {displayDiscount && (
-                <div className="absolute top-3 left-3 px-2 py-1 rounded-md text-xs font-bold tracking-wider bg-rose-600 text-white shadow-sm">
+                <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-black bg-rose-600 text-white shadow-sm">
                   {displayDiscount}
-                </div>
-              )}
-              {product.badge && (
-                <div className="absolute top-3 right-3 px-2 py-1 rounded-md text-xs font-bold tracking-wider bg-blue-600 text-white shadow-sm">
-                  {product.badge}
                 </div>
               )}
             </div>
 
-            {/* Thumbnail Gallery */}
+            {/* Thumbnail Carousel */}
             {allImages.length > 1 && (
-              <div className="flex items-center gap-2 mt-3 w-full overflow-x-auto pb-1">
+              <div className="flex items-center gap-2 mt-4 overflow-x-auto max-w-full pb-1">
                 {allImages.map((img, idx) => (
                   <button
                     key={idx}
                     onClick={() => setActiveImage(img)}
-                    className={`w-12 h-12 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
-                      activeImage === img ? 'border-blue-600 scale-105' : 'border-transparent opacity-70 hover:opacity-100'
+                    className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
+                      activeImage === img ? 'border-blue-600 scale-105 shadow-sm' : 'border-transparent opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
+                    <img src={img} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Local Trust Note */}
-            <div className="mt-4 w-full p-3 rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/60 dark:border-slate-800/60 space-y-1 text-xs text-slate-600 dark:text-slate-400">
-              <div className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200">
-                <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span>Ali Electronics Guarantee</span>
+            {/* Hassan Abdal Delivery Badge */}
+            <div className="mt-auto pt-6 w-full text-center">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold">
+                <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                <span>Verified Ali Electronic Hassan Abdal Stock</span>
               </div>
-              <p className="text-[11px] leading-tight">
-                Authentic tested unit. Available for testing directly at our Hassan Abdal shop.
-              </p>
             </div>
           </div>
 
-          {/* Right Column: Info & WhatsApp Inquiry */}
-          <div className="md:col-span-7 p-6 sm:p-8 flex flex-col space-y-5 max-h-[85vh] overflow-y-auto">
+          {/* Right Column: Product Specs & Ordering */}
+          <div className="md:col-span-7 p-6 sm:p-8 flex flex-col justify-between space-y-6">
             
-            {/* Meta & Stock */}
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-blue-600 dark:text-blue-400">
-                  {product.category}
-                </span>
-                {product.brand && (
-                  <>
-                    <span className="text-slate-400">·</span>
-                    <span className="text-slate-500">{product.brand}</span>
-                  </>
-                )}
-              </div>
+            {/* Category, Brand, Stock Status */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-blue-600 dark:text-cyan-400">
+                {product.category} {product.brand ? `· ${product.brand}` : ''}
+              </span>
 
-              <div>
+              <span className="flex items-center gap-1.5">
                 {isOutOfStock ? (
-                  <span className="inline-flex items-center gap-1 font-semibold text-rose-600 dark:text-rose-400">
+                  <span className="text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1">
                     <XCircle className="w-3.5 h-3.5" /> Out of Stock
                   </span>
                 ) : isLimited ? (
-                  <span className="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
+                  <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1">
                     <AlertCircle className="w-3.5 h-3.5" /> Limited Stock
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
-                    <Check className="w-3.5 h-3.5" /> In Stock & Ready
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5" /> In Stock ({product.stock || 15} units)
                   </span>
                 )}
-              </div>
+              </span>
             </div>
 
-            {/* Title */}
+            {/* Title & SKU */}
             <div>
               <h2 className="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white leading-tight">
                 {product.name}
               </h2>
+              {product.sku && (
+                <span className="text-xs text-slate-400 font-mono mt-1 block">
+                  Product Code: {product.sku}
+                </span>
+              )}
             </div>
 
             {/* Pricing */}
-            <div className="flex items-baseline gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800">
+            <div className="flex items-baseline gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800">
               <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
                 Rs. {product.price.toLocaleString()}
               </span>
@@ -206,7 +211,7 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
               <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Product Details
               </div>
-              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 {product.description || product.shortDescription}
               </p>
             </div>
@@ -229,7 +234,7 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
             )}
 
             {/* Quantity Selector */}
-            {!isOutOfStock && showWhatsAppButton && (
+            {!isOutOfStock && (
               <div className="flex items-center gap-4 pt-1">
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Quantity:
@@ -253,43 +258,64 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
                   </button>
                 </div>
                 <span className="text-xs text-slate-500 font-mono">
-                  Total: Rs. {(product.price * quantity).toLocaleString()}
+                  Subtotal: Rs. {(product.price * quantity).toLocaleString()}
                 </span>
               </div>
             )}
 
-            {/* Action Buttons: Direct WhatsApp Order & Call */}
+            {/* E-Commerce Buttons: Add to Cart & Buy Now */}
             <div className="space-y-2.5 pt-3 border-t border-slate-200/80 dark:border-slate-800/80">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                  className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>Add to Cart</span>
+                </button>
+
+                <button
+                  onClick={handleBuyNow}
+                  disabled={isOutOfStock}
+                  className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Zap className="w-4 h-4" />
+                  <span>Buy Now</span>
+                </button>
+              </div>
+
+              {/* WhatsApp direct order */}
               {showWhatsAppButton && (
                 <button
                   onClick={handleWhatsAppOrder}
-                  className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 ${
+                  className={`w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
                     isOutOfStock
-                      ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
+                      ? 'bg-amber-600 hover:bg-amber-700'
                       : 'bg-[#25D366] hover:bg-[#20ba59] shadow-[#25D366]/25'
                   }`}
                 >
-                  <WhatsAppIcon className="w-5 h-5 fill-white text-white" />
+                  <WhatsAppIcon className="w-4 h-4 fill-white text-white" />
                   <span>
                     {isOutOfStock
-                      ? 'Ask on WhatsApp'
+                      ? 'Inquire Stock on WhatsApp'
                       : `Order Directly on WhatsApp (Rs. ${(product.price * quantity).toLocaleString()})`}
                   </span>
                 </button>
               )}
 
               {/* Direct Call Section */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2 pt-1">
                 <a
                   href={`tel:${settings.phone1}`}
-                  className="py-2.5 px-3 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
+                  className="py-2 px-3 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
                 >
                   <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                   <span className="truncate">Call {settings.phone1Name || 'Arbaz'}</span>
                 </a>
                 <a
                   href={`tel:${settings.phone2}`}
-                  className="py-2.5 px-3 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
+                  className="py-2 px-3 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
                 >
                   <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                   <span className="truncate">Call {settings.phone2Name || 'Faraz'}</span>
@@ -298,14 +324,18 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
             </div>
 
             {/* Share link button */}
-            <div className="pt-2 flex justify-end">
+            <div className="pt-2 flex justify-between items-center text-xs text-slate-400">
               <button
                 onClick={handleShare}
-                className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 cursor-pointer"
+                className="flex items-center gap-1.5 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
-                <Share2 className="w-3 h-3" />
-                <span>{copiedLink ? 'Link Copied!' : 'Share Product'}</span>
+                <Share2 className="w-3.5 h-3.5" />
+                <span>{copiedLink ? 'Link Copied to Clipboard!' : 'Share Product'}</span>
               </button>
+
+              <span className="text-[11px] text-slate-400">
+                Hassan Abdal, Pakistan
+              </span>
             </div>
 
           </div>

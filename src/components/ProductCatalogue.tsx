@@ -298,7 +298,7 @@ export function ProductCatalogue({
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 {products.length === 0
-                  ? 'We are updating our product catalogue. Contact Ali Electronics on WhatsApp for current products and prices.'
+                  ? 'We are updating our product catalogue. Contact Ali Electronic on WhatsApp for current products and prices.'
                   : 'We could not find products matching your current filters or search term.'}
               </p>
             </div>
@@ -314,7 +314,7 @@ export function ProductCatalogue({
               )}
 
               <a
-                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(`Assalam-o-Alaikum Ali Electronics, I was looking for ${search || 'electronics products'} at your Hassan Abdal shop. Could you please share what items you currently have available?`)}`}
+                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(`Assalam-o-Alaikum Ali Electronic, I was looking for ${search || 'electronics products'} at your Hassan Abdal shop. Could you please share what items you currently have available?`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba59] text-white flex items-center gap-1.5 shadow-sm shadow-[#25D366]/20 transition-all cursor-pointer"

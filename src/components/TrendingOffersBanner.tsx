@@ -73,7 +73,7 @@ export function TrendingOffersBanner({
   }, [trendingProducts, selectedFilter]);
 
   const handleOfferWhatsApp = () => {
-    const text = `Assalam-o-Alaikum Ali Electronics, I want to avail the "${primaryOffer.title}" (${primaryOffer.discountValue}% OFF deal). Please share the list of available items!`;
+    const text = `Assalam-o-Alaikum Ali Electronic, I want to avail the "${primaryOffer.title}" (${primaryOffer.discountValue}% OFF deal). Please share the list of available items!`;
     const url = `https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };

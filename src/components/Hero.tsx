@@ -97,7 +97,7 @@ export function Hero({
 
   const headingText = homepage.heroHeading || 'Smart Technology. Better Living.';
   const subtitleText = homepage.heroSubtitle || 
-    'Ali Electronics brings you premium, authentic electronics, high-speed charging accessories, studio-quality sound, and modern smart technology in Hassan Abdal.';
+    'Ali Electronic brings you premium, authentic electronics, high-speed charging accessories, studio-quality sound, and modern smart technology in Hassan Abdal.';
 
   // Map trending products if provided, otherwise fallback to high-end spotlights
   const spotlights: SpotlightItem[] = (trendingProducts && trendingProducts.length >= 3)
@@ -113,14 +113,14 @@ export function Hero({
         features: (p.specifications && p.specifications.length > 0)
           ? p.specifications.slice(0, 3)
           : ['Tested Genuine', 'Shop Warranty', 'Ready Stock'],
-        specs: p.shortDescription || 'Verified Ali Electronics Stock'
+        specs: p.shortDescription || 'Verified Ali Electronic Stock'
       }))
     : defaultSpotlights;
 
   const currentItem = spotlights[activeIdx] || spotlights[0];
 
   const waOrderUrl = `https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(
-    `Assalam-o-Alaikum Ali Electronics, I want to inquire about ${currentItem.name} (Rs. ${currentItem.price.toLocaleString()}). Please confirm stock and delivery in Hassan Abdal.`
+    `Assalam-o-Alaikum Ali Electronic, I want to inquire about ${currentItem.name} (Rs. ${currentItem.price.toLocaleString()}). Please confirm stock and delivery in Hassan Abdal.`
   )}`;
 
   return (
@@ -196,7 +196,7 @@ export function Hero({
 
               {/* WhatsApp Button */}
               <a
-                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronics, I would like to inquire about your products.')}`}
+                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronic, I would like to inquire about your products.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-5 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-[#25D366] hover:bg-[#20ba59] text-white shadow-md shadow-[#25D366]/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95"

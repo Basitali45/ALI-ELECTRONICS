@@ -1,7 +1,30 @@
-import React, { useState } from 'react';
-import { Settings, Save, Upload, MessageCircle, Phone, MapPin, Palette, KeyRound, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  Settings, 
+  Save, 
+  Upload, 
+  MessageCircle, 
+  Phone, 
+  MapPin, 
+  Palette, 
+  KeyRound, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  ShieldCheck,
+  Database,
+  CheckCircle2,
+  AlertCircle,
+  Copy,
+  ExternalLink
+} from 'lucide-react';
 import { StoreSettings, ThemePreset } from '../../types';
 import { api } from '../../services/api';
+import { 
+  getSupabaseConfig, 
+  saveSupabaseConfig, 
+  testSupabaseConnection 
+} from '../../lib/supabase';
 
 interface StoreSettingsManagerProps {
   settings: StoreSettings;
@@ -10,7 +33,21 @@ interface StoreSettingsManagerProps {
 }
 
 export function StoreSettingsManager({ settings, onRefresh, showToast }: StoreSettingsManagerProps) {
-  const [form, setForm] = useState<StoreSettings>(settings);
+  const [form, setForm] = useState<StoreSettings>({
+    ...settings,
+    businessName: 'Ali Electronic'
+  });
+
+  // Supabase Configuration State
+  const initialSb = getSupabaseConfig();
+  const [sbUrl, setSbUrl] = useState(initialSb.url);
+  const [sbKey, setSbKey] = useState(initialSb.key);
+  const [sbTesting, setSbTesting] = useState(false);
+  const [sbStatus, setSbStatus] = useState<{ checked: boolean; success: boolean; message: string }>({
+    checked: false,
+    success: false,
+    message: ''
+  });
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -20,6 +57,29 @@ export function StoreSettingsManager({ settings, onRefresh, showToast }: StoreSe
   const [showNewPass, setShowNewPass] = useState(false);
   const [passError, setPassError] = useState('');
   const [passLoading, setPassLoading] = useState(false);
+
+  useEffect(() => {
+    // Quick test on mount
+    testConnection();
+  }, []);
+
+  const testConnection = async () => {
+    setSbTesting(true);
+    const res = await testSupabaseConnection();
+    setSbStatus({
+      checked: true,
+      success: res.success,
+      message: res.message
+    });
+    setSbTesting(false);
+  };
+
+  const handleSaveSupabaseConfig = async () => {
+    saveSupabaseConfig(sbUrl, sbKey);
+    showToast('Supabase credentials saved!');
+    await testConnection();
+    onRefresh();
+  };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +115,7 @@ export function StoreSettingsManager({ settings, onRefresh, showToast }: StoreSe
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.updateSettings(form);
+      await api.updateStoreSettings(form);
       showToast('Store settings & WhatsApp templates saved successfully!');
       onRefresh();
     } catch {
@@ -78,6 +138,101 @@ export function StoreSettingsManager({ settings, onRefresh, showToast }: StoreSe
 
   return (
     <div className="max-w-4xl space-y-6">
+      
+      {/* ================= 1. SUPABASE CLOUD DATABASE CONNECTION PANEL ================= */}
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-heading font-black text-base text-slate-900 dark:text-white">
+                Supabase Cloud Database & Storage
+              </h3>
+              <p className="text-xs text-slate-500">
+                Permanent PostgreSQL database for Products, Categories, Orders and Product Images
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
+              sbStatus.success 
+                ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300' 
+                : 'bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300'
+            }`}>
+              {sbStatus.success ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
+              {sbStatus.success ? 'Supabase Connected' : 'Local Fallback Mode'}
+            </span>
+
+            <button
+              onClick={testConnection}
+              disabled={sbTesting}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+            >
+              {sbTesting ? 'Checking...' : 'Test Connection'}
+            </button>
+          </div>
+        </div>
+
+        {sbStatus.message && (
+          <div className={`p-3 rounded-xl text-xs flex items-start gap-2 ${
+            sbStatus.success 
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800'
+              : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800'
+          }`}>
+            <span className="font-medium">{sbStatus.message}</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Supabase Project URL
+            </label>
+            <input
+              type="text"
+              placeholder="https://xyzproject.supabase.co"
+              value={sbUrl}
+              onChange={(e) => setSbUrl(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Supabase Anon / Public Key
+            </label>
+            <input
+              type="password"
+              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              value={sbKey}
+              onChange={(e) => setSbKey(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <button
+            type="button"
+            onClick={handleSaveSupabaseConfig}
+            className="py-2.5 px-4 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors cursor-pointer"
+          >
+            Save Supabase Credentials
+          </button>
+
+          <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+            <span>SQL Schema file created:</span>
+            <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-blue-600 dark:text-cyan-400">
+              /supabase/schema.sql
+            </code>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= 2. STORE HEADER & GENERAL SETTINGS ================= */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
@@ -218,7 +373,7 @@ export function StoreSettingsManager({ settings, onRefresh, showToast }: StoreSe
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Phone 1 Name & Number</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Phone 1 (Arbaz Ahmed)</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -236,7 +391,7 @@ export function StoreSettingsManager({ settings, onRefresh, showToast }: StoreSe
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Phone 2 Name & Number</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Phone 2 (Faraz Ahmed)</label>
               <div className="flex gap-2">
                 <input
                   type="text"

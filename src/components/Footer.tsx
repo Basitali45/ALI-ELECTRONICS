@@ -28,7 +28,7 @@ export function Footer({ settings, categories, onNavigate, onSelectCategory }: F
           <div className="lg:col-span-4 space-y-4">
             <div className="space-y-1">
               <span className="font-heading font-black text-2xl sm:text-3xl tracking-tighter text-white uppercase block leading-none bg-gradient-to-r from-white via-blue-200 to-cyan-300 bg-clip-text text-transparent">
-                {settings.businessName || 'ALI ELECTRONICS'}
+                {settings.businessName || 'ALI ELECTRONIC'}
               </span>
               <span className="text-[11px] font-extrabold text-blue-400 tracking-widest uppercase block font-mono">
                 Hassan Abdal · Pakistan
@@ -143,7 +143,7 @@ export function Footer({ settings, categories, onNavigate, onSelectCategory }: F
               </a>
 
               <a
-                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronics, I would like to inquire about your products.')}`}
+                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronic, I would like to inquire about your products.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2.5 p-2 rounded-lg bg-[#25D366]/20 hover:bg-[#25D366]/30 border border-[#25D366]/40 text-emerald-300 transition-colors"
@@ -163,7 +163,7 @@ export function Footer({ settings, categories, onNavigate, onSelectCategory }: F
         {/* Bottom Bar: Copyright & Location info */}
         <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <p>
-            {settings.footerText || '© 2026 Ali Electronics. All Rights Reserved.'}
+            {settings.footerText || '© 2026 Ali Electronic. All Rights Reserved.'}
           </p>
 
           <div className="flex items-center gap-4">

@@ -35,10 +35,13 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
   // Add / Edit Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [form, setForm] = useState({
     name: '',
     category: '',
     brand: 'Generic Tech',
+    sku: '',
+    stock: '15',
     price: '',
     oldPrice: '',
     discount: '',
@@ -63,7 +66,7 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
     if (selectedCat !== 'all' && p.category.toLowerCase() !== selectedCat.toLowerCase()) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
-      return p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || (p.brand && p.brand.toLowerCase().includes(q));
+      return p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || (p.brand && p.brand.toLowerCase().includes(q)) || (p.sku && p.sku.toLowerCase().includes(q));
     }
     return true;
   });
@@ -74,6 +77,8 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
       name: '',
       category: categories[0]?.name || 'Mobile Accessories',
       brand: 'Generic Tech',
+      sku: `AE-${Math.floor(1000 + Math.random() * 9000)}`,
+      stock: '15',
       price: '',
       oldPrice: '',
       discount: '',
@@ -99,6 +104,8 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
       name: p.name,
       category: p.category,
       brand: p.brand || 'Generic Tech',
+      sku: p.sku || `AE-${p.id.slice(-4)}`,
+      stock: String(p.stock ?? 10),
       price: String(p.price),
       oldPrice: p.oldPrice ? String(p.oldPrice) : '',
       discount: p.discount || '',
@@ -129,6 +136,8 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
         name: form.name.trim(),
         category: form.category,
         brand: form.brand.trim(),
+        sku: form.sku.trim(),
+        stock: Number(form.stock) || 10,
         price: priceNum,
         oldPrice: form.oldPrice ? Number(form.oldPrice) : undefined,
         discount: form.discount.trim() || undefined,
@@ -148,10 +157,10 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
 
       if (editingProduct) {
         await api.updateProduct(editingProduct.id, payload);
-        showToast('Product updated successfully!');
+        showToast('Product updated successfully in Supabase!');
       } else {
         await api.createProduct(payload);
-        showToast('Product added successfully!');
+        showToast('Product saved permanently to Supabase!');
       }
 
       setIsModalOpen(false);
@@ -221,22 +230,47 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isAdditional = false) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isAdditional = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      if (ev.target?.result) {
-        const url = ev.target.result as string;
+
+    setUploadingImage(true);
+    try {
+      // 1. Upload to Supabase Storage bucket 'product-images'
+      const { url: publicUrl, error: uploadErr } = await api.uploadProductImage(file);
+      if (publicUrl) {
         if (isAdditional) {
-          setForm(prev => ({ ...prev, additionalImages: [...prev.additionalImages, url] }));
+          setForm(prev => ({ ...prev, additionalImages: [...prev.additionalImages, publicUrl] }));
         } else {
-          setForm(prev => ({ ...prev, image: url }));
+          setForm(prev => ({ ...prev, image: publicUrl }));
         }
-        showToast('Image uploaded!');
+        showToast('Image uploaded permanently to Supabase Storage!');
+        return;
       }
-    };
-    reader.readAsDataURL(file);
+
+      // If Supabase upload returns error, fallback to FileReader preview
+      if (uploadErr) {
+        console.warn('Supabase storage upload notice:', uploadErr);
+      }
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result) {
+          const url = ev.target.result as string;
+          if (isAdditional) {
+            setForm(prev => ({ ...prev, additionalImages: [...prev.additionalImages, url] }));
+          } else {
+            setForm(prev => ({ ...prev, image: url }));
+          }
+          showToast('Image loaded. (Configure Supabase Storage for permanent cloud hosting)');
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      showToast('Image upload failed: ' + (err.message || ''));
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   return (
@@ -595,6 +629,35 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
                 </div>
               </div>
 
+              {/* SKU & Stock Quantity */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Product SKU (Code)
+                  </label>
+                  <input
+                    type="text"
+                    value={form.sku}
+                    onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                    placeholder="e.g. AE-AUD-101"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Stock Quantity (Units)
+                  </label>
+                  <input
+                    type="number"
+                    value={form.stock}
+                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                    placeholder="15"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+              </div>
+
               {/* Price, Old Price & Custom Discount text */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
@@ -651,10 +714,16 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
                     placeholder="Image URL or upload"
                     className="flex-1 px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                   />
-                  <label className="py-2 px-3 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 cursor-pointer flex items-center gap-1.5 shrink-0">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload</span>
-                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, false)} className="hidden" />
+                  <label className="py-2 px-3 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 cursor-pointer flex items-center gap-1.5 shrink-0 transition-colors">
+                    <Upload className={`w-3.5 h-3.5 ${uploadingImage ? 'animate-bounce' : ''}`} />
+                    <span>{uploadingImage ? 'Uploading to Supabase...' : 'Upload Cloud Image'}</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      disabled={uploadingImage} 
+                      onChange={(e) => handleFileUpload(e, false)} 
+                      className="hidden" 
+                    />
                   </label>
                 </div>
                 {form.image && (

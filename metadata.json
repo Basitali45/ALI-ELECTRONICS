@@ -1,6 +1,6 @@
 {
-  "name": "Ali Electronics",
-  "description": "Ali Electronics — Premium electronics showroom in Hassan Abdal. Explore mobile accessories, high-speed chargers, wireless sound, and smart tech with direct WhatsApp ordering.",
+  "name": "Ali Electronic",
+  "description": "Ali Electronic — Premium electronics showroom in Hassan Abdal. Explore mobile accessories, high-speed chargers, wireless sound, and smart tech with direct WhatsApp ordering.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

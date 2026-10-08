@@ -47,7 +47,7 @@ export function DashboardOverview({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-wider text-blue-200 font-bold">
-              Ali Electronics Control Center
+              Ali Electronic Control Center
             </div>
             <h3 className="font-heading font-extrabold text-2xl sm:text-3xl text-white mt-1">
               Store Quick Actions

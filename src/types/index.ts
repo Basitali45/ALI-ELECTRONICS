@@ -4,12 +4,16 @@ export type ProductBadge = 'NEW' | 'SALE' | 'HOT' | 'POPULAR' | 'LIMITED' | 'BES
 export interface Product {
   id: string;
   name: string;
+  slug?: string;
   category: string;
+  categoryId?: string;
   brand?: string;
+  sku?: string;
   price: number;
   oldPrice?: number;
   discount?: string;
   badge?: ProductBadge;
+  stock?: number;
   image: string;
   additionalImages?: string[];
   shortDescription?: string;
@@ -21,6 +25,7 @@ export interface Product {
   showOnHomepage?: boolean;
   whatsappEnabled?: boolean;
   displayOrder?: number;
+  active?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,11 +33,13 @@ export interface Product {
 export interface Category {
   id: string;
   name: string;
+  slug?: string;
   description?: string;
   image?: string;
   icon?: string;
   order?: number;
   isVisible?: boolean;
+  active?: boolean;
   count?: number;
 }
 
@@ -50,6 +57,45 @@ export interface Offer {
   isActive: boolean;
   displayLocation: 'hero' | 'banner' | 'listing' | 'detail' | 'popup';
   productIds?: string[];
+  createdAt: string;
+}
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
+export type OrderStatus = 'Pending' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+
+export interface OrderItem {
+  id: string;
+  orderId: string;
+  productId?: string;
+  productName: string;
+  productImage?: string;
+  sku?: string;
+  price: number;
+  quantity: number;
+  subtotal: number;
+}
+
+export interface Order {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  customerPhone: string;
+  customerWhatsapp?: string;
+  customerEmail?: string;
+  customerAddress: string;
+  city: string;
+  notes?: string;
+  subtotal: number;
+  deliveryCharges: number;
+  discount: number;
+  totalAmount: number;
+  status: OrderStatus;
+  paymentMethod: string;
+  items: OrderItem[];
   createdAt: string;
 }
 
@@ -109,13 +155,15 @@ export interface StoreSettings {
   whatsappNumber: string;
   whatsappFloatingEnabled: boolean;
   whatsappProductButtonEnabled: boolean;
-  whatsappTemplate: string; // token replacement e.g. "Assalam-o-Alaikum Ali Electronics, I am interested in {product_name}. Current price is {price}. Please confirm availability."
+  whatsappTemplate: string;
+  deliveryCharges?: number;
   businessHours: string;
   email?: string;
   aboutText: string;
   logoUrl?: string;
   footerText: string;
   themePreset: ThemePreset;
+  currency?: string;
 }
 
 export interface MediaItem {
@@ -156,9 +204,13 @@ export interface AdminStats {
   activeOffers: number;
   outOfStock: number;
   totalCategories: number;
+  totalOrders: number;
+  pendingOrders: number;
+  totalSales: number;
+  todaySales: number;
   totalInquiries: number;
   newInquiries: number;
   unreadMessages: number;
-  recentInquiries: Inquiry[];
+  recentOrders?: Order[];
   recentProducts: Product[];
 }

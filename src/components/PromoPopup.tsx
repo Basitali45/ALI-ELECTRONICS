@@ -92,7 +92,7 @@ export function PromoPopup({ config, whatsappNumber, onNavigate }: PromoPopupPro
             </button>
 
             <a
-              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Assalam-o-Alaikum Ali Electronics, I saw your special promotion: "${config.title}". What offers are available?`)}`}
+              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Assalam-o-Alaikum Ali Electronic, I saw your special promotion: "${config.title}". What offers are available?`)}`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setIsOpen(false)}

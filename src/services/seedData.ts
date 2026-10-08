@@ -1,9 +1,9 @@
 import { Product, Category, Offer, HomepageConfig, StoreSettings } from '../types';
 
 export const initialSettings: StoreSettings = {
-  businessName: 'Ali Electronics',
-  tagline: 'Your Trusted Electronics Store in Hassan Abdal',
-  supportingText: 'Explore quality electronics, competitive prices and reliable service at Ali Electronics.',
+  businessName: 'Ali Electronic',
+  tagline: 'Smart Technology. Better Living.',
+  supportingText: 'Explore quality electronics, competitive prices and reliable service at Ali Electronic.',
   location: 'Main Bus Stop, Islam Shaheed Road, Opposite New Sethi Flour Mills, Hassan Abdal, Pakistan',
   googleMapsUrl: 'https://maps.google.com/?q=Main+Bus+Stop+Islam+Shaheed+Road+Hassan+Abdal+Pakistan',
   phone1: '03115321647',
@@ -13,18 +13,20 @@ export const initialSettings: StoreSettings = {
   whatsappNumber: '03115321647',
   whatsappFloatingEnabled: true,
   whatsappProductButtonEnabled: true,
-  whatsappTemplate: 'Assalam-o-Alaikum Ali Electronics, I am interested in {product_name}. Current price is {price}. Please confirm availability.',
-  businessHours: 'Opening Hours — Contact us for current timings',
-  email: 'contact@alielectronics-hassanabdal.pk',
-  aboutText: 'Ali Electronics is a local electronics business serving customers in Hassan Abdal with quality electronics products, competitive pricing and customer-focused service.',
+  whatsappTemplate: 'Assalam-o-Alaikum Ali Electronic, I am interested in {product_name}. Current price is {price}. Please confirm availability.',
+  businessHours: 'Opening Hours — Mon - Sat: 9:00 AM - 9:00 PM',
+  email: 'contact@alielectronic.pk',
+  aboutText: 'Ali Electronic is a local electronics business serving customers in Hassan Abdal with quality electronics products, competitive pricing and customer-focused service.',
   logoUrl: '',
-  footerText: '© 2026 Ali Electronics. All Rights Reserved. Hassan Abdal, Pakistan.',
-  themePreset: 'ocean-blue'
+  footerText: '© 2026 Ali Electronic. All Rights Reserved. Hassan Abdal, Pakistan.',
+  themePreset: 'ocean-blue',
+  deliveryCharges: 0,
+  currency: 'PKR'
 };
 
 export const initialHomepage: HomepageConfig = {
   heroHeading: 'Smart Technology. Better Living.',
-  heroSubtitle: 'Explore quality electronics, competitive prices and reliable service at Ali Electronics in Hassan Abdal.',
+  heroSubtitle: 'Explore quality electronics, competitive prices and reliable service at Ali Electronic in Hassan Abdal.',
   heroBackgroundImage: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=1600&auto=format&fit=crop&q=80',
   heroOverlayOpacity: 75,
   heroCtaText: 'Explore Products',
@@ -39,7 +41,7 @@ export const initialHomepage: HomepageConfig = {
     { id: 'categories', name: 'Categories Department', enabled: true, order: 4 },
     { id: 'featured', name: 'Featured Products', enabled: true, order: 5 },
     { id: 'newArrivals', name: 'New Arrivals', enabled: true, order: 6 },
-    { id: 'about', name: 'About Ali Electronics', enabled: true, order: 7 },
+    { id: 'about', name: 'About Ali Electronic', enabled: true, order: 7 },
     { id: 'whyUs', name: 'Why Choose Us', enabled: true, order: 8 },
     { id: 'contact', name: 'Contact & Store Hours', enabled: true, order: 9 },
     { id: 'map', name: 'Google Map Location', enabled: true, order: 10 }
@@ -53,7 +55,7 @@ export const initialHomepage: HomepageConfig = {
   promoPopup: {
     enabled: false,
     title: 'MEGA ELECTRONICS SALE',
-    description: 'Get amazing discounts and authentic accessories at Ali Electronics today.',
+    description: 'Get amazing discounts and authentic accessories at Ali Electronic today.',
     image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80',
     buttonText: 'Shop Special Offers',
     buttonLink: '#products',

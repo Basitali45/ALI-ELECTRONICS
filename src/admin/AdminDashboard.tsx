@@ -40,6 +40,7 @@ import { OffersManager } from './components/OffersManager';
 import { HomepageCustomizer } from './components/HomepageCustomizer';
 import { MediaLibrary } from './components/MediaLibrary';
 import { StoreSettingsManager } from './components/StoreSettingsManager';
+import { OrdersManager } from './components/OrdersManager';
 
 interface AdminDashboardProps {
   initialSettings: StoreSettings;
@@ -49,6 +50,7 @@ interface AdminDashboardProps {
 
 export type AdminTab = 
   | 'overview' 
+  | 'orders'
   | 'products' 
   | 'categories' 
   | 'offers' 
@@ -219,7 +221,7 @@ export function AdminDashboard({ initialSettings, onClose, onRefreshData }: Admi
               </div>
               <div>
                 <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white">
-                  Ali Electronics
+                  Ali Electronic
                 </h3>
                 <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 block">
                   Control Center
@@ -241,6 +243,23 @@ export function AdminDashboard({ initialSettings, onClose, onRefreshData }: Admi
             >
               <LayoutDashboard className="w-4 h-4" />
               <span>Dashboard Overview</span>
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('orders'); setMobileSidebarOpen(false); }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer ${
+                activeTab === 'orders' ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Inbox className="w-4 h-4" />
+                <span>Orders & Invoices</span>
+              </div>
+              {stats?.pendingOrders ? (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white">
+                  {stats.pendingOrders}
+                </span>
+              ) : null}
             </button>
 
             <button
@@ -388,6 +407,7 @@ export function AdminDashboard({ initialSettings, onClose, onRefreshData }: Admi
               </button>
               <h2 className="font-heading font-extrabold text-base sm:text-lg text-slate-900 dark:text-white capitalize">
                 {activeTab === 'overview' && 'Control Center Dashboard'}
+                {activeTab === 'orders' && 'Customer Orders & Invoices (Supabase)'}
                 {activeTab === 'products' && 'Products Manager (No-Code)'}
                 {activeTab === 'categories' && 'Categories Department Manager'}
                 {activeTab === 'offers' && 'Offers & Promotion Banners'}
@@ -430,6 +450,13 @@ export function AdminDashboard({ initialSettings, onClose, onRefreshData }: Admi
                 onOpenAddProduct={() => setActiveTab('products')}
                 onOpenAddCategory={() => setActiveTab('categories')}
                 onOpenCreateOffer={() => setActiveTab('offers')}
+              />
+            )}
+
+            {activeTab === 'orders' && (
+              <OrdersManager
+                settings={settings}
+                showToast={showToast}
               />
             )}
 

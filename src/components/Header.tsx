@@ -8,11 +8,14 @@ import {
   Phone, 
   ShieldCheck, 
   Lock, 
-  SlidersHorizontal 
+  SlidersHorizontal,
+  ShoppingBag,
+  Heart
 } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { StoreSettings, AnnouncementBarConfig } from '../types';
 import { AnnouncementBar } from './AnnouncementBar';
 
@@ -27,6 +30,7 @@ interface HeaderProps {
 export function Header({ settings, announcementBar, onOpenSearch, onOpenAdmin, onNavigate }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { isAuthenticated, logout } = useAuth();
+  const { totalItems, setIsCartOpen } = useCart();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -63,14 +67,14 @@ export function Header({ settings, announcementBar, onOpenSearch, onOpenAdmin, o
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-4">
             
-            {/* Aesthetic Brand Name without logo icon */}
+            {/* Aesthetic Brand Name */}
             <button
               onClick={() => handleNavClick('home')}
               className="text-left group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-lg p-1 cursor-pointer"
             >
               <div className="flex items-baseline gap-2.5">
                 <span className="font-heading font-black text-2xl sm:text-3xl lg:text-4xl tracking-tighter uppercase leading-none bg-gradient-to-r from-slate-950 via-blue-600 to-indigo-600 dark:from-white dark:via-blue-300 dark:to-cyan-300 bg-clip-text text-transparent transition-opacity group-hover:opacity-90">
-                  {settings.businessName || 'ALI ELECTRONICS'}
+                  {settings.businessName || 'ALI ELECTRONIC'}
                 </span>
                 <span className="hidden sm:inline-block text-[11px] font-extrabold uppercase tracking-widest text-blue-600 dark:text-cyan-400 font-mono">
                   Hassan Abdal
@@ -124,16 +128,30 @@ export function Header({ settings, announcementBar, onOpenSearch, onOpenAdmin, o
               <button
                 onClick={onOpenSearch}
                 aria-label="Search products"
-                className="p-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <Search className="w-4 h-4" />
+              </button>
+
+              {/* Shopping Cart Trigger */}
+              <button
+                onClick={() => setIsCartOpen(true)}
+                aria-label="Open Shopping Cart"
+                className="relative p-2.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 transition-colors cursor-pointer"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-black flex items-center justify-center shadow-md animate-in zoom-in-50">
+                    {totalItems}
+                  </span>
+                )}
               </button>
 
               {/* Dark / Light Toggle */}
               <button
                 onClick={toggleTheme}
                 aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                className="p-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
               </button>
@@ -141,7 +159,7 @@ export function Header({ settings, announcementBar, onOpenSearch, onOpenAdmin, o
               {/* WhatsApp Quick Link */}
               {settings.whatsappFloatingEnabled && (
                 <a
-                  href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronics, I want to inquire about products.')}`}
+                  href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronic, I want to inquire about products.')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba59] text-white shadow-xs transition-all duration-200 cursor-pointer"
@@ -222,7 +240,7 @@ export function Header({ settings, announcementBar, onOpenSearch, onOpenAdmin, o
                   onClick={() => handleNavClick('about')}
                   className="text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
-                  About Ali Electronics
+                  About Ali Electronic
                 </button>
                 <button
                   onClick={() => handleNavClick('contact')}
