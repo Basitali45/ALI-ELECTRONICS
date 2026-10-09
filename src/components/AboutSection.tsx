@@ -8,7 +8,7 @@ interface AboutSectionProps {
 }
 
 export function AboutSection({ settings }: AboutSectionProps) {
-  const cleanWhatsApp = settings.whatsappNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const cleanWhatsApp = (settings?.whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
 
   return (
     <section id="about" className="py-16 md:py-24 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">

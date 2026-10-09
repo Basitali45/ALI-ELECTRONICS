@@ -9,7 +9,7 @@ interface FloatingWhatsAppProps {
 
 export function FloatingWhatsApp({ settings }: FloatingWhatsAppProps) {
   const [showTooltip, setShowTooltip] = useState(true);
-  const cleanWhatsApp = settings.whatsappNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const cleanWhatsApp = (settings?.whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
 
   const defaultMessage = 'Assalam-o-Alaikum Ali Electronic, I would like to inquire about your products.';
   const whatsappUrl = `https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(defaultMessage)}`;

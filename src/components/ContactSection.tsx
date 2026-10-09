@@ -29,7 +29,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
   const [error, setError] = useState('');
   const [copiedAddress, setCopiedAddress] = useState(false);
 
-  const cleanWhatsApp = settings.whatsappNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const cleanWhatsApp = (settings?.whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
 
   const validatePakistaniPhone = (num: string): boolean => {
     // Accepts: 03115321647, 0313-3332141, +923115321647, 03XXXXXXXXX (10-11 digits)

@@ -47,7 +47,7 @@ export function Header({ settings, announcementBar, onOpenSearch, onOpenAdmin, o
     onNavigate(sectionId);
   };
 
-  const cleanWhatsApp = settings.whatsappNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const cleanWhatsApp = (settings?.whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 transition-all duration-300">

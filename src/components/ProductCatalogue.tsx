@@ -107,7 +107,7 @@ export function ProductCatalogue({
     setSortBy('newest');
   };
 
-  const cleanWhatsApp = settings.whatsappNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const cleanWhatsApp = (settings?.whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
 
   return (
     <section id="products" className="py-16 md:py-24 bg-slate-50/50 dark:bg-slate-950/60 border-t border-slate-200/60 dark:border-slate-800/60">

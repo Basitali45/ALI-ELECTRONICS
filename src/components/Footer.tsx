@@ -11,7 +11,7 @@ interface FooterProps {
 }
 
 export function Footer({ settings, categories, onNavigate, onSelectCategory }: FooterProps) {
-  const cleanWhatsApp = settings.whatsappNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const cleanWhatsApp = (settings?.whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });

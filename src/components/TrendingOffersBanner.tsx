@@ -34,7 +34,7 @@ export function TrendingOffersBanner({
 }: TrendingOffersBannerProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
 
-  const cleanWhatsApp = settings.whatsappNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const cleanWhatsApp = (settings?.whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
 
   // Select active offer or default high-impact promotion
   const primaryOffer = offers.find((o) => o.isActive) || {
