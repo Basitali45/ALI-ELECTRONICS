@@ -1,60 +1,34 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Environment variables
+// Vercel Environment Variables - Ye har device ke liye same hoga
 const ENV_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const ENV_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Storage keys for custom client credentials
-const STORAGE_KEY_URL = 'ali_custom_supabase_url';
-const STORAGE_KEY_KEY = 'ali_custom_supabase_anon_key';
-
 export function getSupabaseConfig(): { url: string; key: string; isConfigured: boolean } {
-  let url = ENV_SUPABASE_URL;
-  let key = ENV_SUPABASE_ANON_KEY;
-
-  if (typeof window !== 'undefined') {
-    const customUrl = localStorage.getItem(STORAGE_KEY_URL);
-    const customKey = localStorage.getItem(STORAGE_KEY_KEY);
-    if (customUrl && customKey) {
-      url = customUrl;
-      key = customKey;
-    }
-  }
+  const url = ENV_SUPABASE_URL.trim();
+  const key = ENV_SUPABASE_ANON_KEY.trim();
 
   const isConfigured = Boolean(
-    url && 
-    url.trim() !== '' && 
-    url.startsWith('https://') && 
-    key && 
-    key.trim() !== ''
+    url && url.startsWith('https://') && key
   );
 
-  return { url: url.trim(), key: key.trim(), isConfigured };
+  return { url, key, isConfigured };
 }
 
 let supabaseInstance: SupabaseClient | null = null;
 
 export function getSupabase(): SupabaseClient | null {
   const { url, key, isConfigured } = getSupabaseConfig();
-
-  if (!isConfigured) {
-    return null;
-  }
+  if (!isConfigured) return null;
 
   if (!supabaseInstance) {
-    try {
-      supabaseInstance = createClient(url, key, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-        },
-      });
-    } catch (err) {
-      console.warn('Failed to initialize Supabase client:', err);
-      return null;
-    }
+    supabaseInstance = createClient(url, key, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    });
   }
-
   return supabaseInstance;
 }
 
@@ -62,121 +36,52 @@ export function isSupabaseConfigured(): boolean {
   return getSupabaseConfig().isConfigured;
 }
 
+// Ab ye function kuch nahi karega, bas rakha hai taake error na aaye
 export function saveSupabaseConfig(url: string, key: string): void {
-  if (typeof window !== 'undefined') {
-    if (url && key) {
-      localStorage.setItem(STORAGE_KEY_URL, url.trim());
-      localStorage.setItem(STORAGE_KEY_KEY, key.trim());
-    } else {
-      localStorage.removeItem(STORAGE_KEY_URL);
-      localStorage.removeItem(STORAGE_KEY_KEY);
-    }
-    // Reset instance so next call re-instantiates with new credentials
-    supabaseInstance = null;
-  }
+  console.log("Config is now managed by Vercel, not localStorage");
 }
 
 export async function testSupabaseConnection(): Promise<{ success: boolean; message: string; details?: { productsCount: number; categoriesCount: number } }> {
   const client = getSupabase();
   if (!client) {
-    return { 
-      success: false, 
-      message: 'Supabase credentials are not configured yet. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or enter them in Admin Settings).' 
-    };
+    return { success: false, message: 'VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY Vercel me set nahi hai.' };
   }
-
   try {
     const { count: catCount, error: catError } = await client.from('categories').select('*', { count: 'exact', head: true });
-    if (catError) {
-      return { 
-        success: false, 
-        message: `Connected to Supabase, but "categories" table query failed: ${catError.message}. Make sure you ran /supabase/schema.sql in the Supabase SQL Editor.` 
-      };
-    }
+    if (catError) return { success: false, message: `categories table error: ${catError.message}` };
 
     const { count: prodCount, error: prodError } = await client.from('products').select('*', { count: 'exact', head: true });
-    if (prodError) {
-      return { 
-        success: false, 
-        message: `Connected to Supabase, but "products" table query failed: ${prodError.message}. Make sure you ran /supabase/schema.sql in the Supabase SQL Editor.` 
-      };
-    }
+    if (prodError) return { success: false, message: `products table error: ${prodError.message}` };
 
-    return { 
-      success: true, 
-      message: `Supabase connection active! Live dataset verified (${prodCount ?? 0} products, ${catCount ?? 0} categories). Permanent PostgreSQL cloud sync is fully operational.`,
-      details: {
-        productsCount: prodCount ?? 0,
-        categoriesCount: catCount ?? 0,
-      }
-    };
+    return { success: true, message: `Connected! ${prodCount ?? 0} products, ${catCount ?? 0} categories live.`, details: { productsCount: prodCount ?? 0, categoriesCount: catCount ?? 0 } };
   } catch (err: any) {
-    return { 
-      success: false, 
-      message: err.message || 'Network error while contacting Supabase.' 
-    };
+    return { success: false, message: err.message || 'Network error' };
   }
 }
 
-/**
- * Upload a product image to Supabase Storage bucket 'product-images'
- * Returns the permanent public URL
- */
-export async function uploadProductImageToStorage(
-  file: File
-): Promise<{ url: string | null; error: string | null }> {
-  // 1. Validate file type
+export async function uploadProductImageToStorage(file: File): Promise<{ url: string | null; error: string | null }> {
   const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
   if (!validTypes.includes(file.type)) {
-    return {
-      url: null,
-      error: 'Invalid file format. Please upload JPG, PNG, WEBP, or GIF image.',
-    };
+    return { url: null, error: 'Invalid format. Use JPG, PNG, WEBP, GIF.' };
   }
-
-  // 2. Validate file size (max 5MB)
   const MAX_SIZE = 5 * 1024 * 1024;
   if (file.size > MAX_SIZE) {
-    return {
-      url: null,
-      error: 'File size exceeds 5MB limit. Please select a smaller or compressed image.',
-    };
+    return { url: null, error: 'File > 5MB. Please compress.' };
   }
-
   const client = getSupabase();
-  if (!client) {
-    return { 
-      url: null, 
-      error: 'Supabase is not configured. Please configure your Supabase URL & Anon Key in Store Settings.' 
-    };
-  }
+  if (!client) return { url: null, error: 'Supabase not configured in Vercel.' };
 
   try {
     const bucket = 'product-images';
     const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const filePath = `products/${Date.now()}-${cleanFileName}`;
 
-    const { error: uploadError } = await client.storage
-      .from(bucket)
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: true,
-      });
+    const { error: uploadError } = await client.storage.from(bucket).upload(filePath, file, { cacheControl: '3600', upsert: true });
+    if (uploadError) return { url: null, error: uploadError.message };
 
-    if (uploadError) {
-      return { url: null, error: uploadError.message };
-    }
-
-    const { data: publicUrlData } = client.storage
-      .from(bucket)
-      .getPublicUrl(filePath);
-
-    if (!publicUrlData?.publicUrl) {
-      return { url: null, error: 'Could not obtain public URL for uploaded image.' };
-    }
-
+    const { data: publicUrlData } = client.storage.from(bucket).getPublicUrl(filePath);
     return { url: publicUrlData.publicUrl, error: null };
   } catch (err: any) {
-    return { url: null, error: err.message || 'Unexpected upload error' };
+    return { url: null, error: err.message || 'Upload error' };
   }
 }
