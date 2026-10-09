@@ -7,7 +7,10 @@ import {
   CheckCircle2, 
   Navigation, 
   ExternalLink, 
-  AlertCircle 
+  AlertCircle,
+  Copy,
+  Check,
+  Compass
 } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { StoreSettings } from '../types';
@@ -24,6 +27,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [copiedAddress, setCopiedAddress] = useState(false);
 
   const cleanWhatsApp = settings.whatsappNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
 
@@ -31,6 +35,13 @@ export function ContactSection({ settings }: ContactSectionProps) {
     // Accepts: 03115321647, 0313-3332141, +923115321647, 03XXXXXXXXX (10-11 digits)
     const cleaned = num.replace(/[\s-]/g, '');
     return /^(03[0-9]{9}|\+923[0-9]{9}|923[0-9]{9})$/.test(cleaned);
+  };
+
+  const handleCopyAddress = () => {
+    const fullAddr = settings.location || 'Main Bus Stop, Islam Shaheed Road, Opposite New Sethi Flour Mills, Hassan Abdal, Pakistan';
+    navigator.clipboard.writeText(fullAddr);
+    setCopiedAddress(true);
+    setTimeout(() => setCopiedAddress(false), 2500);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,10 +84,13 @@ export function ContactSection({ settings }: ContactSectionProps) {
     }
   };
 
-  // Safe Google Maps Search URL based on exact address
-  const encodedAddress = encodeURIComponent(settings.location || 'Main Bus Stop, Islam Shaheed Road, Opposite New Sethi Flour Mills, Hassan Abdal, Pakistan');
-  const googleMapsDirectionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-  const googleMapsEmbedUrl = `https://maps.google.com/maps?q=${encodedAddress}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+  // Safe Google Maps Search & Directions URLs based on exact Hassan Abdal address
+  const fullAddress = settings.location || 'Main Bus Stop, Islam Shaheed Road, Opposite New Sethi Flour Mills, Hassan Abdal, Pakistan';
+  const encodedAddress = encodeURIComponent(fullAddress);
+  const googleMapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`;
+  const googleMapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+  // High-precision embed with exact query and standard responsive widget
+  const googleMapsEmbedUrl = `https://maps.google.com/maps?q=${encodedAddress}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
 
   return (
     <section id="contact" className="py-16 md:py-24 bg-slate-50 dark:bg-slate-950/80 border-t border-slate-200/60 dark:border-slate-800/60">
@@ -104,32 +118,55 @@ export function ContactSection({ settings }: ContactSectionProps) {
             <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                  <MapPin className="w-5 h-5" />
+                  <MapPin className="w-5 h-5 text-rose-500" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white">
-                    Shop Address
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    {settings.location}
-                  </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                    Opposite New Sethi Flour Mills · Main Bus Stop
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white">
+                      Shop Address & Location
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                      Hassan Abdal
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                    {fullAddress}
                   </p>
                 </div>
               </div>
 
-              <div className="pt-2">
+              {/* Exact Landmarks in Hassan Abdal */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs text-slate-600 dark:text-slate-400">
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2">
+                  <span className="text-blue-600 dark:text-cyan-400">📍</span>
+                  <span>Opposite New Sethi Flour Mills</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2">
+                  <span className="text-blue-600 dark:text-cyan-400">🚌</span>
+                  <span>Main Bus Stop, Islam Shaheed Rd</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
                 <a
                   href={googleMapsDirectionsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60 transition-colors flex items-center justify-center gap-2"
+                  className="py-2.5 px-3 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors flex items-center justify-center gap-2"
                 >
                   <Navigation className="w-3.5 h-3.5" />
-                  <span>Get Directions on Google Maps</span>
-                  <ExternalLink className="w-3 h-3 ml-auto opacity-70" />
+                  <span>Get Directions</span>
+                  <ExternalLink className="w-3 h-3 ml-auto opacity-80" />
                 </a>
+
+                <button
+                  type="button"
+                  onClick={handleCopyAddress}
+                  className="py-2.5 px-3 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {copiedAddress ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                  <span>{copiedAddress ? 'Address Copied!' : 'Copy Address'}</span>
+                </button>
               </div>
             </div>
 
@@ -330,7 +367,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
                 </a>
               </div>
 
-              <div className="relative h-64 sm:h-72 w-full bg-slate-200 dark:bg-slate-800">
+              <div className="relative h-64 sm:h-80 w-full bg-slate-200 dark:bg-slate-800">
                 <iframe
                   title="Ali Electronic Hassan Abdal Location Map"
                   src={googleMapsEmbedUrl}
@@ -338,6 +375,27 @@ export function ContactSection({ settings }: ContactSectionProps) {
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                 />
+              </div>
+
+              {/* Map Footer Bar */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                  <Compass className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span className="font-medium truncate max-w-xs sm:max-w-sm md:max-w-md">
+                    Islam Shaheed Rd, Opposite New Sethi Flour Mills, Hassan Abdal
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <a
+                    href={googleMapsDirectionsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-blue-600 dark:text-cyan-400 hover:underline flex items-center gap-1"
+                  >
+                    <span>Start Navigation</span>
+                    <Navigation className="w-3 h-3" />
+                  </a>
+                </div>
               </div>
             </div>
 

@@ -175,19 +175,23 @@ VALUES ('product-images', 'product-images', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage Policies: Public Read
+DROP POLICY IF EXISTS "Public Read Product Images" ON storage.objects;
 CREATE POLICY "Public Read Product Images"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'product-images');
 
 -- Storage Policies: Allow Uploads (Anon & Authenticated)
+DROP POLICY IF EXISTS "Allow Uploads to Product Images" ON storage.objects;
 CREATE POLICY "Allow Uploads to Product Images"
 ON storage.objects FOR INSERT
 WITH CHECK (bucket_id = 'product-images');
 
+DROP POLICY IF EXISTS "Allow Updates to Product Images" ON storage.objects;
 CREATE POLICY "Allow Updates to Product Images"
 ON storage.objects FOR UPDATE
 USING (bucket_id = 'product-images');
 
+DROP POLICY IF EXISTS "Allow Deletes from Product Images" ON storage.objects;
 CREATE POLICY "Allow Deletes from Product Images"
 ON storage.objects FOR DELETE
 USING (bucket_id = 'product-images');
@@ -203,73 +207,114 @@ ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.store_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
 
--- Categories Policies
+-- 1. Categories Policies
+DROP POLICY IF EXISTS "Public can view active categories" ON public.categories;
+DROP POLICY IF EXISTS "Full access categories for all" ON public.categories;
+DROP POLICY IF EXISTS "Admins can manage categories" ON public.categories;
+
 CREATE POLICY "Public can view active categories"
 ON public.categories FOR SELECT
-USING (true);
+USING (active = true OR auth.role() = 'authenticated');
 
-CREATE POLICY "Full access categories for all"
+CREATE POLICY "Admins can manage categories"
 ON public.categories FOR ALL
+TO authenticated
 USING (true)
 WITH CHECK (true);
 
--- Products Policies
+-- 2. Products Policies
+DROP POLICY IF EXISTS "Public can view active products" ON public.products;
+DROP POLICY IF EXISTS "Full access products for all" ON public.products;
+DROP POLICY IF EXISTS "Admins can manage products" ON public.products;
+
 CREATE POLICY "Public can view active products"
 ON public.products FOR SELECT
-USING (true);
+USING (active = true OR auth.role() = 'authenticated');
 
-CREATE POLICY "Full access products for all"
+CREATE POLICY "Admins can manage products"
 ON public.products FOR ALL
+TO authenticated
 USING (true)
 WITH CHECK (true);
 
--- Offers Policies
+-- 3. Offers Policies
+DROP POLICY IF EXISTS "Public can view offers" ON public.offers;
+DROP POLICY IF EXISTS "Full access offers for all" ON public.offers;
+DROP POLICY IF EXISTS "Admins can manage offers" ON public.offers;
+
 CREATE POLICY "Public can view offers"
 ON public.offers FOR SELECT
-USING (true);
+USING (is_active = true OR auth.role() = 'authenticated');
 
-CREATE POLICY "Full access offers for all"
+CREATE POLICY "Admins can manage offers"
 ON public.offers FOR ALL
+TO authenticated
 USING (true)
 WITH CHECK (true);
 
--- Orders Policies
-CREATE POLICY "Public can insert orders"
+-- 4. Orders Policies (Strict Customer Privacy Protection)
+DROP POLICY IF EXISTS "Public can insert orders" ON public.orders;
+DROP POLICY IF EXISTS "Full access orders for all" ON public.orders;
+DROP POLICY IF EXISTS "Public customers can create orders" ON public.orders;
+DROP POLICY IF EXISTS "Admins can view and manage orders" ON public.orders;
+
+-- Anyone/customer can submit a new order at checkout
+CREATE POLICY "Public customers can create orders"
 ON public.orders FOR INSERT
 WITH CHECK (true);
 
-CREATE POLICY "Full access orders for all"
+-- ONLY authenticated store staff/admins can view, search, update or delete orders
+CREATE POLICY "Admins can view and manage orders"
 ON public.orders FOR ALL
+TO authenticated
 USING (true)
 WITH CHECK (true);
 
--- Order Items Policies
-CREATE POLICY "Public can insert order items"
+-- 5. Order Items Policies (Strict Customer Privacy Protection)
+DROP POLICY IF EXISTS "Public can insert order items" ON public.order_items;
+DROP POLICY IF EXISTS "Full access order items for all" ON public.order_items;
+DROP POLICY IF EXISTS "Public customers can create order items" ON public.order_items;
+DROP POLICY IF EXISTS "Admins can view and manage order items" ON public.order_items;
+
+-- Customers can submit order items alongside their order
+CREATE POLICY "Public customers can create order items"
 ON public.order_items FOR INSERT
 WITH CHECK (true);
 
-CREATE POLICY "Full access order items for all"
+-- ONLY authenticated store staff/admins can view or manage order items
+CREATE POLICY "Admins can view and manage order items"
 ON public.order_items FOR ALL
+TO authenticated
 USING (true)
 WITH CHECK (true);
 
--- Store Settings Policies
+-- 6. Store Settings Policies
+DROP POLICY IF EXISTS "Public can view store settings" ON public.store_settings;
+DROP POLICY IF EXISTS "Full access store settings for all" ON public.store_settings;
+DROP POLICY IF EXISTS "Admins can manage store settings" ON public.store_settings;
+
 CREATE POLICY "Public can view store settings"
 ON public.store_settings FOR SELECT
 USING (true);
 
-CREATE POLICY "Full access store settings for all"
+CREATE POLICY "Admins can manage store settings"
 ON public.store_settings FOR ALL
+TO authenticated
 USING (true)
 WITH CHECK (true);
 
--- Contact Messages Policies
+-- 7. Contact Messages Policies
+DROP POLICY IF EXISTS "Public can insert contact messages" ON public.contact_messages;
+DROP POLICY IF EXISTS "Full access contact messages for all" ON public.contact_messages;
+DROP POLICY IF EXISTS "Admins can view contact messages" ON public.contact_messages;
+
 CREATE POLICY "Public can insert contact messages"
 ON public.contact_messages FOR INSERT
 WITH CHECK (true);
 
-CREATE POLICY "Full access contact messages for all"
+CREATE POLICY "Admins can view contact messages"
 ON public.contact_messages FOR ALL
+TO authenticated
 USING (true)
 WITH CHECK (true);
 

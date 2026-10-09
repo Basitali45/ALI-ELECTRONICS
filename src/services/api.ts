@@ -130,7 +130,7 @@ export const api = {
         query = query.order('display_order', { ascending: true });
 
         const { data, error } = await query;
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           let mapped = data.map(mapDbProductToClient);
           if (params?.search) {
             const s = params.search.toLowerCase();
@@ -142,8 +142,10 @@ export const api = {
                 p.category.toLowerCase().includes(s)
             );
           }
-          setLocal('products', mapped);
-          return mapped;
+          if (mapped.length > 0 || isSupabaseConfigured()) {
+            setLocal('products', mapped);
+            return mapped;
+          }
         }
       } catch (err) {
         console.warn('Supabase getProducts error, checking local store:', err);
@@ -330,20 +332,22 @@ export const api = {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('categories').select('*').order('display_order', { ascending: true });
-        if (!error && data && data.length > 0) {
-          const mapped: Category[] = data.map((c) => ({
-            id: c.id,
-            name: c.name,
-            slug: c.slug,
-            description: c.description,
-            image: c.image_url,
-            icon: c.icon,
-            order: c.display_order,
-            isVisible: c.active !== false,
-            active: c.active !== false,
-          }));
-          setLocal('categories', mapped);
-          return mapped;
+        if (!error && data) {
+          if (data.length > 0 || isSupabaseConfigured()) {
+            const mapped: Category[] = data.map((c) => ({
+              id: c.id,
+              name: c.name,
+              slug: c.slug,
+              description: c.description,
+              image: c.image_url,
+              icon: c.icon,
+              order: c.display_order,
+              isVisible: c.active !== false,
+              active: c.active !== false,
+            }));
+            setLocal('categories', mapped);
+            return mapped;
+          }
         }
       } catch (err) {
         console.warn('Supabase getCategories error:', err);
@@ -426,23 +430,25 @@ export const api = {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('offers').select('*').eq('is_active', true);
-        if (!error && data && data.length > 0) {
-          const mapped: Offer[] = data.map((o) => ({
-            id: o.id,
-            title: o.title,
-            description: o.description,
-            discountType: o.discount_type as any,
-            discountValue: Number(o.discount_value) || 0,
-            bannerImage: o.banner_image,
-            buttonText: o.button_text,
-            buttonLink: o.button_link,
-            isActive: o.is_active,
-            displayLocation: o.display_location as any,
-            productIds: Array.isArray(o.product_ids) ? o.product_ids : [],
-            createdAt: o.created_at,
-          }));
-          setLocal('offers', mapped);
-          return mapped;
+        if (!error && data) {
+          if (data.length > 0 || isSupabaseConfigured()) {
+            const mapped: Offer[] = data.map((o) => ({
+              id: o.id,
+              title: o.title,
+              description: o.description,
+              discountType: o.discount_type as any,
+              discountValue: Number(o.discount_value) || 0,
+              bannerImage: o.banner_image,
+              buttonText: o.button_text,
+              buttonLink: o.button_link,
+              isActive: o.is_active,
+              displayLocation: o.display_location as any,
+              productIds: Array.isArray(o.product_ids) ? o.product_ids : [],
+              createdAt: o.created_at,
+            }));
+            setLocal('offers', mapped);
+            return mapped;
+          }
         }
       } catch (err) {
         console.warn('Supabase getOffers error:', err);
@@ -1030,6 +1036,27 @@ export const api = {
     const trimmedUser = username.trim();
     const trimmedPass = password.trim();
 
+    // 1. Check Supabase Auth if username is an email
+    const supabase = getSupabase();
+    if (supabase && trimmedUser.includes('@')) {
+      try {
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: trimmedUser,
+          password: trimmedPass,
+        });
+        if (!authError && authData.session) {
+          localStorage.setItem('ali_electronic_token', authData.session.access_token);
+          return {
+            token: authData.session.access_token,
+            user: { username: authData.user?.email || trimmedUser },
+          };
+        }
+      } catch (sbErr) {
+        console.warn('Supabase auth attempt notice:', sbErr);
+      }
+    }
+
+    // 2. Server API authentication
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
@@ -1045,6 +1072,7 @@ export const api = {
       // static host fallback
     }
 
+    // 3. Built-in Admin Credentials fallback for store management
     if (
       (trimmedUser === 'admin' && trimmedPass === 'admin123') ||
       (trimmedUser === 'alitech' && trimmedPass === 'hassanabdal') ||
@@ -1055,7 +1083,20 @@ export const api = {
       return { token, user: { username: trimmedUser } };
     }
 
-    throw new Error('Invalid credentials. Default username is "admin" and password is "admin123".');
+    throw new Error('Invalid credentials. Default username is "admin" and password is "admin123", or use your Supabase admin email.');
+  },
+
+  async logout(): Promise<void> {
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+    }
+    localStorage.removeItem('ali_electronic_token');
+    localStorage.removeItem('ali_electronics_token');
   },
 
   async changePassword(currentPass: string, newPass: string): Promise<boolean> {

@@ -39,14 +39,20 @@ export function Footer({ settings, categories, onNavigate, onSelectCategory }: F
               Your dependable electronics destination in Hassan Abdal. Specializing in high-speed chargers, heavy-duty cables, wireless audio, batteries, emergency lights, and smart technology.
             </p>
 
-            <div className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-1 text-xs">
-              <div className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider">
-                Store Location
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(settings.location || 'Main Bus Stop, Islam Shaheed Road, Opposite New Sethi Flour Mills, Hassan Abdal, Pakistan')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block p-3.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-blue-500/50 space-y-1 text-xs transition-colors group"
+            >
+              <div className="flex items-center justify-between text-slate-400 font-semibold uppercase text-[10px] tracking-wider">
+                <span>Store Location</span>
+                <span className="text-blue-400 group-hover:underline text-[10px]">Open Google Maps ↗</span>
               </div>
-              <div className="text-slate-200">
+              <div className="text-slate-200 group-hover:text-white transition-colors">
                 {settings.location}
               </div>
-            </div>
+            </a>
           </div>
 
           {/* Column 2: Quick Links (col-span-2) */}

@@ -76,26 +76,39 @@ export function saveSupabaseConfig(url: string, key: string): void {
   }
 }
 
-export async function testSupabaseConnection(): Promise<{ success: boolean; message: string }> {
+export async function testSupabaseConnection(): Promise<{ success: boolean; message: string; details?: { productsCount: number; categoriesCount: number } }> {
   const client = getSupabase();
   if (!client) {
     return { 
       success: false, 
-      message: 'Supabase credentials are not configured yet. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.' 
+      message: 'Supabase credentials are not configured yet. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or enter them in Admin Settings).' 
     };
   }
 
   try {
-    const { data, error } = await client.from('categories').select('id').limit(1);
-    if (error) {
+    const { count: catCount, error: catError } = await client.from('categories').select('*', { count: 'exact', head: true });
+    if (catError) {
       return { 
         success: false, 
-        message: `Connected to Supabase, but query error: ${error.message}. Please make sure schema.sql has been run.` 
+        message: `Connected to Supabase, but "categories" table query failed: ${catError.message}. Make sure you ran /supabase/schema.sql in the Supabase SQL Editor.` 
       };
     }
+
+    const { count: prodCount, error: prodError } = await client.from('products').select('*', { count: 'exact', head: true });
+    if (prodError) {
+      return { 
+        success: false, 
+        message: `Connected to Supabase, but "products" table query failed: ${prodError.message}. Make sure you ran /supabase/schema.sql in the Supabase SQL Editor.` 
+      };
+    }
+
     return { 
       success: true, 
-      message: 'Supabase connection verified successfully! Products and orders are syncing directly with PostgreSQL.' 
+      message: `Supabase connection active! Live dataset verified (${prodCount ?? 0} products, ${catCount ?? 0} categories). Permanent PostgreSQL cloud sync is fully operational.`,
+      details: {
+        productsCount: prodCount ?? 0,
+        categoriesCount: catCount ?? 0,
+      }
     };
   } catch (err: any) {
     return { 
@@ -112,6 +125,24 @@ export async function testSupabaseConnection(): Promise<{ success: boolean; mess
 export async function uploadProductImageToStorage(
   file: File
 ): Promise<{ url: string | null; error: string | null }> {
+  // 1. Validate file type
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+  if (!validTypes.includes(file.type)) {
+    return {
+      url: null,
+      error: 'Invalid file format. Please upload JPG, PNG, WEBP, or GIF image.',
+    };
+  }
+
+  // 2. Validate file size (max 5MB)
+  const MAX_SIZE = 5 * 1024 * 1024;
+  if (file.size > MAX_SIZE) {
+    return {
+      url: null,
+      error: 'File size exceeds 5MB limit. Please select a smaller or compressed image.',
+    };
+  }
+
   const client = getSupabase();
   if (!client) {
     return { 

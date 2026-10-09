@@ -46,8 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
   }
 
-  function logout() {
-    localStorage.removeItem('ali_electronics_token');
+  async function logout() {
+    await api.logout();
     setIsAuthenticated(false);
     setUser(null);
   }
