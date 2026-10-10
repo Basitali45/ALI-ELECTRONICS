@@ -1,0 +1,176 @@
+-- ==============================================================================
+-- OPTIONAL: DEMO DATA FOR ALI ELECTRONIC
+-- Run this ONLY ONCE on a brand-new project if you want sample products.
+-- Do not run it again later, or products you deleted will come back.
+-- ==============================================================================
+
+-- Seed Initial Offer
+INSERT INTO public.offers (
+  id, title, description, discount_type, discount_value, banner_image,
+  button_text, is_active, display_location
+)
+VALUES (
+  'offer-grand-sale',
+  'MEGA TECH PROMOTION',
+  'Enjoy up to 25% OFF on premium wireless earbuds, 65W GaN fast chargers, and heavy-duty braided cables at Ali Electronic Hassan Abdal showroom.',
+  'percentage',
+  25,
+  'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=1600&auto=format&fit=crop&q=80',
+  'Claim Offer on WhatsApp',
+  true,
+  'banner'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Seed Products
+INSERT INTO public.products (
+  id, name, slug, category, brand, sku, price, old_price, discount, badge,
+  stock, availability, image, short_description, description, specifications,
+  featured, is_new_arrival, show_on_homepage, whatsapp_enabled, display_order, active
+)
+VALUES
+(
+  'p-1',
+  'Wireless Noise Cancelling Earbuds Pro',
+  'wireless-noise-cancelling-earbuds-pro',
+  'Audio & Sound',
+  'Acoustic Pro',
+  'AE-AUD-001',
+  3499,
+  4500,
+  '22% OFF',
+  'HOT',
+  25,
+  'In Stock',
+  'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80',
+  'Active noise cancellation with 32-hour playback case and deep punchy bass.',
+  'Premium wireless earbuds with advanced hybrid active noise cancellation, Bluetooth 5.3, dual microphones for crystal-clear calls, touch controls, and splash-resistant IPX5 casing. Tested in Hassan Abdal showroom.',
+  '["Active Hybrid ANC", "32 Hours Total Playtime", "Bluetooth 5.3", "Dual HD Mics", "IPX5 Splashproof"]'::JSONB,
+  true,
+  true,
+  true,
+  true,
+  1,
+  true
+),
+(
+  'p-2',
+  '65W GaN Ultra-Fast Dual Port Charger',
+  '65w-gan-ultra-fast-dual-port-charger',
+  'Chargers & Power',
+  'PowerCore',
+  'AE-CHG-002',
+  2499,
+  3200,
+  '22% OFF',
+  'POPULAR',
+  40,
+  'In Stock',
+  'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&auto=format&fit=crop&q=80',
+  'Dual-port Type-C PD 65W & USB-A fast charger with GaN technology for smartphones and laptops.',
+  'Ultra-compact 65W GaN fast wall adapter capable of charging laptops, tablets, Samsung Super Fast Charging, and iPhones at maximum speed with intelligent heat dissipation.',
+  '["65W Max GaN Output", "Type-C PD 3.0 + USB-A Quick Charge", "Universal Laptop & Phone Compatibility", "Over-heat Protection"]'::JSONB,
+  true,
+  false,
+  true,
+  true,
+  2,
+  true
+),
+(
+  'p-3',
+  '20,000mAh 22.5W Fast Charging Power Bank',
+  '20000mah-225w-fast-charging-power-bank',
+  'Power Banks',
+  'VoltMax',
+  'AE-PB-003',
+  4200,
+  5200,
+  '19% OFF',
+  'BEST SELLER',
+  18,
+  'In Stock',
+  'https://images.unsplash.com/photo-1609592424364-d62153b6efb4?w=800&auto=format&fit=crop&q=80',
+  'Heavy duty 20000mAh battery with digital LED percentage display and dual-way fast charging.',
+  'Massive 20,000mAh real capacity battery backup featuring 22.5W Super Fast Charging, digital battery level monitor, and multi-device simultaneous charging.',
+  '["20,000mAh Real Capacity", "22.5W Two-way Fast Charge", "LED Digital Percentage Display", "3 Output Ports"]'::JSONB,
+  true,
+  false,
+  true,
+  true,
+  3,
+  true
+),
+(
+  'p-4',
+  'Braided Heavy-Duty 100W USB-C Cable',
+  'braided-heavy-duty-100w-usbc-cable',
+  'Cables & Converters',
+  'FlexWire',
+  'AE-CBL-004',
+  650,
+  900,
+  '28% OFF',
+  'SALE',
+  80,
+  'In Stock',
+  'https://images.unsplash.com/photo-1588508065123-287b28e013da?w=800&auto=format&fit=crop&q=80',
+  'Military-grade nylon braided 1.2M cable with E-Marker smart chip and 100W PD support.',
+  'Durable reinforced copper core cable built to withstand over 25,000 bend cycles. Perfect for high-speed charging of flagship phones and laptops.',
+  '["100W Power Delivery", "1.2 Meter Length", "Zinc Alloy Connectors", "480Mbps Data Sync"]'::JSONB,
+  true,
+  false,
+  true,
+  true,
+  4,
+  true
+),
+(
+  'p-5',
+  'Waterproof Bluetooth Outdoor Speaker',
+  'waterproof-bluetooth-outdoor-speaker',
+  'Audio & Sound',
+  'SoundWave',
+  'AE-SPK-005',
+  2800,
+  3500,
+  '20% OFF',
+  '',
+  12,
+  'In Stock',
+  'https://images.unsplash.com/photo-1545454675-3531b543be5d?w=800&auto=format&fit=crop&q=80',
+  '16W stereo sound with dual bass radiators, RGB ring lighting, and IPX7 waterproof body.',
+  'Rugged portable wireless speaker offering booming bass, 12 hours of uninterrupted battery life, FM radio, and micro-SD card playback.',
+  '["16W Deep Bass Output", "IPX7 Waterproof", "12 Hours Battery Life", "RGB Lighting Modes"]'::JSONB,
+  false,
+  true,
+  true,
+  true,
+  5,
+  true
+),
+(
+  'p-6',
+  'Smart Fitness Watch with HD AMOLED Display',
+  'smart-fitness-watch-with-hd-amoled-display',
+  'Smart Devices',
+  'FitPulse',
+  'AE-WTC-006',
+  4800,
+  6200,
+  '23% OFF',
+  'NEW',
+  15,
+  'In Stock',
+  'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80',
+  '1.96-inch curved AMOLED display, Bluetooth calling, heart rate tracker, and 100+ sports modes.',
+  'Sleek zinc-alloy smartwatch with real-time health monitoring, sleep analysis, message notifications, customizable watch faces, and 7-day battery life.',
+  '["1.96 Inch Curved AMOLED", "Bluetooth Calling & Speaker", "SpO2 & Heart Rate Monitor", "7 Days Battery Life"]'::JSONB,
+  true,
+  true,
+  true,
+  true,
+  6,
+  true
+)
+ON CONFLICT (id) DO NOTHING;

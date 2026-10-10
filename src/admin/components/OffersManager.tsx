@@ -81,8 +81,8 @@ export function OffersManager({ offers, products, onRefresh, showToast }: Offers
       await api.toggleOffer(id);
       showToast('Offer status toggled');
       onRefresh();
-    } catch {
-      showToast('Error toggling offer');
+    } catch (err: any) {
+      showToast(err?.message || 'Error toggling offer');
     }
   };
 
@@ -92,8 +92,8 @@ export function OffersManager({ offers, products, onRefresh, showToast }: Offers
       await api.deleteOffer(id);
       showToast('Offer deleted');
       onRefresh();
-    } catch {
-      showToast('Error deleting offer');
+    } catch (err: any) {
+      showToast(err?.message || 'Error deleting offer');
     }
   };
 

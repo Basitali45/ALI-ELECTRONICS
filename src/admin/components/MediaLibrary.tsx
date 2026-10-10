@@ -21,26 +21,27 @@ export function MediaLibrary({ media, onRefresh, showToast }: MediaLibraryProps)
     return true;
   });
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      if (ev.target?.result) {
-        try {
-          await api.uploadMedia({
-            title: file.name.replace(/\.[^/.]+$/, ''),
-            url: ev.target.result as string,
-            category
-          });
-          showToast('Image uploaded to library!');
-          onRefresh();
-        } catch {
-          showToast('Error uploading image');
-        }
+    try {
+      const { url: publicUrl, error: uploadErr } = await api.uploadProductImage(file);
+      if (!publicUrl) {
+        showToast(`Image upload failed: ${uploadErr || 'unknown error'}`);
+        return;
       }
-    };
-    reader.readAsDataURL(file);
+      await api.uploadMedia({
+        title: file.name.replace(/\.[^/.]+$/, ''),
+        url: publicUrl,
+        category
+      });
+      showToast('Image uploaded to library!');
+      onRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Error uploading image');
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const handleAddUrl = async (e: React.FormEvent) => {
@@ -56,8 +57,8 @@ export function MediaLibrary({ media, onRefresh, showToast }: MediaLibraryProps)
       setUrl('');
       showToast('Media added!');
       onRefresh();
-    } catch {
-      showToast('Error saving media');
+    } catch (err: any) {
+      showToast(err.message || 'Error saving media');
     }
   };
 
@@ -73,8 +74,8 @@ export function MediaLibrary({ media, onRefresh, showToast }: MediaLibraryProps)
       await api.deleteMedia(id);
       showToast('Image removed from library');
       onRefresh();
-    } catch {
-      showToast('Error deleting media');
+    } catch (err: any) {
+      showToast(err.message || 'Error deleting media');
     }
   };
 

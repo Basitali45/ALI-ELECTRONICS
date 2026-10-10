@@ -114,7 +114,7 @@ export function AdminDashboard({ initialSettings, onClose, onRefreshData }: Admi
         api.getAdminStats().catch(() => null),
         api.getProducts().catch(() => []),
         api.getCategories().catch(() => []),
-        api.getOffers().catch(() => []),
+        api.getOffers(true).catch(() => []),
         api.getHomepage().catch(() => null),
         api.getMedia().catch(() => []),
         api.getSettings().catch(() => initialSettings),

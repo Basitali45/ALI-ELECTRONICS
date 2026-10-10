@@ -118,8 +118,8 @@ export function StoreSettingsManager({ settings, onRefresh, showToast }: StoreSe
       await api.updateStoreSettings(form);
       showToast('Store settings & WhatsApp templates saved successfully!');
       onRefresh();
-    } catch {
-      showToast('Failed to save store settings');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to save store settings');
     }
   };
 

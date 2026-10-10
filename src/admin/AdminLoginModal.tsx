@@ -10,7 +10,7 @@ interface AdminLoginModalProps {
 
 export function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLoginModalProps) {
   const { login } = useAuth();
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -28,7 +28,7 @@ export function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLoginModalP
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Invalid username or password. Please try again.');
+      setError(err.message || 'Invalid email or password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -69,10 +69,12 @@ export function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLoginModalP
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Username
+              Admin Email
             </label>
             <input
-              type="text"
+              type="email"
+              autoComplete="email"
+              placeholder="owner@example.com"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required

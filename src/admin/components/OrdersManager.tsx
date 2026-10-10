@@ -38,8 +38,8 @@ export function OrdersManager({ settings, showToast }: OrdersManagerProps) {
     try {
       const data = await api.getOrders();
       setOrders(data);
-    } catch {
-      showToast('Failed to fetch orders');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to fetch orders');
     } finally {
       setLoading(false);
     }
@@ -59,8 +59,8 @@ export function OrdersManager({ settings, showToast }: OrdersManagerProps) {
         setSelectedOrder((prev) => (prev ? { ...prev, status: newStatus } : null));
       }
       showToast(`Order status updated to ${newStatus}`);
-    } catch {
-      showToast('Failed to update status');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update status');
     }
   };
 
@@ -73,8 +73,8 @@ export function OrdersManager({ settings, showToast }: OrdersManagerProps) {
         setSelectedOrder(null);
       }
       showToast('Order removed');
-    } catch {
-      showToast('Failed to delete order');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to delete order');
     }
   };
 

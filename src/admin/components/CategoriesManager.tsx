@@ -52,13 +52,13 @@ export function CategoriesManager({ categories, products, onRefresh, showToast }
   };
 
   const handleDelete = async (cat: Category) => {
-    if (!confirm(`Delete category "${cat.name}"? Products will be safely moved to "Other Electronics".`)) return;
+    if (!confirm(`Delete category "${cat.name}"? Products in it stay in the store but will no longer appear under this category.`)) return;
     try {
       await api.deleteCategory(cat.id);
       showToast(`Category "${cat.name}" deleted`);
       onRefresh();
-    } catch {
-      showToast('Error deleting category');
+    } catch (err: any) {
+      showToast(err?.message || 'Error deleting category');
     }
   };
 
@@ -73,8 +73,8 @@ export function CategoriesManager({ categories, products, onRefresh, showToast }
       await api.updateCategory(currentCat.id, { order: targetIdx + 1 });
       await api.updateCategory(targetCat.id, { order: index + 1 });
       onRefresh();
-    } catch {
-      showToast('Error reordering');
+    } catch (err: any) {
+      showToast(err?.message || 'Error reordering');
     }
   };
 
@@ -83,8 +83,8 @@ export function CategoriesManager({ categories, products, onRefresh, showToast }
       await api.updateCategory(cat.id, { isVisible: !(cat.isVisible !== false) });
       showToast(`Updated visibility for ${cat.name}`);
       onRefresh();
-    } catch {
-      showToast('Error updating visibility');
+    } catch (err: any) {
+      showToast(err?.message || 'Error updating visibility');
     }
   };
 

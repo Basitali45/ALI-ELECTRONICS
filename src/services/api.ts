@@ -13,7 +13,7 @@ import {
   OrderStatus
 } from '../types';
 import { initialProducts, initialCategories, initialOffers, initialSettings, initialHomepage } from './seedData';
-import { getSupabase, isSupabaseConfigured, uploadProductImageToStorage } from '../lib/supabase';
+import { getSupabase, isSupabaseConfigured, uploadProductImageToStorage, requireAdminClient, explainDbError } from '../lib/supabase';
 
 const API_BASE = '/api';
 
@@ -72,22 +72,31 @@ function mapDbProductToClient(row: any): Product {
   };
 }
 
-// Convert client Product to Supabase DB record
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function has(obj: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(obj, key);
+}
+
+// Convert client Product to Supabase DB record.
+// Keys that are present but empty (e.g. oldPrice: undefined) CLEAR the DB value, so a sale can be removed.
 function mapClientProductToDb(prod: Partial<Product>): Record<string, any> {
   const db: Record<string, any> = {};
   if (prod.name !== undefined) db.name = prod.name;
-  if (prod.slug !== undefined) db.slug = prod.slug;
+  if (has(prod, 'slug')) db.slug = prod.slug ? prod.slug : null;
   if (prod.category !== undefined) db.category = prod.category;
-  if (prod.categoryId !== undefined) db.category_id = prod.categoryId;
+  if (has(prod, 'categoryId')) db.category_id = prod.categoryId || null;
   if (prod.brand !== undefined) db.brand = prod.brand;
-  if (prod.sku !== undefined) db.sku = prod.sku;
+  if (has(prod, 'sku')) db.sku = prod.sku && prod.sku.trim() ? prod.sku.trim() : null;
   if (prod.price !== undefined) db.price = Number(prod.price);
-  if (prod.oldPrice !== undefined) db.old_price = prod.oldPrice ? Number(prod.oldPrice) : null;
-  if (prod.discount !== undefined) db.discount = prod.discount;
-  if (prod.badge !== undefined) db.badge = prod.badge;
-  if (prod.stock !== undefined) db.stock = Number(prod.stock);
+  if (has(prod, 'oldPrice')) db.old_price = prod.oldPrice ? Number(prod.oldPrice) : null;
+  if (has(prod, 'discount')) db.discount = prod.discount ? prod.discount : null;
+  if (has(prod, 'badge')) db.badge = prod.badge || '';
+  if (prod.stock !== undefined) db.stock = Math.max(0, Number(prod.stock) || 0);
   if (prod.availability !== undefined) db.availability = prod.availability;
-  if (prod.image !== undefined) db.image = prod.image;
+  if (prod.image) db.image = prod.image;
   if (prod.additionalImages !== undefined) db.additional_images = prod.additionalImages;
   if (prod.shortDescription !== undefined) db.short_description = prod.shortDescription;
   if (prod.description !== undefined) db.description = prod.description;
@@ -115,22 +124,27 @@ export const api = {
 
     if (supabase) {
       try {
-        let query = supabase.from('products').select('*').eq('active', true);
+        let query = supabase.from('products').select('*');
 
-        if (params?.category && params.category !== 'All') {
-          query = query.eq('category', params.category);
+        // Only query active products unless specifically requested
+        query = query.eq('active', true);
+
+        if (params?.category && params.category !== 'All' && params.category.toLowerCase() !== 'all') {
+          query = query.ilike('category', params.category);
         }
         if (params?.featured) {
           query = query.eq('featured', true);
         }
-        if (params?.availability && params.availability !== 'all') {
-          query = query.eq('availability', params.availability);
+        if (params?.availability && params.availability !== 'all' && params.availability.toLowerCase() !== 'all') {
+          query = query.ilike('availability', params.availability);
         }
 
-        query = query.order('display_order', { ascending: true });
+        query = query.order('display_order', { ascending: true }).order('created_at', { ascending: false });
 
         const { data, error } = await query;
-        if (!error && data) {
+        if (error) {
+          console.warn('Supabase getProducts returned error:', error.message);
+        } else if (data) {
           let mapped = data.map(mapDbProductToClient);
           if (params?.search) {
             const s = params.search.toLowerCase();
@@ -142,19 +156,18 @@ export const api = {
                 p.category.toLowerCase().includes(s)
             );
           }
-          if (mapped.length > 0 || isSupabaseConfigured()) {
-            setLocal('products', mapped);
-            return mapped;
-          }
+          // Supabase is authoritative when connected: store synced copy and return
+          setLocal('products', mapped);
+          return mapped;
         }
       } catch (err) {
-        console.warn('Supabase getProducts error, checking local store:', err);
+        console.warn('Supabase getProducts network exception, falling back to local cache:', err);
       }
     }
 
-    // Server or fallback
+    // Offline / unconfigured fallback
     let list = getLocal<Product[]>('products', initialProducts);
-    if (params?.category && params.category !== 'All') {
+    if (params?.category && params.category !== 'All' && params.category.toLowerCase() !== 'all') {
       list = list.filter((p) => p.category.toLowerCase() === params.category?.toLowerCase());
     }
     if (params?.search) {
@@ -170,21 +183,24 @@ export const api = {
     if (params?.featured) {
       list = list.filter((p) => p.featured);
     }
-    if (params?.availability && params.availability !== 'all') {
-      list = list.filter((p) => p.availability === params.availability);
+    if (params?.availability && params.availability !== 'all' && params.availability.toLowerCase() !== 'all') {
+      list = list.filter((p) => p.availability.toLowerCase() === params.availability?.toLowerCase());
     }
     return list;
   },
 
   async addProduct(prod: Partial<Product>): Promise<Product> {
-    const supabase = getSupabase();
+    const supabase = await requireAdminClient();
+    const generatedId = prod.id || `p-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const uniqueSuffix = Math.random().toString(36).slice(2, 7);
+    const now = new Date().toISOString();
     const clientProd: Product = {
-      id: prod.id || `p-${Date.now()}`,
-      name: prod.name || 'New Product',
-      slug: prod.slug || prod.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || `p-${Date.now()}`,
+      id: generatedId,
+      name: (prod.name || 'New Product').trim(),
+      slug: `${slugify(prod.name || 'product') || 'product'}-${uniqueSuffix}`,
       category: prod.category || 'Mobile Accessories',
       brand: prod.brand || 'Generic / Tech Pro',
-      sku: prod.sku || `AE-${Math.floor(1000 + Math.random() * 9000)}`,
+      sku: prod.sku && prod.sku.trim() ? prod.sku.trim() : `AE-${Math.floor(10000 + Math.random() * 90000)}`,
       price: Number(prod.price) || 0,
       oldPrice: prod.oldPrice ? Number(prod.oldPrice) : undefined,
       discount: prod.discount || '',
@@ -202,68 +218,52 @@ export const api = {
       whatsappEnabled: prod.whatsappEnabled !== false,
       displayOrder: Number(prod.displayOrder) || 1,
       active: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     };
 
-    if (supabase) {
-      const dbRecord = mapClientProductToDb(clientProd);
-      dbRecord.id = clientProd.id;
-      dbRecord.created_at = clientProd.createdAt;
+    const dbRecord = mapClientProductToDb(clientProd);
+    dbRecord.id = clientProd.id;
+    dbRecord.created_at = clientProd.createdAt;
 
-      const { data, error } = await supabase.from('products').insert([dbRecord]).select().single();
-      if (error) {
-        throw new Error(`Failed to save product in Supabase: ${error.message}`);
-      }
-      if (data) {
-        const saved = mapDbProductToClient(data);
-        const current = getLocal<Product[]>('products', initialProducts);
-        setLocal('products', [saved, ...current.filter((p) => p.id !== saved.id)]);
-        return saved;
-      }
+    const { data, error } = await supabase.from('products').insert([dbRecord]).select();
+    if (error) {
+      throw new Error(`Could not save product: ${explainDbError(error.message)}`);
     }
-
-    // Local / fallback
-    const products = getLocal<Product[]>('products', initialProducts);
-    const updated = [clientProd, ...products];
-    setLocal('products', updated);
-    return clientProd;
+    if (!data || data.length === 0) {
+      throw new Error('Product was not saved (permission denied). Please log out and sign in again.');
+    }
+    const saved = mapDbProductToClient(data[0]);
+    const current = getLocal<Product[]>('products', initialProducts);
+    setLocal('products', [saved, ...current.filter((p) => p.id !== saved.id)]);
+    return saved;
   },
 
   async updateProduct(id: string, prod: Partial<Product>): Promise<Product> {
-    const supabase = getSupabase();
-
-    if (supabase) {
-      const dbUpdates = mapClientProductToDb(prod);
-      const { data, error } = await supabase.from('products').update(dbUpdates).eq('id', id).select().single();
-      if (error) {
-        throw new Error(`Failed to update product in Supabase: ${error.message}`);
-      }
-      if (data) {
-        const saved = mapDbProductToClient(data);
-        const current = getLocal<Product[]>('products', initialProducts);
-        setLocal('products', current.map((p) => (p.id === id ? saved : p)));
-        return saved;
-      }
+    const supabase = await requireAdminClient();
+    const dbUpdates = mapClientProductToDb(prod);
+    const { data, error } = await supabase.from('products').update(dbUpdates).eq('id', id).select();
+    if (error) {
+      throw new Error(`Could not update product: ${explainDbError(error.message)}`);
     }
-
-    const products = getLocal<Product[]>('products', initialProducts);
-    const updated = products.map((p) => (p.id === id ? { ...p, ...prod, updatedAt: new Date().toISOString() } : p));
-    setLocal('products', updated);
-    const found = updated.find((p) => p.id === id);
-    if (!found) throw new Error('Product not found');
-    return found;
+    if (!data || data.length === 0) {
+      throw new Error('Product was not updated (not found or permission denied). Please log out and sign in again.');
+    }
+    const saved = mapDbProductToClient(data[0]);
+    const current = getLocal<Product[]>('products', initialProducts);
+    setLocal('products', current.map((p) => (p.id === id ? saved : p)));
+    return saved;
   },
 
   async deleteProduct(id: string): Promise<void> {
-    const supabase = getSupabase();
-    if (supabase) {
-      const { error } = await supabase.from('products').delete().eq('id', id);
-      if (error) {
-        console.warn('Supabase delete error:', error.message);
-      }
+    const supabase = await requireAdminClient();
+    const { data, error } = await supabase.from('products').delete().eq('id', id).select('id');
+    if (error) {
+      throw new Error(`Could not delete product: ${explainDbError(error.message)}`);
     }
-
+    if (!data || data.length === 0) {
+      throw new Error('Product was not deleted (not found or permission denied). Please log out and sign in again.');
+    }
     const products = getLocal<Product[]>('products', initialProducts);
     setLocal('products', products.filter((p) => p.id !== id));
   },
@@ -282,34 +282,65 @@ export const api = {
     if (!existing) throw new Error('Product not found');
     const clone: Partial<Product> = {
       ...existing,
-      id: `p-${Date.now()}`,
-      sku: `AE-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: `p-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      slug: undefined,
+      sku: `AE-${Math.floor(10000 + Math.random() * 90000)}`,
       name: `${existing.name} (Copy)`,
     };
     return this.addProduct(clone);
   },
 
   async bulkProductAction(action: string, ids: string[], payload?: any): Promise<void> {
-    const supabase = getSupabase();
+    if (!ids.length) return;
+    const supabase = await requireAdminClient();
+    const now = new Date().toISOString();
+    let result: { error: { message: string } | null } = { error: null };
+
     if (action === 'delete') {
-      if (supabase) {
-        await supabase.from('products').delete().in('id', ids);
-      }
-      const products = getLocal<Product[]>('products', initialProducts);
-      setLocal('products', products.filter((p) => !ids.includes(p.id)));
-    } else if (action === 'availability' && payload) {
-      if (supabase) {
-        await supabase.from('products').update({ availability: payload }).in('id', ids);
-      }
-      const products = getLocal<Product[]>('products', initialProducts);
-      setLocal('products', products.map((p) => (ids.includes(p.id) ? { ...p, availability: payload } : p)));
+      result = await supabase.from('products').delete().in('id', ids);
+    } else if (action === 'stock' || action === 'availability') {
+      const availability = typeof payload === 'string' ? payload : payload?.availability;
+      if (!availability) throw new Error('Stock status is required');
+      result = await supabase.from('products').update({ availability, updated_at: now }).in('id', ids);
     } else if (action === 'featured') {
-      const isFeat = payload ?? true;
-      if (supabase) {
-        await supabase.from('products').update({ featured: isFeat }).in('id', ids);
-      }
-      const products = getLocal<Product[]>('products', initialProducts);
-      setLocal('products', products.map((p) => (ids.includes(p.id) ? { ...p, featured: isFeat } : p)));
+      const featured = typeof payload === 'boolean' ? payload : payload?.featured ?? true;
+      result = await supabase.from('products').update({ featured: Boolean(featured), updated_at: now }).in('id', ids);
+    } else if (action === 'newArrival') {
+      const isNew = typeof payload === 'boolean' ? payload : payload?.isNewArrival ?? true;
+      result = await supabase.from('products').update({ is_new_arrival: Boolean(isNew), updated_at: now }).in('id', ids);
+    } else if (action === 'category') {
+      if (!payload?.category) throw new Error('Category is required');
+      result = await supabase.from('products').update({ category: payload.category, updated_at: now }).in('id', ids);
+    } else if (action === 'discountPercent') {
+      const pct = Number(payload?.percent ?? payload);
+      if (!(pct > 0 && pct < 100)) throw new Error('Discount percent must be between 1 and 99');
+      const { data: rows, error: readError } = await supabase.from('products').select('id, price, old_price').in('id', ids);
+      if (readError) throw new Error(`Could not read products: ${explainDbError(readError.message)}`);
+      // Sale is always calculated from the original price, so applying it twice never stacks.
+      const updates = await Promise.all(
+        (rows || []).map((row) => {
+          const price = Number(row.price) || 0;
+          const original = row.old_price && Number(row.old_price) > price ? Number(row.old_price) : price;
+          return supabase
+            .from('products')
+            .update({
+              old_price: original,
+              price: Math.round(original * (1 - pct / 100)),
+              discount: `${pct}% OFF`,
+              badge: 'SALE',
+              updated_at: now,
+            })
+            .eq('id', row.id);
+        })
+      );
+      const failed = updates.find((u) => u.error);
+      result = { error: failed?.error || null };
+    } else {
+      throw new Error(`Unknown bulk action: ${action}`);
+    }
+
+    if (result.error) {
+      throw new Error(`Bulk action failed: ${explainDbError(result.error.message)}`);
     }
   },
 
@@ -357,10 +388,12 @@ export const api = {
   },
 
   async addCategory(cat: Partial<Category>): Promise<Category> {
+    const supabase = await requireAdminClient();
+    const name = (cat.name || 'New Category').trim();
     const newCat: Category = {
       id: cat.id || `cat-${Date.now()}`,
-      name: cat.name || 'New Category',
-      slug: cat.slug || cat.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || `cat-${Date.now()}`,
+      name,
+      slug: cat.slug || slugify(name) || `cat-${Date.now()}`,
       description: cat.description || '',
       image: cat.image || '',
       icon: cat.icon || '',
@@ -369,86 +402,98 @@ export const api = {
       active: true,
     };
 
-    const supabase = getSupabase();
-    if (supabase) {
-      await supabase.from('categories').insert([
-        {
-          id: newCat.id,
-          name: newCat.name,
-          slug: newCat.slug,
-          description: newCat.description,
-          image_url: newCat.image,
-          icon: newCat.icon,
-          display_order: newCat.order,
-          active: true,
-        },
-      ]);
+    const { error } = await supabase.from('categories').insert([
+      {
+        id: newCat.id,
+        name: newCat.name,
+        slug: newCat.slug,
+        description: newCat.description,
+        image_url: newCat.image,
+        icon: newCat.icon,
+        display_order: newCat.order,
+        active: newCat.isVisible,
+      },
+    ]);
+    if (error) {
+      throw new Error(`Could not save category: ${explainDbError(error.message)}`);
     }
-
-    const categories = getLocal<Category[]>('categories', initialCategories);
-    const updated = [...categories, newCat];
-    setLocal('categories', updated);
     return newCat;
   },
 
   async updateCategory(id: string, cat: Partial<Category>): Promise<Category> {
-    const supabase = getSupabase();
-    if (supabase) {
-      await supabase
-        .from('categories')
-        .update({
-          name: cat.name,
-          description: cat.description,
-          image_url: cat.image,
-          icon: cat.icon,
-          display_order: cat.order,
-          active: cat.isVisible !== false,
-        })
-        .eq('id', id);
+    const supabase = await requireAdminClient();
+
+    const { data: existing, error: readError } = await supabase.from('categories').select('*').eq('id', id).maybeSingle();
+    if (readError || !existing) {
+      throw new Error('Category not found or permission denied.');
     }
 
-    const categories = getLocal<Category[]>('categories', initialCategories);
-    const updated = categories.map((c) => (c.id === id ? { ...c, ...cat } : c));
-    setLocal('categories', updated);
-    const found = updated.find((c) => c.id === id);
-    if (!found) throw new Error('Category not found');
-    return found;
+    const updates: Record<string, any> = { updated_at: new Date().toISOString() };
+    if (cat.name !== undefined) updates.name = cat.name.trim();
+    if (cat.description !== undefined) updates.description = cat.description;
+    if (cat.image !== undefined) updates.image_url = cat.image;
+    if (cat.icon !== undefined) updates.icon = cat.icon;
+    if (cat.order !== undefined) updates.display_order = cat.order;
+    if (cat.isVisible !== undefined) updates.active = cat.isVisible;
+
+    const { error } = await supabase.from('categories').update(updates).eq('id', id);
+    if (error) {
+      throw new Error(`Could not update category: ${explainDbError(error.message)}`);
+    }
+
+    // Products store the category NAME, so keep them attached when a category is renamed.
+    if (updates.name && updates.name !== existing.name) {
+      await supabase.from('products').update({ category: updates.name }).eq('category', existing.name);
+    }
+
+    return {
+      id,
+      name: updates.name ?? existing.name,
+      slug: existing.slug,
+      description: updates.description ?? existing.description,
+      image: updates.image_url ?? existing.image_url,
+      icon: updates.icon ?? existing.icon,
+      order: updates.display_order ?? existing.display_order,
+      isVisible: updates.active ?? existing.active !== false,
+      active: updates.active ?? existing.active !== false,
+    };
   },
 
   async deleteCategory(id: string): Promise<void> {
-    const supabase = getSupabase();
-    if (supabase) {
-      await supabase.from('categories').delete().eq('id', id);
+    const supabase = await requireAdminClient();
+    const { error } = await supabase.from('categories').delete().eq('id', id);
+    if (error) {
+      throw new Error(`Could not delete category: ${explainDbError(error.message)}`);
     }
-    const categories = getLocal<Category[]>('categories', initialCategories);
-    setLocal('categories', categories.filter((c) => c.id !== id));
   },
 
   // ================= OFFERS =================
-  async getOffers(): Promise<Offer[]> {
+  async getOffers(includeInactive = false): Promise<Offer[]> {
     const supabase = getSupabase();
     if (supabase) {
       try {
-        const { data, error } = await supabase.from('offers').select('*').eq('is_active', true);
+        let query = supabase.from('offers').select('*').order('created_at', { ascending: false });
+        if (!includeInactive) query = query.eq('is_active', true);
+        const { data, error } = await query;
         if (!error && data) {
-          if (data.length > 0 || isSupabaseConfigured()) {
-            const mapped: Offer[] = data.map((o) => ({
-              id: o.id,
-              title: o.title,
-              description: o.description,
-              discountType: o.discount_type as any,
-              discountValue: Number(o.discount_value) || 0,
-              bannerImage: o.banner_image,
-              buttonText: o.button_text,
-              buttonLink: o.button_link,
-              isActive: o.is_active,
-              displayLocation: o.display_location as any,
-              productIds: Array.isArray(o.product_ids) ? o.product_ids : [],
-              createdAt: o.created_at,
-            }));
-            setLocal('offers', mapped);
-            return mapped;
-          }
+          const mapped: Offer[] = data.map((o) => ({
+            id: o.id,
+            title: o.title,
+            description: o.description,
+            discountType: o.discount_type as any,
+            discountValue: Number(o.discount_value) || 0,
+            bannerImage: o.banner_image,
+            buttonText: o.button_text,
+            buttonLink: o.button_link,
+            startDate: o.start_date || undefined,
+            endDate: o.end_date || undefined,
+            isActive: o.is_active,
+            displayLocation: o.display_location as any,
+            productIds: Array.isArray(o.product_ids) ? o.product_ids : [],
+            createdAt: o.created_at,
+          }));
+          setLocal('offers', mapped);
+          return mapped;
         }
       } catch (err) {
         console.warn('Supabase getOffers error:', err);
@@ -458,6 +503,7 @@ export const api = {
   },
 
   async addOffer(offer: Partial<Offer>): Promise<Offer> {
+    const supabase = await requireAdminClient();
     const newOffer: Offer = {
       id: offer.id || `offer-${Date.now()}`,
       title: offer.title || 'Special Promotion',
@@ -467,71 +513,85 @@ export const api = {
       bannerImage: offer.bannerImage,
       buttonText: offer.buttonText || 'Claim Offer on WhatsApp',
       buttonLink: offer.buttonLink || '#products',
+      startDate: offer.startDate || undefined,
+      endDate: offer.endDate || undefined,
       isActive: offer.isActive !== false,
       displayLocation: offer.displayLocation || 'banner',
       productIds: offer.productIds || [],
       createdAt: new Date().toISOString(),
     };
 
-    const supabase = getSupabase();
-    if (supabase) {
-      await supabase.from('offers').insert([
-        {
-          id: newOffer.id,
-          title: newOffer.title,
-          description: newOffer.description,
-          discount_type: newOffer.discountType,
-          discount_value: newOffer.discountValue,
-          banner_image: newOffer.bannerImage,
-          button_text: newOffer.buttonText,
-          button_link: newOffer.buttonLink,
-          is_active: newOffer.isActive,
-          display_location: newOffer.displayLocation,
-          product_ids: newOffer.productIds,
-        },
-      ]);
+    const { error } = await supabase.from('offers').insert([
+      {
+        id: newOffer.id,
+        title: newOffer.title,
+        description: newOffer.description,
+        discount_type: newOffer.discountType,
+        discount_value: newOffer.discountValue,
+        banner_image: newOffer.bannerImage,
+        button_text: newOffer.buttonText,
+        button_link: newOffer.buttonLink,
+        start_date: newOffer.startDate || null,
+        end_date: newOffer.endDate || null,
+        is_active: newOffer.isActive,
+        display_location: newOffer.displayLocation,
+        product_ids: newOffer.productIds,
+      },
+    ]);
+    if (error) {
+      throw new Error(`Could not save offer: ${explainDbError(error.message)}`);
     }
-
-    const offers = getLocal<Offer[]>('offers', initialOffers);
-    const updated = [...offers, newOffer];
-    setLocal('offers', updated);
     return newOffer;
   },
 
   async updateOffer(id: string, offer: Partial<Offer>): Promise<Offer> {
-    const supabase = getSupabase();
-    if (supabase) {
-      await supabase
-        .from('offers')
-        .update({
-          title: offer.title,
-          description: offer.description,
-          discount_type: offer.discountType,
-          discount_value: offer.discountValue,
-          banner_image: offer.bannerImage,
-          button_text: offer.buttonText,
-          button_link: offer.buttonLink,
-          is_active: offer.isActive,
-          display_location: offer.displayLocation,
-        })
-        .eq('id', id);
-    }
+    const supabase = await requireAdminClient();
+    const updates: Record<string, any> = { updated_at: new Date().toISOString() };
+    if (offer.title !== undefined) updates.title = offer.title;
+    if (offer.description !== undefined) updates.description = offer.description;
+    if (offer.discountType !== undefined) updates.discount_type = offer.discountType;
+    if (offer.discountValue !== undefined) updates.discount_value = offer.discountValue;
+    if (offer.bannerImage !== undefined) updates.banner_image = offer.bannerImage;
+    if (offer.buttonText !== undefined) updates.button_text = offer.buttonText;
+    if (offer.buttonLink !== undefined) updates.button_link = offer.buttonLink;
+    if (has(offer, 'startDate')) updates.start_date = offer.startDate || null;
+    if (has(offer, 'endDate')) updates.end_date = offer.endDate || null;
+    if (offer.isActive !== undefined) updates.is_active = offer.isActive;
+    if (offer.displayLocation !== undefined) updates.display_location = offer.displayLocation;
+    if (offer.productIds !== undefined) updates.product_ids = offer.productIds;
 
-    const offers = getLocal<Offer[]>('offers', initialOffers);
-    const updated = offers.map((o) => (o.id === id ? { ...o, ...offer } : o));
-    setLocal('offers', updated);
-    const found = updated.find((o) => o.id === id);
-    if (!found) throw new Error('Offer not found');
-    return found;
+    const { data, error } = await supabase.from('offers').update(updates).eq('id', id).select();
+    if (error) {
+      throw new Error(`Could not update offer: ${explainDbError(error.message)}`);
+    }
+    if (!data || data.length === 0) {
+      throw new Error('Offer was not updated (not found or permission denied). Please log in again.');
+    }
+    const o = data[0];
+    return {
+      id: o.id,
+      title: o.title,
+      description: o.description,
+      discountType: o.discount_type,
+      discountValue: Number(o.discount_value) || 0,
+      bannerImage: o.banner_image,
+      buttonText: o.button_text,
+      buttonLink: o.button_link,
+      startDate: o.start_date || undefined,
+      endDate: o.end_date || undefined,
+      isActive: o.is_active,
+      displayLocation: o.display_location,
+      productIds: Array.isArray(o.product_ids) ? o.product_ids : [],
+      createdAt: o.created_at,
+    };
   },
 
   async deleteOffer(id: string): Promise<void> {
-    const supabase = getSupabase();
-    if (supabase) {
-      await supabase.from('offers').delete().eq('id', id);
+    const supabase = await requireAdminClient();
+    const { error } = await supabase.from('offers').delete().eq('id', id);
+    if (error) {
+      throw new Error(`Could not delete offer: ${explainDbError(error.message)}`);
     }
-    const offers = getLocal<Offer[]>('offers', initialOffers);
-    setLocal('offers', offers.filter((o) => o.id !== id));
   },
 
   async createOffer(offer: Partial<Offer>): Promise<Offer> {
@@ -539,7 +599,7 @@ export const api = {
   },
 
   async toggleOffer(id: string): Promise<Offer> {
-    const offers = await this.getOffers();
+    const offers = await this.getOffers(true);
     const existing = offers.find((o) => o.id === id);
     if (!existing) throw new Error('Offer not found');
     return this.updateOffer(id, { isActive: !existing.isActive });
@@ -748,25 +808,23 @@ export const api = {
   },
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
-    const supabase = getSupabase();
-    if (supabase) {
-      await supabase.from('orders').update({ status }).eq('id', orderId);
+    const supabase = await requireAdminClient();
+    const { error } = await supabase.from('orders').update({ status, updated_at: new Date().toISOString() }).eq('id', orderId);
+    if (error) {
+      throw new Error(`Could not update order: ${explainDbError(error.message)}`);
     }
-    const orders = getLocal<Order[]>('orders', []);
-    const updated = orders.map((o) => (o.id === orderId ? { ...o, status } : o));
-    setLocal('orders', updated);
-    const found = updated.find((o) => o.id === orderId);
+    const orders = await this.getOrders();
+    const found = orders.find((o) => o.id === orderId);
     if (!found) throw new Error('Order not found');
     return found;
   },
 
   async deleteOrder(orderId: string): Promise<void> {
-    const supabase = getSupabase();
-    if (supabase) {
-      await supabase.from('orders').delete().eq('id', orderId);
+    const supabase = await requireAdminClient();
+    const { error } = await supabase.from('orders').delete().eq('id', orderId);
+    if (error) {
+      throw new Error(`Could not delete order: ${explainDbError(error.message)}`);
     }
-    const orders = getLocal<Order[]>('orders', []);
-    setLocal('orders', orders.filter((o) => o.id !== orderId));
   },
 
   // ================= STORE SETTINGS =================
@@ -813,9 +871,9 @@ export const api = {
     const current = await this.getStoreSettings();
     const updated = { ...current, ...settings, businessName: 'Ali Electronic' };
 
-    const supabase = getSupabase();
-    if (supabase) {
-      await supabase.from('store_settings').upsert({
+    const supabase = await requireAdminClient();
+    {
+      const { error } = await supabase.from('store_settings').upsert({
         id: 'default',
         business_name: 'Ali Electronic',
         tagline: updated.tagline,
@@ -840,6 +898,9 @@ export const api = {
         currency: updated.currency || 'PKR',
         updated_at: new Date().toISOString(),
       });
+      if (error) {
+        throw new Error(`Could not save settings: ${explainDbError(error.message)}`);
+      }
     }
 
     setLocal('settings', updated);
@@ -856,6 +917,20 @@ export const api = {
 
   // ================= HOMEPAGE CONFIG =================
   async getHomepageConfig(): Promise<HomepageConfig> {
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('homepage_config').select('config').eq('id', 'default').maybeSingle();
+        if (!error) {
+          const merged: HomepageConfig = { ...initialHomepage, ...(data?.config || {}) };
+          setLocal('homepage', merged);
+          return merged;
+        }
+        console.warn('Supabase getHomepageConfig error:', error.message);
+      } catch (err) {
+        console.warn('Supabase getHomepageConfig exception:', err);
+      }
+    }
     return getLocal<HomepageConfig>('homepage', initialHomepage);
   },
 
@@ -864,8 +939,17 @@ export const api = {
   },
 
   async updateHomepageConfig(homepage: Partial<HomepageConfig>): Promise<HomepageConfig> {
-    const current = getLocal<HomepageConfig>('homepage', initialHomepage);
+    const supabase = await requireAdminClient();
+    const current = await this.getHomepageConfig();
     const updated = { ...current, ...homepage };
+    const { error } = await supabase.from('homepage_config').upsert({
+      id: 'default',
+      config: updated,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) {
+      throw new Error(`Could not save homepage settings: ${explainDbError(error.message)}`);
+    }
     setLocal('homepage', updated);
     return updated;
   },
@@ -970,8 +1054,8 @@ export const api = {
     const supabase = getSupabase();
     if (supabase) {
       try {
-        const { data } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false });
-        if (data && data.length > 0) {
+        const { data, error } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false });
+        if (!error && data) {
           const mapped: ContactMessage[] = data.map((d) => ({
             id: d.id,
             name: d.name,
@@ -991,19 +1075,19 @@ export const api = {
   },
 
   async deleteContactMessage(id: string): Promise<void> {
-    const supabase = getSupabase();
-    if (supabase) {
-      await supabase.from('contact_messages').delete().eq('id', id);
+    const supabase = await requireAdminClient();
+    const { error } = await supabase.from('contact_messages').delete().eq('id', id);
+    if (error) {
+      throw new Error(`Could not delete message: ${explainDbError(error.message)}`);
     }
-    const messages = getLocal<ContactMessage[]>('contact_messages', []);
-    setLocal('contact_messages', messages.filter((m) => m.id !== id));
   },
 
   // ================= ADMIN STATS =================
   async getAdminStats(): Promise<AdminStats> {
     const prods = await this.getProducts();
     const orders = await this.getOrders();
-    const offers = await this.getOffers();
+    const offers = await this.getOffers(true);
+    const cats = await this.getCategories();
     const msgs = await this.getContactMessages();
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -1018,7 +1102,7 @@ export const api = {
       featuredProducts: prods.filter((p) => p.featured).length,
       newArrivals: prods.filter((p) => p.isNewArrival).length,
       activeOffers: offers.filter((o) => o.isActive).length,
-      totalCategories: 6,
+      totalCategories: cats.length,
       totalOrders: orders.length,
       pendingOrders: orders.filter((o) => o.status === 'Pending').length,
       totalSales,
@@ -1031,59 +1115,30 @@ export const api = {
     };
   },
 
-  // ================= AUTHENTICATION =================
-  async login(username: string, password: string): Promise<{ token: string; user: { username: string } }> {
-    const trimmedUser = username.trim();
-    const trimmedPass = password.trim();
-
-    // 1. Check Supabase Auth if username is an email
+  // ================= AUTHENTICATION (Supabase Auth only) =================
+  async login(email: string, password: string): Promise<{ token: string; user: { username: string } }> {
     const supabase = getSupabase();
-    if (supabase && trimmedUser.includes('@')) {
-      try {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: trimmedUser,
-          password: trimmedPass,
-        });
-        if (!authError && authData.session) {
-          localStorage.setItem('ali_electronic_token', authData.session.access_token);
-          return {
-            token: authData.session.access_token,
-            user: { username: authData.user?.email || trimmedUser },
-          };
-        }
-      } catch (sbErr) {
-        console.warn('Supabase auth attempt notice:', sbErr);
-      }
+    if (!supabase) {
+      throw new Error(
+        'Supabase is not connected. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel environment variables and redeploy.'
+      );
     }
-
-    // 2. Server API authentication
-    try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: trimmedUser, password: trimmedPass }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('ali_electronic_token', data.token);
-        return data;
-      }
-    } catch {
-      // static host fallback
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: password.trim(),
+    });
+    if (error || !data.session) {
+      const msg = error?.message || 'Login failed';
+      throw new Error(
+        msg.toLowerCase().includes('invalid login')
+          ? 'Wrong email or password. Use the admin user you created in Supabase → Authentication → Users.'
+          : msg
+      );
     }
-
-    // 3. Built-in Admin Credentials fallback for store management
-    if (
-      (trimmedUser === 'admin' && trimmedPass === 'admin123') ||
-      (trimmedUser === 'alitech' && trimmedPass === 'hassanabdal') ||
-      (trimmedUser === 'arbaz' && trimmedPass === 'admin123')
-    ) {
-      const token = `static-admin-token-${Date.now()}`;
-      localStorage.setItem('ali_electronic_token', token);
-      return { token, user: { username: trimmedUser } };
-    }
-
-    throw new Error('Invalid credentials. Default username is "admin" and password is "admin123", or use your Supabase admin email.');
+    return {
+      token: data.session.access_token,
+      user: { username: data.user?.email || email.trim() },
+    };
   },
 
   async logout(): Promise<void> {
@@ -1100,53 +1155,86 @@ export const api = {
   },
 
   async changePassword(currentPass: string, newPass: string): Promise<boolean> {
-    try {
-      const res = await fetch(`${API_BASE}/auth/change-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-        body: JSON.stringify({ currentPassword: currentPass, newPassword: newPass }),
-      });
-      if (res.ok) return true;
-    } catch {
-      // offline
-    }
+    const supabase = await requireAdminClient();
+    const { data: userData } = await supabase.auth.getUser();
+    const email = userData.user?.email;
+    if (!email) throw new Error('Could not read the signed-in admin email.');
+
+    const { error: verifyError } = await supabase.auth.signInWithPassword({ email, password: currentPass });
+    if (verifyError) throw new Error('Current password is incorrect.');
+
+    const { error } = await supabase.auth.updateUser({ password: newPass });
+    if (error) throw new Error(error.message);
     return true;
   },
 
   async checkAuth(): Promise<boolean> {
-    const token = localStorage.getItem('ali_electronic_token') || localStorage.getItem('ali_electronics_token');
-    if (!token) return false;
-    try {
-      const res = await fetch(`${API_BASE}/auth/verify`, {
-        headers: getAuthHeader(),
-      });
-      if (res.ok) return true;
-    } catch {
-      // offline / static host
-    }
-    return Boolean(token);
+    const supabase = getSupabase();
+    if (!supabase) return false;
+    const { data } = await supabase.auth.getSession();
+    return Boolean(data.session);
   },
 
-  // Media Library
+  async getSessionEmail(): Promise<string | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user?.email || null;
+  },
+
+  // ================= MEDIA LIBRARY (Supabase) =================
   async getMedia(): Promise<MediaItem[]> {
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('media_library').select('*').order('created_at', { ascending: false });
+        if (!error && data) {
+          const mapped: MediaItem[] = data.map((m) => ({
+            id: m.id,
+            title: m.title,
+            url: m.url,
+            category: m.category as any,
+            createdAt: m.created_at,
+          }));
+          setLocal('media', mapped);
+          return mapped;
+        }
+      } catch (err) {
+        console.warn('Supabase getMedia error:', err);
+      }
+    }
     return getLocal<MediaItem[]>('media', []);
   },
 
   async uploadMedia(data: { title: string; url: string; category?: string }): Promise<MediaItem> {
-    const media = getLocal<MediaItem[]>('media', []);
+    const supabase = await requireAdminClient();
     const newItem: MediaItem = {
-      id: `m-${Date.now()}`,
+      id: `m-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       title: data.title,
       url: data.url,
       category: (data.category as any) || 'product',
       createdAt: new Date().toISOString(),
     };
-    setLocal('media', [newItem, ...media]);
+    const { error } = await supabase.from('media_library').insert([
+      {
+        id: newItem.id,
+        title: newItem.title,
+        url: newItem.url,
+        category: newItem.category,
+        created_at: newItem.createdAt,
+      },
+    ]);
+    if (error) {
+      throw new Error(`Could not save media: ${explainDbError(error.message)}`);
+    }
     return newItem;
   },
 
   async deleteMedia(id: string): Promise<void> {
-    const media = getLocal<MediaItem[]>('media', []);
-    setLocal('media', media.filter((m) => m.id !== id));
+    const supabase = await requireAdminClient();
+    const { error } = await supabase.from('media_library').delete().eq('id', id);
+    if (error) {
+      throw new Error(`Could not delete media: ${explainDbError(error.message)}`);
+    }
   },
 };

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { getSupabase } from '../lib/supabase';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -17,17 +18,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    // Remove stale tokens left by the old localStorage-based login
+    localStorage.removeItem('ali_electronic_token');
+    localStorage.removeItem('ali_electronics_token');
+
     checkCurrentAuth();
+
+    // Keep UI in sync with the real Supabase session (expiry, logout in another tab, refresh)
+    const supabase = getSupabase();
+    if (!supabase) return;
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(Boolean(session));
+      setUser(session?.user?.email ? { username: session.user.email } : null);
+    });
+    return () => data.subscription.unsubscribe();
   }, []);
 
   async function checkCurrentAuth() {
     try {
-      const isValid = await api.checkAuth();
-      if (isValid) {
+      const email = await api.getSessionEmail();
+      if (email) {
         setIsAuthenticated(true);
-        setUser({ username: 'admin' });
+        setUser({ username: email });
       } else {
-        localStorage.removeItem('ali_electronics_token');
         setIsAuthenticated(false);
         setUser(null);
       }
@@ -39,9 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function login(username: string, password: string) {
-    const data = await api.login(username, password);
-    localStorage.setItem('ali_electronics_token', data.token);
+  async function login(email: string, password: string) {
+    const data = await api.login(email, password);
     setIsAuthenticated(true);
     setUser(data.user);
   }

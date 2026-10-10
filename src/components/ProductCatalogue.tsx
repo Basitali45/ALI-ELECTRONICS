@@ -42,7 +42,6 @@ export function ProductCatalogue({
   const [selectedCategory, setSelectedCategory] = useState(selectedCategoryProp);
   const [selectedStock, setSelectedStock] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
-  const [maxPrice, setMaxPrice] = useState<number>(10000);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
   // Sync if prop changes
@@ -58,8 +57,11 @@ export function ProductCatalogue({
   const computedHighestPrice = useMemo(() => {
     if (!products.length) return 10000;
     const max = Math.max(...products.map(p => p.price));
-    return Math.ceil(max / 1000) * 1000;
+    return Math.max(10000, Math.ceil(max / 1000) * 1000);
   }, [products]);
+
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
+  const effectiveMaxPrice = maxPrice ?? computedHighestPrice;
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -73,7 +75,7 @@ export function ProductCatalogue({
         return false;
       }
       // Price filter
-      if (p.price > maxPrice) {
+      if (p.price > effectiveMaxPrice) {
         return false;
       }
       // Search query
@@ -95,15 +97,15 @@ export function ProductCatalogue({
       // Newest
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [products, selectedCategory, selectedStock, maxPrice, search, sortBy]);
+  }, [products, selectedCategory, selectedStock, effectiveMaxPrice, search, sortBy]);
 
-  const hasActiveFilters = selectedCategory !== 'all' || selectedStock !== 'all' || search.trim() !== '' || maxPrice < computedHighestPrice;
+  const hasActiveFilters = selectedCategory !== 'all' || selectedStock !== 'all' || search.trim() !== '' || (maxPrice !== null && maxPrice < computedHighestPrice);
 
   const handleResetFilters = () => {
     setSearch('');
     setSelectedCategory('all');
     setSelectedStock('all');
-    setMaxPrice(computedHighestPrice || 10000);
+    setMaxPrice(null);
     setSortBy('newest');
   };
 
@@ -204,16 +206,16 @@ export function ProductCatalogue({
               <div className="hidden sm:flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                 <span className="font-medium">Up to:</span>
                 <span className="font-mono font-bold text-slate-900 dark:text-white">
-                  Rs. {maxPrice.toLocaleString()}
+                  Rs. {effectiveMaxPrice.toLocaleString()}
                 </span>
                 <input
                   type="range"
                   min="500"
                   max={computedHighestPrice || 10000}
                   step="250"
-                  value={maxPrice}
+                  value={effectiveMaxPrice}
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
-                  className="w-24 sm:w-32 accent-blue-600"
+                  className="w-24 sm:w-32 accent-blue-600 cursor-pointer"
                 />
               </div>
 

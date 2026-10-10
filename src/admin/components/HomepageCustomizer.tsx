@@ -29,8 +29,8 @@ export function HomepageCustomizer({ homepage, onRefresh, showToast }: HomepageC
       await api.updateHomepage(config);
       showToast('Homepage customization saved!');
       onRefresh();
-    } catch {
-      showToast('Failed to save homepage settings');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to save homepage settings');
     }
   };
 
