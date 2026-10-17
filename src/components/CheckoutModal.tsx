@@ -332,20 +332,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                       Cash on Delivery
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('JazzCash / EasyPaisa')}
-                      className={`p-3 rounded-xl border text-xs font-bold text-left transition-all ${
-                        paymentMethod === 'JazzCash / EasyPaisa'
-                          ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
-                          : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      <FileText className="w-4 h-4 mb-1" />
-                      JazzCash / EasyPaisa
-                    </button>
-                  </div>
-                </div>
+      
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
