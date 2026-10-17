@@ -15,14 +15,14 @@ export function PromoPopup({ config, whatsappNumber, onNavigate }: PromoPopupPro
     if (!config.enabled) return;
 
     if (config.showOnce) {
-      const shown = sessionStorage.getItem('ali_promo_shown');
+      const shown = sessionStorage.getItem('zyvara_promo_shown');
       if (shown) return;
     }
 
     const timer = setTimeout(() => {
       setIsOpen(true);
       if (config.showOnce) {
-        sessionStorage.setItem('ali_promo_shown', 'true');
+        sessionStorage.setItem('zyvara_promo_shown', 'true');
       }
     }, (config.delaySeconds || 3) * 1000);
 
@@ -92,7 +92,7 @@ export function PromoPopup({ config, whatsappNumber, onNavigate }: PromoPopupPro
             </button>
 
             <a
-              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Assalam-o-Alaikum Ali Electronic, I saw your special promotion: "${config.title}". What offers are available?`)}`}
+              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hello Zyvara, I saw your special promotion: "${config.title}". What offers are available?`)}`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setIsOpen(false)}

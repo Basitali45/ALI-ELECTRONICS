@@ -17,6 +17,7 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 import { StoreSettings, Order } from '../types';
 import { api } from '../services/api';
 import { InvoiceModal } from './InvoiceModal';
+import { getDeliveryCharges } from '../lib/policy';
 
 interface CheckoutModalProps {
   settings: StoreSettings;
@@ -35,7 +36,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [address, setAddress] = useState('');
-  const [city, setCity] = useState('Hassan Abdal');
+  const [city, setCity] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
 
@@ -47,7 +48,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
 
   if (!isCheckoutOpen) return null;
 
-  const deliveryCharges = settings.deliveryCharges || 0;
+  const deliveryCharges = getDeliveryCharges(subtotal, settings.deliveryCharges);
   const totalAmount = subtotal + deliveryCharges;
 
   const validateForm = () => {
@@ -105,21 +106,21 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-sm p-4 sm:p-6 flex items-center justify-center animate-in fade-in duration-200">
-        <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-8">
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-sm p-3 sm:p-6 flex animate-in fade-in duration-200">
+        <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden mx-auto my-auto">
           
           {/* Header */}
           <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/60">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-600/30">
-                AE
+                Z
               </div>
               <div>
                 <h2 className="font-heading font-black text-lg text-slate-900 dark:text-white">
                   {placedOrder ? 'Order Confirmed!' : 'Checkout & Order Placement'}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Ali Electronic · Main Bus Stop, Islam Shaheed Road, Hassan Abdal
+                  Zyvara · Free shipping above Rs. 3,000 · 7-day returns
                 </p>
               </div>
             </div>
@@ -147,7 +148,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                   Thank you, {placedOrder.customerName}!
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Your order has been permanently recorded in our system. Our team at Ali Electronic will prepare your items for immediate pickup or delivery in Hassan Abdal.
+                  Your order has been permanently recorded in our system. Our team at Zyvara will prepare your order and contact you shortly.
                 </p>
               </div>
 
@@ -289,7 +290,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                       <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                       <input
                         type="text"
-                        placeholder="Hassan Abdal, Wah Cantt, etc."
+                        placeholder="Your city"
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
                         className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -401,8 +402,8 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                       </span>
                     </div>
                     <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                      <span>Delivery in Hassan Abdal</span>
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">FREE</span>
+                      <span>Shipping</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{deliveryCharges > 0 ? `Rs. ${deliveryCharges.toLocaleString()}` : 'FREE'}</span>
                     </div>
                     <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between text-sm font-bold text-slate-900 dark:text-white">
                       <span>Final Total:</span>
@@ -442,7 +443,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                   </button>
 
                   <p className="text-[11px] text-center text-slate-400">
-                    No advance payment required for Hassan Abdal cash on delivery orders.
+                    Cash on delivery available. 7-day easy returns.
                   </p>
                 </div>
 

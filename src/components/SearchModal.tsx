@@ -60,7 +60,7 @@ export function SearchModal({
           <input
             ref={inputRef}
             type="text"
-            placeholder="Type to search chargers, cables, earbuds, power banks..."
+            placeholder="Search products, categories..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full text-base sm:text-lg bg-transparent border-0 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
@@ -79,7 +79,7 @@ export function SearchModal({
             <div className="py-6 text-center text-xs text-slate-500 space-y-3">
               <p>Quick popular searches:</p>
               <div className="flex flex-wrap items-center justify-center gap-2">
-                {['Charger', 'Cables', 'Earbuds', 'Power Bank', 'Headphones', 'LED'].map((item) => (
+                {['Jacket', 'Serum', 'Handbag', 'Plant Pot', 'Sunglasses', 'Tote'].map((item) => (
                   <button
                     key={item}
                     onClick={() => setQuery(item)}
@@ -133,7 +133,7 @@ export function SearchModal({
             <div className="py-8 text-center space-y-2">
               <Package className="w-8 h-8 text-slate-400 mx-auto" />
               <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                No electronics found for "{query}"
+                No products found for "{query}"
               </p>
               <p className="text-xs text-slate-500">
                 Try searching by category name or asking directly on WhatsApp.

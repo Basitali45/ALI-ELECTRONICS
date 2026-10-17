@@ -10,6 +10,7 @@ import {
   Sparkles 
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { getDeliveryCharges, FREE_SHIPPING_THRESHOLD, RETURN_DAYS } from '../lib/policy';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { StoreSettings } from '../types';
 
@@ -32,14 +33,17 @@ export function CartDrawer({ settings }: CartDrawerProps) {
 
   if (!isCartOpen) return null;
 
-  const cleanAdminPhone = (settings.whatsappNumber || '03115321647')
+  const deliveryCharges = getDeliveryCharges(subtotal, settings.deliveryCharges);
+  const amountToFree = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
+
+  const cleanAdminPhone = (settings.whatsappNumber || '03705776869')
     .replace(/^0/, '92')
     .replace(/[^0-9]/g, '');
 
   const handleQuickWhatsAppOrder = () => {
     if (items.length === 0) return;
 
-    let text = `*ORDER INQUIRY — ALI ELECTRONIC*\n`;
+    let text = `*ORDER INQUIRY — ZVYARA*\n`;
     text += `Hello, I want to order the following items from your website:\n\n`;
 
     items.forEach((item, idx) => {
@@ -50,7 +54,7 @@ export function CartDrawer({ settings }: CartDrawerProps) {
     });
 
     text += `\n*Subtotal: Rs. ${subtotal.toLocaleString()}*\n`;
-    text += `Please confirm availability and Hassan Abdal delivery. Thank you!`;
+    text += `Please confirm availability and delivery. Thank you!`;
 
     window.open(`https://wa.me/${cleanAdminPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
@@ -87,7 +91,7 @@ export function CartDrawer({ settings }: CartDrawerProps) {
                   )}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Ali Electronic · Hassan Abdal
+                  Zyvara · Minimal luxury for everyday living
                 </p>
               </div>
             </div>
@@ -120,7 +124,7 @@ export function CartDrawer({ settings }: CartDrawerProps) {
                 <div className="space-y-1">
                   <h3 className="font-bold text-slate-800 dark:text-slate-200">Your cart is empty</h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
-                    Explore our premium accessories, fast chargers and wireless sound gadgets to add items.
+                    Explore our fashion, beauty, home and accessories collections to add items.
                   </p>
                 </div>
                 <button
@@ -213,14 +217,17 @@ export function CartDrawer({ settings }: CartDrawerProps) {
                 <div className="flex justify-between text-slate-500 dark:text-slate-400">
                   <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    Hassan Abdal Pickup / Delivery
+                    Shipping
                   </span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">FREE</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{deliveryCharges > 0 ? `Rs. ${deliveryCharges.toLocaleString()}` : 'FREE'}</span>
                 </div>
+                {amountToFree > 0 && (
+                  <p className="text-[11px] text-slate-500">Add Rs. {amountToFree.toLocaleString()} more for free shipping.</p>
+                )}
                 <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between text-sm">
                   <span className="font-bold text-slate-900 dark:text-white">Total Amount</span>
                   <span className="font-black text-base text-blue-600 dark:text-cyan-400">
-                    Rs. {subtotal.toLocaleString()}
+                    Rs. {(subtotal + deliveryCharges).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -244,7 +251,7 @@ export function CartDrawer({ settings }: CartDrawerProps) {
               </div>
 
               <p className="text-[11px] text-center text-slate-400">
-                Verified genuine products · Tested in Hassan Abdal showroom
+                Free shipping above Rs. 3,000 · 7-day returns
               </p>
             </div>
           )}

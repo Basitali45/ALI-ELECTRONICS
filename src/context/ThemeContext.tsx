@@ -11,29 +11,15 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const saved = localStorage.getItem('ali_theme');
-    if (saved === 'light' || saved === 'dark') return saved;
-    return 'light'; // Light premium theme by default as requested
-  });
+  // Zyvara uses a single light theme (storefront + admin panel).
+  const [theme] = useState<Theme>('light');
 
   useEffect(() => {
-    localStorage.setItem('ali_theme', theme);
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-  }, [theme]);
+    document.documentElement.classList.remove('dark');
+  }, []);
 
-  const toggleTheme = () => {
-    setThemeState((prev) => (prev === 'light' ? 'dark' : 'light'));
-  };
-
-  const setTheme = (t: Theme) => {
-    setThemeState(t);
-  };
+  const toggleTheme = () => {};
+  const setTheme = (_t: Theme) => {};
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>

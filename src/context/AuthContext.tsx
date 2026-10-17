@@ -19,8 +19,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Remove stale tokens left by the old localStorage-based login
-    localStorage.removeItem('ali_electronic_token');
-    localStorage.removeItem('ali_electronics_token');
+    localStorage.removeItem('zyvara_token');
+    localStorage.removeItem('zyvara_token');
 
     checkCurrentAuth();
 

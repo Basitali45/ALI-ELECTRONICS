@@ -1,192 +1,109 @@
-import React from 'react';
-import { MapPin, Phone, ArrowUp } from 'lucide-react';
-import { WhatsAppIcon } from './WhatsAppIcon';
-import { StoreSettings, Category } from '../types';
+import React, { useState } from 'react';
+import { StoreSettings } from '../types';
+import { api } from '../services/api';
+import { PolicyKey } from './PolicyModal';
 
 interface FooterProps {
   settings: StoreSettings;
-  categories: Category[];
-  onNavigate: (sectionId: string) => void;
-  onSelectCategory: (categoryName: string) => void;
+  onOpenPolicy: (p: PolicyKey) => void;
 }
 
-export function Footer({ settings, categories, onNavigate, onSelectCategory }: FooterProps) {
-  const cleanWhatsApp = (settings?.whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
+// Add real profile URLs here when available — entries with an empty URL render as plain text.
+const SOCIAL_LINKS: { label: string; url: string }[] = [
+  { label: 'Instagram', url: '' },
+  { label: 'Pinterest', url: '' },
+  { label: 'TikTok', url: '' },
+];
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+export function Footer({ settings, onOpenPolicy }: FooterProps) {
+  const brand = (settings.businessName || 'Zyvara').toUpperCase();
+  const [email, setEmail] = useState('');
+  const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+
+  const subscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+      setState('error');
+      return;
+    }
+    setState('sending');
+    try {
+      await api.submitContact({ name: 'Newsletter Subscriber', phone: 'Newsletter', message: `Please add ${email.trim()} to the ${brand} style updates list.` });
+      setState('done');
+      setEmail('');
+    } catch {
+      setState('error');
+    }
   };
 
+  const linkBtn = 'hover:underline cursor-pointer';
+  const Dot = () => <span className="mx-1.5 text-slate-400">•</span>;
+
   return (
-    <footer className="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        
-        {/* Top Multi-column Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12">
-          
-          {/* Column 1: Brand Info (col-span-4) */}
-          <div className="lg:col-span-4 space-y-4">
-            <div className="space-y-1">
-              <span className="font-heading font-black text-2xl sm:text-3xl tracking-tighter text-white uppercase block leading-none bg-gradient-to-r from-white via-blue-200 to-cyan-300 bg-clip-text text-transparent">
-                {settings.businessName || 'ALI ELECTRONIC'}
-              </span>
-              <span className="text-[11px] font-extrabold text-blue-400 tracking-widest uppercase block font-mono">
-                Hassan Abdal · Pakistan
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Your dependable electronics destination in Hassan Abdal. Specializing in high-speed chargers, heavy-duty cables, wireless audio, batteries, emergency lights, and smart technology.
-            </p>
-
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(settings.location || 'Main Bus Stop, Islam Shaheed Road, Opposite New Sethi Flour Mills, Hassan Abdal, Pakistan')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block p-3.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-blue-500/50 space-y-1 text-xs transition-colors group"
-            >
-              <div className="flex items-center justify-between text-slate-400 font-semibold uppercase text-[10px] tracking-wider">
-                <span>Store Location</span>
-                <span className="text-blue-400 group-hover:underline text-[10px]">Open Google Maps ↗</span>
-              </div>
-              <div className="text-slate-200 group-hover:text-white transition-colors">
-                {settings.location}
-              </div>
-            </a>
-          </div>
-
-          {/* Column 2: Quick Links (col-span-2) */}
-          <div className="lg:col-span-2 space-y-3">
-            <h4 className="font-heading font-bold text-sm text-white uppercase tracking-wider">
-              Quick Links
-            </h4>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <button
-                  onClick={() => onNavigate('home')}
-                  className="hover:text-blue-400 transition-colors"
-                >
-                  Home
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('products')}
-                  className="hover:text-blue-400 transition-colors"
-                >
-                  Product Catalogue
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('categories')}
-                  className="hover:text-blue-400 transition-colors"
-                >
-                  All Categories
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('about')}
-                  className="hover:text-blue-400 transition-colors"
-                >
-                  About Us
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('contact')}
-                  className="hover:text-blue-400 transition-colors"
-                >
-                  Contact & Map
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 3: Popular Categories (col-span-3) */}
-          <div className="lg:col-span-3 space-y-3">
-            <h4 className="font-heading font-bold text-sm text-white uppercase tracking-wider">
-              Top Categories
-            </h4>
-            <div className="flex flex-wrap gap-2 text-xs">
-              {categories.slice(0, 8).map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => {
-                    onSelectCategory(cat.name);
-                    onNavigate('products');
-                  }}
-                  className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs"
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Column 4: Direct Contacts (col-span-3) */}
-          <div className="lg:col-span-3 space-y-3">
-            <h4 className="font-heading font-bold text-sm text-white uppercase tracking-wider">
-              Contact Us Directly
-            </h4>
-            
-            <div className="space-y-2 text-xs">
-              <a
-                href={`tel:${settings.phone1}`}
-                className="flex items-center gap-2.5 p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition-colors group"
-              >
-                <Phone className="w-3.5 h-3.5 text-blue-400 group-hover:scale-110 transition-transform" />
-                <span>{settings.phone1Name || 'Arbaz Ahmed'}: <strong className="font-mono text-white">{settings.phone1}</strong></span>
-              </a>
-
-              <a
-                href={`tel:${settings.phone2}`}
-                className="flex items-center gap-2.5 p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition-colors group"
-              >
-                <Phone className="w-3.5 h-3.5 text-blue-400 group-hover:scale-110 transition-transform" />
-                <span>{settings.phone2Name || 'Faraz Ahmed'}: <strong className="font-mono text-white">{settings.phone2}</strong></span>
-              </a>
-
-              <a
-                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronic, I would like to inquire about your products.')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2.5 p-2 rounded-lg bg-[#25D366]/20 hover:bg-[#25D366]/30 border border-[#25D366]/40 text-emerald-300 transition-colors"
-              >
-                <WhatsAppIcon className="w-3.5 h-3.5 fill-[#25D366] text-[#25D366]" />
-                <span>WhatsApp: <strong className="font-mono text-white">{settings.whatsappNumber}</strong></span>
-              </a>
-            </div>
-
-            <div className="text-[11px] text-slate-400 pt-1">
-              Timings: {settings.businessHours}
-            </div>
-          </div>
-
-        </div>
-
-        {/* Bottom Bar: Copyright & Location info */}
-        <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <p>
-            {settings.footerText || '© 2026 Ali Electronic. All Rights Reserved.'}
-          </p>
-
-          <div className="flex items-center gap-4">
-            <span className="font-semibold text-slate-300">
-              Hassan Abdal, Pakistan
-            </span>
-
+    <footer id="footer" className="bg-white text-black pt-6 pb-24 md:pb-5">
+      <div className="max-w-3xl mx-auto px-5 text-center space-y-5">
+        <div className="space-y-2">
+          <h3 className="text-[14px] font-semibold">Join {brand}</h3>
+          <p className="text-[12px] text-black/80">Sign up for 10% off your first order and style updates.</p>
+          <form onSubmit={subscribe} className="flex items-stretch justify-center gap-3 max-w-xl mx-auto">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); if (state !== 'idle') setState('idle'); }}
+              placeholder="Enter your email"
+              aria-label="Email address"
+              className="flex-1 min-w-0 px-3 py-2 rounded-md border border-slate-200 text-[12px] text-black placeholder:text-slate-500 focus:outline-none focus:border-black"
+            />
             <button
-              onClick={scrollToTop}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-              aria-label="Scroll back to top"
+              type="submit"
+              disabled={state === 'sending'}
+              className="px-8 py-2 rounded-md bg-black text-white text-[12px] font-semibold hover:bg-neutral-800 disabled:opacity-60 cursor-pointer"
             >
-              <ArrowUp className="w-4 h-4" />
+              {state === 'sending' ? '...' : 'Subscribe'}
             </button>
+          </form>
+          {state === 'done' && <p className="text-[12px] text-emerald-700 font-medium">Thank you for subscribing!</p>}
+          {state === 'error' && <p className="text-[12px] text-rose-600 font-medium">Please enter a valid email address.</p>}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-3 text-center sm:text-left pt-1">
+          <div className="space-y-1">
+            <p className="text-[13px] font-bold">{brand}</p>
+            <p className="text-[10px] text-black/80">Minimal luxury for everyday living.</p>
+          </div>
+          <div className="space-y-1 sm:text-center">
+            <p className="text-[13px] font-bold">Customer Care</p>
+            <p className="text-[10px] text-black/80">
+              <a href={`tel:${settings.phone1}`} className={linkBtn}>{settings.phone1}</a>
+              <Dot />
+              <a href={`tel:${settings.phone2}`} className={linkBtn}>{settings.phone2}</a>
+            </p>
+            <p className="text-[10px] text-black/80">
+              <button onClick={() => onOpenPolicy('shipping')} className={linkBtn}>Shipping &amp; Returns</button>
+              <Dot />
+              <button onClick={() => onOpenPolicy('faqs')} className={linkBtn}>FAQs</button>
+            </p>
+          </div>
+          <div className="space-y-1 sm:text-right">
+            <p className="text-[13px] font-bold">Follow Us</p>
+            <p className="text-[10px] text-black/80">
+              {SOCIAL_LINKS.map((s, i) => (
+                <React.Fragment key={s.label}>
+                  {i > 0 && <Dot />}
+                  {s.url ? <a href={s.url} target="_blank" rel="noopener noreferrer" className={linkBtn}>{s.label}</a> : <span>{s.label}</span>}
+                </React.Fragment>
+              ))}
+            </p>
           </div>
         </div>
 
+        <p className="text-[10px] text-black/80">
+          {settings.footerText || `© 2026 ${brand}. All rights reserved.`}
+          <Dot />
+          <button onClick={() => onOpenPolicy('privacy')} className={linkBtn}>Privacy Policy</button>
+          <Dot />
+          <button onClick={() => onOpenPolicy('terms')} className={linkBtn}>Terms</button>
+        </p>
       </div>
     </footer>
   );

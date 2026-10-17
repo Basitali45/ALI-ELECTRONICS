@@ -28,8 +28,8 @@ export function OffersManager({ offers, products, onRefresh, showToast }: Offers
   const handleOpenAdd = () => {
     setEditingOffer(null);
     setForm({
-      title: 'MEGA ELECTRONICS SALE',
-      description: 'Up to 30% OFF on Selected Products at Ali Electronic Hassan Abdal',
+      title: 'SEASON SALE',
+      description: 'Up to 30% OFF on selected products at Zyvara',
       discountType: 'percentage',
       discountValue: 30,
       bannerImage: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=1200&auto=format&fit=crop&q=80',
@@ -215,7 +215,7 @@ export function OffersManager({ offers, products, onRefresh, showToast }: Offers
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   required
-                  placeholder="e.g. MEGA ELECTRONICS SALE"
+                  placeholder="e.g. SEASON SALE"
                   className="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                 />
               </div>

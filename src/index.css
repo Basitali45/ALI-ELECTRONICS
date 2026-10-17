@@ -2,22 +2,95 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+/* ZVYARA — minimal luxury theme: black / white / soft neutral.
+   Re-maps the colour scales used across storefront AND admin panel so both share one look. */
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-logo: 'Jost', 'Inter', sans-serif;
+
+  --color-slate-50: #f7f7f6;
+  --color-slate-100: #f0f0ee;
+  --color-slate-200: #e5e5e3;
+  --color-slate-300: #d1d1cf;
+  --color-slate-400: #a3a3a1;
+  --color-slate-500: #737372;
+  --color-slate-600: #525252;
+  --color-slate-700: #404040;
+  --color-slate-800: #262626;
+  --color-slate-900: #171717;
+  --color-slate-950: #0a0a0a;
+
+  --color-blue-50: #f5f5f4;
+  --color-blue-100: #ececea;
+  --color-blue-200: #dcdcda;
+  --color-blue-300: #b5b5b3;
+  --color-blue-400: #8a8a88;
+  --color-blue-500: #3f3f3f;
+  --color-blue-600: #0a0a0a;
+  --color-blue-700: #000000;
+  --color-blue-800: #000000;
+  --color-blue-900: #000000;
+  --color-blue-950: #0a0a0a;
+
+  --color-indigo-50: #f5f5f4;
+  --color-indigo-100: #ececea;
+  --color-indigo-200: #dcdcda;
+  --color-indigo-300: #b5b5b3;
+  --color-indigo-400: #8a8a88;
+  --color-indigo-500: #3f3f3f;
+  --color-indigo-600: #171717;
+  --color-indigo-700: #0a0a0a;
+  --color-indigo-800: #000000;
+  --color-indigo-900: #000000;
+  --color-indigo-950: #0a0a0a;
+
+  --color-cyan-50: #f5f5f4;
+  --color-cyan-100: #ececea;
+  --color-cyan-200: #dcdcda;
+  --color-cyan-300: #b5b5b3;
+  --color-cyan-400: #8a8a88;
+  --color-cyan-500: #3f3f3f;
+  --color-cyan-600: #0a0a0a;
+  --color-cyan-700: #000000;
+  --color-cyan-800: #000000;
+  --color-cyan-900: #000000;
+  --color-cyan-950: #0a0a0a;
+}
+
 @layer base {
   :root {
-    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-heading: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   html {
     scroll-behavior: smooth;
     font-family: var(--font-sans);
+    background: #f7f7f6;
   }
 
   body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background: #f7f7f6;
+    color: #0a0a0a;
   }
 }
+
+/* Zyvara logo wordmark */
+.zv-logo {
+  font-family: 'Jost', 'Inter', sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* Hide scrollbars on chip rows */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* Product images sit on a soft neutral tile; multiply blends white backdrops away */
+.zv-img { mix-blend-mode: multiply; }
 
 /* 3D Cinematic & Spatial Utilities */
 .perspective-1000 {
@@ -87,7 +160,7 @@
 /* Light Mode Cinematic Ambient Backgrounds */
 .hero-light-grid {
   background-image: 
-    radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 60%),
+    radial-gradient(circle at 50% 0%, rgba(0, 0, 0, 0.03) 0%, transparent 60%),
     linear-gradient(to right, rgba(226, 232, 240, 0.5) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
   background-size: 100% 100%, 48px 48px, 48px 48px;
@@ -95,7 +168,7 @@
 
 .dark .hero-light-grid {
   background-image: 
-    radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.18) 0%, transparent 70%),
+    radial-gradient(circle at 50% 0%, rgba(0, 0, 0, 0.05) 0%, transparent 70%),
     linear-gradient(to right, rgba(30, 41, 59, 0.6) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(30, 41, 59, 0.6) 1px, transparent 1px);
   background-size: 100% 100%, 48px 48px, 48px 48px;
@@ -173,6 +246,6 @@
 }
 
 .font-heading {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 

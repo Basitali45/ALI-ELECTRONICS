@@ -58,11 +58,11 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
 
   const allImages = [product.image, ...(product.additionalImages || [])].filter(Boolean);
 
-  const cleanPhone = (settings.whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const cleanPhone = (settings.whatsappNumber || '03705776869').replace(/^0/, '92').replace(/[^0-9]/g, '');
 
   const handleWhatsAppOrder = () => {
     const qtyText = quantity > 1 ? ` (Quantity: ${quantity}, Total: Rs. ${(product.price * quantity).toLocaleString()})` : ` (Price: Rs. ${product.price.toLocaleString()})`;
-    const text = `Assalam-o-Alaikum Ali Electronic, I want to ${isOutOfStock ? 'inquire about stock for' : 'order'}: ${product.name}${qtyText}. Product Image: ${product.image}. Please confirm availability in Hassan Abdal.`;
+    const text = `Hello Zyvara, I want to ${isOutOfStock ? 'inquire about stock for' : 'order'}: ${product.name}${qtyText}. Product Image: ${product.image}. Please confirm availability.`;
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
@@ -92,11 +92,11 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
   const showWhatsAppButton = settings.whatsappProductButtonEnabled !== false && product.whatsappEnabled !== false;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex p-3 sm:p-6 animate-in fade-in duration-200">
       
       {/* Modal Dialog with Spring Drop-Down Animation */}
       <div 
-        className="relative w-full max-w-3xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto animate-modal-drop"
+        className="relative w-full max-w-3xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden mx-auto my-auto animate-modal-drop"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -142,11 +142,11 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
               </div>
             )}
 
-            {/* Hassan Abdal Delivery Badge */}
+            {/* Shipping & returns badge */}
             <div className="mt-auto pt-6 w-full text-center">
               <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold">
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                <span>Verified Ali Electronic Hassan Abdal Stock</span>
+                <span>Free shipping above Rs. 3,000 · 7-day returns</span>
               </div>
             </div>
           </div>
@@ -311,14 +311,14 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
                   className="py-2 px-3 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
                 >
                   <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span className="truncate">Call {settings.phone1Name || 'Arbaz'}</span>
+                  <span className="truncate">Call Customer Care</span>
                 </a>
                 <a
                   href={`tel:${settings.phone2}`}
                   className="py-2 px-3 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
                 >
                   <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span className="truncate">Call {settings.phone2Name || 'Faraz'}</span>
+                  <span className="truncate">Call Customer Care 2</span>
                 </a>
               </div>
             </div>
@@ -334,7 +334,7 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
               </button>
 
               <span className="text-[11px] text-slate-400">
-                Hassan Abdal, Pakistan
+                Zyvara
               </span>
             </div>
 

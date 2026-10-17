@@ -1,4 +1,4 @@
-# Ali Electronic — Store + Admin Panel (React + Supabase)
+# Zyvara — Store + Admin Panel (React + Supabase)
 
 Products, categories, offers/sales, orders, homepage settings and images are all stored in **Supabase**,
 so whatever the owner changes in the admin panel shows on every device (mobile, laptop, customers).

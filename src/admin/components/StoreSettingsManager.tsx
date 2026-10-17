@@ -35,7 +35,7 @@ interface StoreSettingsManagerProps {
 export function StoreSettingsManager({ settings, onRefresh, showToast }: StoreSettingsManagerProps) {
   const [form, setForm] = useState<StoreSettings>({
     ...settings,
-    businessName: 'Ali Electronic'
+    businessName: 'Zyvara'
   });
 
   // Supabase Configuration State
@@ -367,13 +367,13 @@ export function StoreSettingsManager({ settings, onRefresh, showToast }: StoreSe
           <div className="flex items-center gap-2 pb-2 border-b">
             <Phone className="w-4 h-4 text-blue-600" />
             <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-white">
-              Direct Contact Lines & Hassan Abdal Location
+              Customer Care Contacts & Location
             </h4>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Phone 1 (Arbaz Ahmed)</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Customer Service Phone 1</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -391,7 +391,7 @@ export function StoreSettingsManager({ settings, onRefresh, showToast }: StoreSe
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Phone 2 (Faraz Ahmed)</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Customer Service Phone 2</label>
               <div className="flex gap-2">
                 <input
                   type="text"

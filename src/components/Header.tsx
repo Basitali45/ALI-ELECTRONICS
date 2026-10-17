@@ -1,257 +1,129 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Sun, 
-  Moon, 
-  Menu, 
-  X, 
-  Phone, 
-  ShieldCheck, 
-  Lock, 
-  SlidersHorizontal,
-  ShoppingBag,
-  Heart
-} from 'lucide-react';
-import { WhatsAppIcon } from './WhatsAppIcon';
-import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
+import { Search, Menu, X, User, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { StoreSettings, AnnouncementBarConfig } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { StoreSettings, AnnouncementBarConfig, Category } from '../types';
 import { AnnouncementBar } from './AnnouncementBar';
 
 interface HeaderProps {
   settings: StoreSettings;
+  categories: Category[];
   announcementBar?: AnnouncementBarConfig;
   onOpenSearch: () => void;
   onOpenAdmin: () => void;
   onNavigate: (sectionId: string) => void;
+  onSelectCategory: (categoryName: string) => void;
 }
 
-export function Header({ settings, announcementBar, onOpenSearch, onOpenAdmin, onNavigate }: HeaderProps) {
-  const { theme, toggleTheme } = useTheme();
-  const { isAuthenticated, logout } = useAuth();
+export function Header({ settings, categories, announcementBar, onOpenSearch, onOpenAdmin, onNavigate, onSelectCategory }: HeaderProps) {
   const { totalItems, setIsCartOpen } = useCart();
+  const { isAuthenticated } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setIsScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const handleNavClick = (sectionId: string) => {
-    setMobileMenuOpen(false);
-    onNavigate(sectionId);
+  const navCats = categories
+    .filter((c) => c.isVisible !== false)
+    .sort((a, b) => (a.order || 0) - (b.order || 0))
+    .slice(0, 6);
+
+  const pickCategory = (name: string) => {
+    setMenuOpen(false);
+    onSelectCategory(name);
   };
 
-  const cleanWhatsApp = (settings?.whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const Logo = (
+    <button
+      onClick={() => { setMenuOpen(false); onNavigate('home'); }}
+      aria-label={`${settings.businessName || 'Zyvara'} home`}
+      className="zv-logo text-[28px] sm:text-[26px] text-black cursor-pointer"
+    >
+      {settings.businessName || 'Zyvara'}
+    </button>
+  );
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 transition-all duration-300">
-      {/* Top Announcement Bar if enabled */}
+    <header className="sticky top-0 z-40">
       {announcementBar && announcementBar.enabled && (
         <AnnouncementBar config={announcementBar} onNavigate={onNavigate} />
       )}
 
-      {/* Main Nav Bar */}
-      <div
-        className={`transition-all duration-300 ${
-          isScrolled
-            ? 'bg-white/95 dark:bg-slate-950/95 backdrop-blur-md shadow-sm border-b border-slate-200/60 dark:border-slate-800/80 py-3'
-            : 'bg-white/90 dark:bg-slate-950/90 backdrop-blur-xs border-b border-slate-100 dark:border-slate-900 py-4'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between gap-4">
-            
-            {/* Aesthetic Brand Name */}
-            <button
-              onClick={() => handleNavClick('home')}
-              className="text-left group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-lg p-1 cursor-pointer"
-            >
-              <div className="flex items-baseline gap-2.5">
-                <span className="font-heading font-black text-2xl sm:text-3xl lg:text-4xl tracking-tighter uppercase leading-none bg-gradient-to-r from-slate-950 via-blue-600 to-indigo-600 dark:from-white dark:via-blue-300 dark:to-cyan-300 bg-clip-text text-transparent transition-opacity group-hover:opacity-90">
-                  {settings.businessName || 'ALI ELECTRONIC'}
-                </span>
-                <span className="hidden sm:inline-block text-[11px] font-extrabold uppercase tracking-widest text-blue-600 dark:text-cyan-400 font-mono">
-                  Hassan Abdal
-                </span>
-              </div>
-            </button>
+      <div className={`bg-white transition-shadow ${isScrolled ? 'shadow-[0_2px_14px_rgba(0,0,0,0.06)]' : 'shadow-[0_1px_0_rgba(0,0,0,0.04)]'}`}>
+        <div className="max-w-6xl mx-auto px-5 sm:px-8">
+          {/* Desktop */}
+          <div className="hidden md:flex items-center justify-between h-[60px]">
+            {Logo}
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-7">
-              <button
-                onClick={() => handleNavClick('home')}
-                className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
-              >
-                Home
-              </button>
-              <button
-                onClick={() => handleNavClick('products')}
-                className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
-              >
-                Products
-              </button>
-              <button
-                onClick={() => handleNavClick('categories')}
-                className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
-              >
-                Categories
-              </button>
-              <button
-                onClick={() => handleNavClick('trending-offers')}
-                className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-cyan-400 hover:text-blue-700 dark:hover:text-cyan-300 transition-colors cursor-pointer flex items-center gap-1"
-              >
-                <span>Offers</span>
-              </button>
-              <button
-                onClick={() => handleNavClick('about')}
-                className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
-              >
-                About
-              </button>
-              <button
-                onClick={() => handleNavClick('contact')}
-                className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
-              >
-                Contact
-              </button>
+            <nav className="flex items-center gap-9">
+              {navCats.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => pickCategory(c.name)}
+                  className="text-[13px] font-medium text-black hover:opacity-60 transition-opacity cursor-pointer"
+                >
+                  {c.name}
+                </button>
+              ))}
             </nav>
 
-            {/* Right Action Icons */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Search Trigger */}
-              <button
-                onClick={onOpenSearch}
-                aria-label="Search products"
-                className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                <Search className="w-4 h-4" />
+            <div className="flex items-center gap-5 text-black">
+              <button onClick={onOpenSearch} aria-label="Search products" className="hover:opacity-60 transition-opacity cursor-pointer">
+                <Search className="w-[18px] h-[18px]" strokeWidth={1.6} />
               </button>
-
-              {/* Shopping Cart Trigger */}
-              <button
-                onClick={() => setIsCartOpen(true)}
-                aria-label="Open Shopping Cart"
-                className="relative p-2.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 transition-colors cursor-pointer"
-              >
-                <ShoppingBag className="w-4 h-4" />
+              <button onClick={onOpenAdmin} aria-label={isAuthenticated ? 'Open admin panel' : 'Account / admin login'} className="hover:opacity-60 transition-opacity cursor-pointer">
+                <User className="w-[18px] h-[18px]" strokeWidth={1.6} />
+              </button>
+              <button onClick={() => setIsCartOpen(true)} aria-label="Open shopping bag" className="relative hover:opacity-60 transition-opacity cursor-pointer">
+                <ShoppingBag className="w-[18px] h-[18px]" strokeWidth={1.6} />
                 {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-black flex items-center justify-center shadow-md animate-in zoom-in-50">
+                  <span className="absolute -top-2 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-black text-white text-[9px] font-bold flex items-center justify-center">
                     {totalItems}
                   </span>
                 )}
               </button>
-
-              {/* Dark / Light Toggle */}
-              <button
-                onClick={toggleTheme}
-                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
-              </button>
-
-              {/* WhatsApp Quick Link */}
-              {settings.whatsappFloatingEnabled && (
-                <a
-                  href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronic, I want to inquire about products.')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba59] text-white shadow-xs transition-all duration-200 cursor-pointer"
-                >
-                  <WhatsAppIcon className="w-4 h-4 fill-white text-white shrink-0" />
-                  <span>WhatsApp</span>
-                </a>
-              )}
-
-              {/* Admin Control Center Portal Button */}
-              {isAuthenticated ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={onOpenAdmin}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors cursor-pointer"
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Control Center</span>
-                  </button>
-                  <button
-                    onClick={logout}
-                    title="Logout Admin"
-                    className="p-2 rounded-lg text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
-                  >
-                    <Lock className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={onOpenAdmin}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  <span className="hidden sm:inline">Control Center</span>
-                </button>
-              )}
-
-              {/* Mobile Hamburger Toggle */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                aria-label="Toggle navigation menu"
-                className="md:hidden p-2.5 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-              >
-                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
             </div>
           </div>
 
-          {/* Mobile Navigation Drawer */}
-          {mobileMenuOpen && (
-            <div className="md:hidden pt-4 pb-6 border-t border-slate-200 dark:border-slate-800 mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => handleNavClick('home')}
-                  className="text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  Home
-                </button>
-                <button
-                  onClick={() => handleNavClick('products')}
-                  className="text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  Products
-                </button>
-                <button
-                  onClick={() => handleNavClick('categories')}
-                  className="text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  Categories
-                </button>
-                <button
-                  onClick={() => handleNavClick('trending-offers')}
-                  className="text-left px-3 py-2 rounded-lg text-sm font-bold text-blue-600 dark:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  ⚡ Offers & Promotions
-                </button>
-                <button
-                  onClick={() => handleNavClick('about')}
-                  className="text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  About Ali Electronic
-                </button>
-                <button
-                  onClick={() => handleNavClick('contact')}
-                  className="text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  Contact & Store Hours
-                </button>
-              </div>
+          {/* Mobile */}
+          <div className="md:hidden grid grid-cols-[1fr_auto_1fr] items-center h-[64px]">
+            <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu" className="justify-self-start text-black cursor-pointer">
+              {menuOpen ? <X className="w-6 h-6" strokeWidth={1.6} /> : <Menu className="w-6 h-6" strokeWidth={1.6} />}
+            </button>
+            {Logo}
+            <div className="justify-self-end flex items-center gap-4 text-black">
+              <button onClick={onOpenSearch} aria-label="Search products" className="cursor-pointer">
+                <Search className="w-[22px] h-[22px]" strokeWidth={1.6} />
+              </button>
+              <button onClick={() => setIsCartOpen(true)} aria-label="Open shopping bag" className="relative cursor-pointer">
+                <ShoppingBag className="w-[22px] h-[22px]" strokeWidth={1.6} />
+                {totalItems > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-black text-white text-[9px] font-bold flex items-center justify-center">
+                    {totalItems}
+                  </span>
+                )}
+              </button>
             </div>
-          )}
+          </div>
         </div>
+
+        {/* Mobile menu */}
+        {menuOpen && (
+          <div className="md:hidden border-t border-slate-100 bg-white px-5 pb-5 pt-2">
+            <button onClick={() => { setMenuOpen(false); onNavigate('home'); }} className="block w-full text-left py-3 text-sm font-medium text-black cursor-pointer">Home</button>
+            {navCats.map((c) => (
+              <button key={c.id} onClick={() => pickCategory(c.name)} className="block w-full text-left py-3 text-sm font-medium text-black border-t border-slate-100 cursor-pointer">
+                {c.name}
+              </button>
+            ))}
+            <button onClick={() => { setMenuOpen(false); onNavigate('products'); }} className="block w-full text-left py-3 text-sm font-medium text-black border-t border-slate-100 cursor-pointer">Shop All</button>
+            <button onClick={() => { setMenuOpen(false); onNavigate('footer'); }} className="block w-full text-left py-3 text-sm font-medium text-black border-t border-slate-100 cursor-pointer">Customer Care</button>
+          </div>
+        )}
       </div>
     </header>
   );

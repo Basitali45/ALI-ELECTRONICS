@@ -1,5 +1,5 @@
 -- ==============================================================================
--- ALI ELECTRONIC — SUPABASE DATABASE ARCHITECTURE & SCHEMA MIGRATION
+-- ZYVARA — SUPABASE DATABASE ARCHITECTURE & SCHEMA MIGRATION
 -- Production-Ready PostgreSQL Schema with RLS, Storage & Seed Data
 -- ==============================================================================
 
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     customer_whatsapp TEXT,
     customer_email TEXT,
     customer_address TEXT NOT NULL,
-    city TEXT DEFAULT 'Hassan Abdal',
+    city TEXT DEFAULT '',
     notes TEXT DEFAULT '',
     subtotal NUMERIC(12, 2) NOT NULL DEFAULT 0,
     delivery_charges NUMERIC(12, 2) NOT NULL DEFAULT 0,
@@ -131,25 +131,25 @@ CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON public.order_items(order_
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.store_settings (
     id TEXT PRIMARY KEY DEFAULT 'default',
-    business_name TEXT NOT NULL DEFAULT 'Ali Electronic',
-    tagline TEXT DEFAULT 'Smart Technology. Better Living.',
-    supporting_text TEXT DEFAULT 'Premium electronics, competitive prices and trusted service in Hassan Abdal.',
-    location TEXT DEFAULT 'Main Bus Stop, Islam Shaheed Road, Opposite New Sethi Flour Mills, Hassan Abdal, Pakistan',
-    google_maps_url TEXT DEFAULT 'https://maps.google.com/?q=Hassan+Abdal+Punjab+Pakistan',
-    phone1 TEXT DEFAULT '03115321647',
-    phone1_name TEXT DEFAULT 'Arbaz Ahmed',
-    phone2 TEXT DEFAULT '03133332141',
-    phone2_name TEXT DEFAULT 'Faraz Ahmed',
-    whatsapp_number TEXT DEFAULT '03115321647',
+    business_name TEXT NOT NULL DEFAULT 'Zyvara',
+    tagline TEXT DEFAULT 'Minimal luxury for everyday living',
+    supporting_text TEXT DEFAULT 'Curated products for fashion, beauty, home & accessories — designed for modern living.',
+    location TEXT DEFAULT 'Pakistan (Online Store)',
+    google_maps_url TEXT DEFAULT '',
+    phone1 TEXT DEFAULT '03701893960',
+    phone1_name TEXT DEFAULT 'Customer Service',
+    phone2 TEXT DEFAULT '03079371104',
+    phone2_name TEXT DEFAULT 'Customer Service',
+    whatsapp_number TEXT DEFAULT '03705776869',
     whatsapp_floating_enabled BOOLEAN DEFAULT TRUE,
     whatsapp_product_button_enabled BOOLEAN DEFAULT TRUE,
-    whatsapp_template TEXT DEFAULT 'Assalam-o-Alaikum Ali Electronic, I want to order {product_name} (Rs. {price}). Please confirm stock and delivery in Hassan Abdal.',
+    whatsapp_template TEXT DEFAULT 'Hello Zyvara, I want to order {product_name} (Rs. {price}). Please confirm stock and delivery.',
     delivery_charges NUMERIC(12, 2) DEFAULT 0,
-    business_hours TEXT DEFAULT 'Mon - Sat: 9:00 AM - 9:00 PM | Friday: 3:00 PM - 9:00 PM',
-    email TEXT DEFAULT 'contact@alielectronic.pk',
-    about_text TEXT DEFAULT 'Ali Electronic is your trusted local electronics store located at Main Bus Stop, Islam Shaheed Road, Hassan Abdal. We specialize in authentic mobile accessories, chargers, cables, audio gadgets, power banks, and modern lifestyle technology.',
+    business_hours TEXT DEFAULT 'Customer care available daily on phone & WhatsApp',
+    email TEXT DEFAULT '',
+    about_text TEXT DEFAULT 'Zyvara — minimal luxury for everyday living. Curated fashion, beauty, home & accessories.',
     logo_url TEXT,
-    footer_text TEXT DEFAULT '© 2026 Ali Electronic. All Rights Reserved. Hassan Abdal, Pakistan.',
+    footer_text TEXT DEFAULT '© 2026 ZVYARA. All rights reserved.',
     theme_preset TEXT DEFAULT 'clean-premium',
     currency TEXT DEFAULT 'PKR',
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -372,18 +372,16 @@ USING (true)
 WITH CHECK (true);
 
 -- ==============================================================================
--- 11. INITIAL SEED DATA FOR ALI ELECTRONIC
+-- 11. INITIAL SEED DATA FOR ZYVARA
 -- ==============================================================================
 
 -- Seed Categories
 INSERT INTO public.categories (id, name, slug, description, display_order, active)
 VALUES 
-  ('cat-mobile', 'Mobile Accessories', 'mobile-accessories', 'Cables, cases, holders, adapters and protectors', 1, true),
-  ('cat-chargers', 'Chargers & Power', 'chargers-power', 'Fast wall chargers, car chargers, and power extensions', 2, true),
-  ('cat-audio', 'Audio & Sound', 'audio-sound', 'Wireless earbuds, neckbands, headphones and bluetooth speakers', 3, true),
-  ('cat-powerbanks', 'Power Banks', 'power-banks', 'High-capacity fast-charging portable power banks', 4, true),
-  ('cat-smart', 'Smart Devices', 'smart-devices', 'Smart watches, fitness bands, and digital clocks', 5, true),
-  ('cat-cables', 'Cables & Converters', 'cables-converters', 'Type-C, Lightning, Micro USB, OTG and HDMI cords', 6, true)
+  ('cat-fashion', 'Fashion', 'fashion', 'Jackets, bags and everyday wardrobe essentials', 1, true),
+  ('cat-beauty', 'Beauty', 'beauty', 'Skincare and beauty essentials', 2, true),
+  ('cat-home', 'Home', 'home', 'Planters, decor and living essentials', 3, true),
+  ('cat-accessories', 'Accessories', 'accessories', 'Sunglasses, totes and finishing touches', 4, true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Seed Default Store Settings
@@ -394,20 +392,20 @@ INSERT INTO public.store_settings (
 )
 VALUES (
   'default',
-  'Ali Electronic',
-  'Smart Technology. Better Living.',
-  'Premium electronics, competitive prices and trusted service in Hassan Abdal.',
-  'Main Bus Stop, Islam Shaheed Road, Opposite New Sethi Flour Mills, Hassan Abdal, Pakistan',
-  'https://maps.google.com/?q=Hassan+Abdal+Punjab+Pakistan',
-  '03115321647',
-  'Arbaz Ahmed',
-  '03133332141',
-  'Faraz Ahmed',
-  '03115321647',
-  0,
-  'Mon - Sat: 9:00 AM - 9:00 PM | Friday: 3:00 PM - 9:00 PM',
-  'Ali Electronic is your trusted local electronics store located at Main Bus Stop, Islam Shaheed Road, Hassan Abdal. We specialize in authentic mobile accessories, chargers, cables, audio gadgets, power banks, and modern lifestyle technology.',
-  '© 2026 Ali Electronic. All Rights Reserved. Hassan Abdal, Pakistan.',
+  'Zyvara',
+  'Minimal luxury for everyday living',
+  'Curated products for fashion, beauty, home & accessories — designed for modern living.',
+  'Pakistan (Online Store)',
+  '',
+  '03701893960',
+  'Customer Service',
+  '03079371104',
+  'Customer Service',
+  '03705776869',
+  200,
+  'Customer care available daily on phone & WhatsApp',
+  'Zyvara — minimal luxury for everyday living. Curated fashion, beauty, home & accessories.',
+  '© 2026 ZVYARA. All rights reserved.',
   'PKR'
 )
 ON CONFLICT (id) DO NOTHING;

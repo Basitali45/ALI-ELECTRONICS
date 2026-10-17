@@ -55,10 +55,10 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
                 Tech Showroom & Accessories
               </div>
               <h1 className="font-heading font-black text-3xl tracking-tight text-slate-900">
-                ALI ELECTRONIC
+                ZVYARA
               </h1>
               <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                Main Bus Stop, Islam Shaheed Road, Opposite New Sethi Flour Mills, Hassan Abdal, Pakistan
+                Minimal luxury for everyday living
               </p>
               <p className="text-xs text-slate-600 mt-1 font-mono">
                 Tel: 0311-5321647 / 0313-3332141
@@ -129,7 +129,7 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
                       {item.productName}
                     </td>
                     <td className="py-3 px-2 text-slate-500 font-mono">
-                      {item.sku || 'AE-GEN'}
+                      {item.sku || 'ZV-GEN'}
                     </td>
                     <td className="py-3 px-2 text-right text-slate-700">
                       Rs. {item.price.toLocaleString()}
@@ -168,12 +168,12 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
           <div className="pt-6 border-t border-slate-200 text-[11px] text-slate-500 flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
               <p className="font-bold text-slate-700">Terms & Showroom Assurance:</p>
-              <p>All items checked and tested prior to handover. 7-day checking warranty on select electronic items.</p>
+              <p>Free shipping on orders above Rs. 3,000. 7-day returns on unused items in original packaging.</p>
             </div>
             <div className="text-right sm:text-right shrink-0">
               <p className="font-bold text-slate-900">Authorized Signature</p>
               <div className="mt-4 border-b border-dashed border-slate-400 w-32"></div>
-              <p className="text-[10px] text-slate-400 mt-1">Ali Electronic Hassan Abdal</p>
+              <p className="text-[10px] text-slate-400 mt-1">Zyvara</p>
             </div>
           </div>
 

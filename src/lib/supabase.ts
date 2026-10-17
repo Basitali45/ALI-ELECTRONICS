@@ -5,8 +5,8 @@ const ENV_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const ENV_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 // Storage keys for custom client credentials
-const STORAGE_KEY_URL = 'ali_custom_supabase_url';
-const STORAGE_KEY_KEY = 'ali_custom_supabase_anon_key';
+const STORAGE_KEY_URL = 'zyvara_custom_supabase_url';
+const STORAGE_KEY_KEY = 'zyvara_custom_supabase_anon_key';
 
 export function getSupabaseConfig(): { url: string; key: string; isConfigured: boolean } {
   let url = ENV_SUPABASE_URL;

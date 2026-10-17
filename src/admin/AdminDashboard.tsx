@@ -217,11 +217,11 @@ export function AdminDashboard({ initialSettings, onClose, onRefreshData }: Admi
           <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
-                AE
+                Z
               </div>
               <div>
                 <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white">
-                  Ali Electronic
+                  Zyvara
                 </h3>
                 <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 block">
                   Control Center

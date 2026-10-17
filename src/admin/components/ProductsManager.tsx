@@ -77,7 +77,7 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
       name: '',
       category: categories[0]?.name || 'Mobile Accessories',
       brand: 'Generic Tech',
-      sku: `AE-${Math.floor(1000 + Math.random() * 9000)}`,
+      sku: `ZV-${Math.floor(1000 + Math.random() * 9000)}`,
       stock: '15',
       price: '',
       oldPrice: '',
@@ -104,7 +104,7 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
       name: p.name,
       category: p.category,
       brand: p.brand || 'Generic Tech',
-      sku: p.sku || `AE-${p.id.slice(-4)}`,
+      sku: p.sku || `ZV-${p.id.slice(-4)}`,
       stock: String(p.stock ?? 10),
       price: String(p.price),
       oldPrice: p.oldPrice ? String(p.oldPrice) : '',
@@ -562,7 +562,7 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
             </button>
 
             <h3 className="font-heading font-extrabold text-xl text-slate-900 dark:text-white mb-4">
-              {editingProduct ? 'Edit Product Details' : 'Add New Electronics Product'}
+              {editingProduct ? 'Edit Product Details' : 'Add New Product'}
             </h3>
 
             <form onSubmit={handleSave} className="space-y-4">
@@ -577,7 +577,7 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     required
-                    placeholder="e.g. Wireless Bluetooth Earbuds"
+                    placeholder="e.g. Classic Red Handbag"
                     className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                   />
                 </div>
@@ -643,7 +643,7 @@ export function ProductsManager({ products, categories, onRefresh, showToast }: 
                     type="text"
                     value={form.sku}
                     onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                    placeholder="e.g. AE-AUD-101"
+                    placeholder="e.g. ZV-FSH-101"
                     className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
                   />
                 </div>

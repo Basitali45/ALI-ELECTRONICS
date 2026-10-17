@@ -12,6 +12,7 @@ import {
   OrderItem,
   OrderStatus
 } from '../types';
+import { getDeliveryCharges } from '../lib/policy';
 import { initialProducts, initialCategories, initialOffers, initialSettings, initialHomepage } from './seedData';
 import { getSupabase, isSupabaseConfigured, uploadProductImageToStorage, requireAdminClient, explainDbError } from '../lib/supabase';
 
@@ -20,7 +21,7 @@ const API_BASE = '/api';
 // Local storage fallback helpers for resilience
 function getLocal<T>(key: string, fallback: T): T {
   try {
-    const item = localStorage.getItem(`ali_electronic_${key}`);
+    const item = localStorage.getItem(`zyvara_${key}`);
     return item ? JSON.parse(item) : fallback;
   } catch {
     return fallback;
@@ -29,14 +30,14 @@ function getLocal<T>(key: string, fallback: T): T {
 
 function setLocal<T>(key: string, data: T): void {
   try {
-    localStorage.setItem(`ali_electronic_${key}`, JSON.stringify(data));
+    localStorage.setItem(`zyvara_${key}`, JSON.stringify(data));
   } catch {
     // quota exceeded or private mode
   }
 }
 
 function getAuthHeader(): Record<string, string> {
-  const token = localStorage.getItem('ali_electronic_token');
+  const token = localStorage.getItem('zyvara_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -200,7 +201,7 @@ export const api = {
       slug: `${slugify(prod.name || 'product') || 'product'}-${uniqueSuffix}`,
       category: prod.category || 'Mobile Accessories',
       brand: prod.brand || 'Generic / Tech Pro',
-      sku: prod.sku && prod.sku.trim() ? prod.sku.trim() : `AE-${Math.floor(10000 + Math.random() * 90000)}`,
+      sku: prod.sku && prod.sku.trim() ? prod.sku.trim() : `ZV-${Math.floor(10000 + Math.random() * 90000)}`,
       price: Number(prod.price) || 0,
       oldPrice: prod.oldPrice ? Number(prod.oldPrice) : undefined,
       discount: prod.discount || '',
@@ -284,7 +285,7 @@ export const api = {
       ...existing,
       id: `p-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       slug: undefined,
-      sku: `AE-${Math.floor(10000 + Math.random() * 90000)}`,
+      sku: `ZV-${Math.floor(10000 + Math.random() * 90000)}`,
       name: `${existing.name} (Copy)`,
     };
     return this.addProduct(clone);
@@ -620,13 +621,13 @@ export const api = {
     items: { product: Product; quantity: number }[]
   ): Promise<{ order: Order; whatsappUrl: string }> {
     const settings = await this.getStoreSettings();
-    const cleanAdminPhone = (settings.whatsappNumber || '03115321647')
+    const cleanAdminPhone = (settings.whatsappNumber || '03705776869')
       .replace(/^0/, '92')
       .replace(/[^0-9]/g, '');
 
-    const orderNumber = `AE-${Math.floor(1000 + Math.random() * 9000)}`;
+    const orderNumber = `ZV-${Math.floor(1000 + Math.random() * 9000)}`;
     const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-    const deliveryCharges = settings.deliveryCharges || 0;
+    const deliveryCharges = getDeliveryCharges(subtotal, settings.deliveryCharges);
     const totalAmount = subtotal + deliveryCharges;
     const orderId = `ord-${Date.now()}`;
 
@@ -636,7 +637,7 @@ export const api = {
       productId: item.product.id,
       productName: item.product.name,
       productImage: item.product.image,
-      sku: item.product.sku || `AE-${item.product.id.substring(0, 6)}`,
+      sku: item.product.sku || `ZV-${item.product.id.substring(0, 6)}`,
       price: item.product.price,
       quantity: item.quantity,
       subtotal: item.product.price * item.quantity,
@@ -650,7 +651,7 @@ export const api = {
       customerWhatsapp: orderData.customerWhatsapp || orderData.customerPhone,
       customerEmail: orderData.customerEmail,
       customerAddress: orderData.customerAddress,
-      city: orderData.city || 'Hassan Abdal',
+      city: orderData.city || '',
       notes: orderData.notes,
       subtotal,
       deliveryCharges,
@@ -714,7 +715,7 @@ export const api = {
     setLocal('orders', [newOrder, ...orders]);
 
     // 2. CONSTRUCT STRUCTURED WHATSAPP ORDER MESSAGE WITH PERMANENT IMAGE URLS
-    let message = `*NEW ORDER — ALI ELECTRONIC*\n`;
+    let message = `*NEW ORDER — ZVYARA*\n`;
     message += `Order ID: #${orderNumber}\n`;
     message += `Date: ${new Date().toLocaleDateString('en-PK')}\n\n`;
     message += `*--- CUSTOMER DETAILS ---*\n`;
@@ -741,7 +742,7 @@ export const api = {
 
     message += `\n*--- PAYMENT SUMMARY ---*\n`;
     message += `Subtotal: Rs. ${subtotal.toLocaleString()}\n`;
-    message += `Delivery: ${deliveryCharges > 0 ? `Rs. ${deliveryCharges.toLocaleString()}` : 'FREE (Hassan Abdal)'}\n`;
+    message += `Delivery: ${deliveryCharges > 0 ? `Rs. ${deliveryCharges.toLocaleString()}` : 'FREE'}\n`;
     message += `*Grand Total: Rs. ${totalAmount.toLocaleString()}*\n`;
     message += `Payment Method: ${newOrder.paymentMethod}\n\n`;
     message += `Please confirm my order. Thank you!`;
@@ -773,7 +774,7 @@ export const api = {
               customerWhatsapp: row.customer_whatsapp,
               customerEmail: row.customer_email,
               customerAddress: row.customer_address,
-              city: row.city || 'Hassan Abdal',
+              city: row.city || '',
               notes: row.notes,
               subtotal: Number(row.subtotal) || 0,
               deliveryCharges: Number(row.delivery_charges) || 0,
@@ -835,25 +836,25 @@ export const api = {
         const { data, error } = await supabase.from('store_settings').select('*').eq('id', 'default').single();
         if (!error && data) {
           const mapped: StoreSettings = {
-            businessName: data.business_name || 'Ali Electronic',
+            businessName: data.business_name || 'Zyvara',
             tagline: data.tagline || 'Smart Technology. Better Living.',
-            supportingText: data.supporting_text || 'Premium electronics, competitive prices and trusted service in Hassan Abdal.',
-            location: data.location || 'Main Bus Stop, Islam Shaheed Road, Opposite New Sethi Flour Mills, Hassan Abdal, Pakistan',
-            googleMapsUrl: data.google_maps_url || 'https://maps.google.com/?q=Main+Bus+Stop+Islam+Shaheed+Road+Hassan+Abdal+Pakistan',
-            phone1: data.phone1 || '03115321647',
-            phone1Name: data.phone1_name || 'Arbaz Ahmed',
-            phone2: data.phone2 || '03133332141',
-            phone2Name: data.phone2_name || 'Faraz Ahmed',
-            whatsappNumber: data.whatsapp_number || '03115321647',
+            supportingText: data.supporting_text || 'Curated products for fashion, beauty, home & accessories — designed for modern living.',
+            location: data.location || 'Pakistan (Online Store)',
+            googleMapsUrl: data.google_maps_url || '',
+            phone1: data.phone1 || '03701893960',
+            phone1Name: data.phone1_name || 'Customer Service',
+            phone2: data.phone2 || '03079371104',
+            phone2Name: data.phone2_name || 'Customer Service',
+            whatsappNumber: data.whatsapp_number || '03705776869',
             whatsappFloatingEnabled: data.whatsapp_floating_enabled !== false,
             whatsappProductButtonEnabled: data.whatsapp_product_button_enabled !== false,
-            whatsappTemplate: data.whatsapp_template || 'Assalam-o-Alaikum Ali Electronic, I am interested in {product_name}. Current price is {price}. Please confirm availability.',
+            whatsappTemplate: data.whatsapp_template || 'Hello Zyvara, I am interested in {product_name}. Current price is {price}. Please confirm availability.',
             deliveryCharges: Number(data.delivery_charges) || 0,
             businessHours: data.business_hours || 'Mon - Sat: 9:00 AM - 9:00 PM',
-            email: data.email || 'contact@alielectronic.pk',
-            aboutText: data.about_text || 'Ali Electronic is your trusted electronics store in Hassan Abdal.',
+            email: data.email || '',
+            aboutText: data.about_text || 'Zyvara — minimal luxury for everyday living.',
             logoUrl: data.logo_url || '',
-            footerText: data.footer_text || '© 2026 Ali Electronic. All Rights Reserved. Hassan Abdal, Pakistan.',
+            footerText: data.footer_text || '© 2026 ZVYARA. All rights reserved.',
             themePreset: (data.theme_preset as any) || 'clean-premium',
             currency: data.currency || 'PKR',
           };
@@ -869,13 +870,13 @@ export const api = {
 
   async updateStoreSettings(settings: Partial<StoreSettings>): Promise<StoreSettings> {
     const current = await this.getStoreSettings();
-    const updated = { ...current, ...settings, businessName: 'Ali Electronic' };
+    const updated = { ...current, ...settings, businessName: 'Zyvara' };
 
     const supabase = await requireAdminClient();
     {
       const { error } = await supabase.from('store_settings').upsert({
         id: 'default',
-        business_name: 'Ali Electronic',
+        business_name: 'Zyvara',
         tagline: updated.tagline,
         supporting_text: updated.supportingText,
         location: updated.location,
@@ -1018,8 +1019,8 @@ export const api = {
   // ================= CONTACT MESSAGES =================
   async submitContact(data: { name: string; phone: string; message: string }): Promise<{ success: boolean; whatsappUrl: string }> {
     const settings = await this.getStoreSettings();
-    const cleanPhone = (settings.whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
-    const waText = `Assalam-o-Alaikum Ali Electronic, Message from ${data.name} (${data.phone}): ${data.message}`;
+    const cleanPhone = (settings.whatsappNumber || '03705776869').replace(/^0/, '92').replace(/[^0-9]/g, '');
+    const waText = `Hello Zyvara, Message from ${data.name} (${data.phone}): ${data.message}`;
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}`;
 
     const newMsg: ContactMessage = {
@@ -1150,8 +1151,8 @@ export const api = {
         // ignore
       }
     }
-    localStorage.removeItem('ali_electronic_token');
-    localStorage.removeItem('ali_electronics_token');
+    localStorage.removeItem('zyvara_token');
+    localStorage.removeItem('zyvara_token');
   },
 
   async changePassword(currentPass: string, newPass: string): Promise<boolean> {

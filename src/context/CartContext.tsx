@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product, CartItem } from '../types';
+import { getDeliveryCharges } from '../lib/policy';
 
 interface CartContextType {
   items: CartItem[];
@@ -24,8 +25,8 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'ali_electronic_cart_v1';
-const WISHLIST_STORAGE_KEY = 'ali_electronic_wishlist_v1';
+const CART_STORAGE_KEY = 'zyvara_cart_v1';
+const WISHLIST_STORAGE_KEY = 'zyvara_wishlist_v1';
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => {
@@ -120,7 +121,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const deliveryCharges = 0; // Free Hassan Abdal pickup / delivery
+  const deliveryCharges = getDeliveryCharges(subtotal); // free above Rs. 3,000
   const totalAmount = subtotal + deliveryCharges;
 
   return (
