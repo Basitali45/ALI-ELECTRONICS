@@ -1,14 +1,15 @@
 import React from 'react';
-import { ShieldCheck, Award, Users, MapPin, CheckCircle, Phone } from 'lucide-react';
+import { ShieldCheck, Award, Truck, RefreshCw, Phone } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { StoreSettings } from '../types';
+import { OFFICIAL_WHATSAPP_NUMBER } from '../lib/policy';
 
 interface AboutSectionProps {
   settings: StoreSettings;
 }
 
 export function AboutSection({ settings }: AboutSectionProps) {
-  const cleanWhatsApp = (settings?.whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const cleanWhatsApp = (settings?.whatsappNumber || OFFICIAL_WHATSAPP_NUMBER).replace(/^0/, '92').replace(/[^0-9]/g, '');
 
   return (
     <section id="about" className="py-16 md:py-24 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
@@ -16,25 +17,25 @@ export function AboutSection({ settings }: AboutSectionProps) {
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
-          {/* Left Column: Visual Story Card */}
+          {/* Left Column: Visual Brand Card */}
           <div className="lg:col-span-5 space-y-6">
             <div className="relative rounded-3xl overflow-hidden bg-slate-900 shadow-xl border border-slate-800">
               <img
-                src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1000&auto=format&fit=crop&q=80"
-                alt="Technology team Ali Electronic Hassan Abdal"
+                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1000&auto=format&fit=crop&q=80"
+                alt="ZAPLIX Online Shopping Store"
                 className="w-full h-80 object-cover object-center opacity-85"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
               
               <div className="absolute bottom-6 left-6 right-6 p-5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white space-y-2">
-                <div className="text-xs uppercase tracking-wider text-blue-300 font-semibold">
-                  Hassan Abdal Electronics Partner
+                <div className="text-xs uppercase tracking-wider text-cyan-300 font-semibold">
+                  Shop Smarter &bull; Live Better
                 </div>
-                <div className="font-heading text-lg font-bold">
-                  Arbaz Ahmed & Faraz Ahmed
+                <div className="font-heading text-xl font-bold">
+                  ZAPLIX Pakistan
                 </div>
                 <div className="text-xs text-slate-200">
-                  Committed to delivering reliable electronics, verified specs, and honest advice to our community.
+                  Curated quality products delivered with zero delivery charges and complete peace of mind through Cash on Delivery.
                 </div>
               </div>
             </div>
@@ -42,14 +43,14 @@ export function AboutSection({ settings }: AboutSectionProps) {
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 text-center">
-                <div className="font-mono text-2xl font-extrabold text-blue-600 dark:text-blue-400">100%</div>
-                <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5">Authentic Tested</div>
-                <div className="text-[11px] text-slate-500">Every piece inspected</div>
+                <div className="font-mono text-2xl font-black text-blue-600 dark:text-cyan-400">Rs. 0</div>
+                <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5">Free Home Delivery</div>
+                <div className="text-[11px] text-slate-500">On every single order</div>
               </div>
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 text-center">
-                <div className="font-mono text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">PKR</div>
-                <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5">Fair Pricing</div>
-                <div className="text-[11px] text-slate-500">Competitive local rates</div>
+                <div className="font-mono text-2xl font-black text-emerald-600 dark:text-emerald-400">100%</div>
+                <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5">Cash on Delivery</div>
+                <div className="text-[11px] text-slate-500">Pay when you receive</div>
               </div>
             </div>
           </div>
@@ -57,58 +58,58 @@ export function AboutSection({ settings }: AboutSectionProps) {
           {/* Right Column: Narrative & Values */}
           <div className="lg:col-span-7 space-y-6">
             <div className="space-y-2">
-              <span className="text-xs font-bold tracking-wider text-blue-600 dark:text-blue-400 uppercase">
-                About Ali Electronic
+              <span className="text-xs font-bold tracking-wider text-blue-600 dark:text-cyan-400 uppercase">
+                About ZAPLIX
               </span>
               <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white leading-tight">
-                Your Neighborhood Hub for Modern Electronics & Accessories
+                Pakistan's Trusted Destination for Everyday Quality &amp; Value
               </h2>
             </div>
 
             <p className="text-base text-slate-600 dark:text-slate-300 leading-relaxed">
               {settings.aboutText || (
-                'Ali Electronic is a local electronics business serving customers in Hassan Abdal with quality electronics products, competitive pricing and customer-focused service.'
+                'ZAPLIX is Pakistan\'s premier multi-category online shopping brand. We bring you curated, top-grade fashion, beauty, electronics, home decor and lifestyle essentials with guaranteed Cash on Delivery, 100% Free Home Delivery on all orders, and 7-day hassle-free returns.'
               )}
             </p>
 
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              Located conveniently at the <strong>Main Bus Stop on Islam Shaheed Road, opposite New Sethi Flour Mills</strong>, we make it effortless for students, professionals, and households across Hassan Abdal and surrounding areas to get high-performance chargers, tough cables, immersive wireless audio, high-capacity power banks, and electronic essentials.
+              Our mission is simple: eliminate shipping fees and eliminate shopping friction. Whether you are ordering a single beauty serum or a collection of fashion items, you enjoy zero delivery fees and pay securely in cash upon doorstep delivery.
             </p>
 
             {/* Core Pillars */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60">
-                <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                <Truck className="w-5 h-5 text-blue-600 dark:text-cyan-400 shrink-0 mt-0.5" />
                 <div>
                   <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide">
-                    Checked Before Handover
+                    Free Home Delivery Nationwide
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    We test chargers, earbuds, cables, and power units in front of you so you take home zero hassle.
+                    Zero shipping charges on all orders, with no minimum purchase requirement.
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60">
-                <Award className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <div>
                   <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide">
-                    Wholesale-Direct Value
+                    Cash on Delivery (COD)
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Competitive Pakistani Rupee rates directly sourced without middlemen markups.
+                    Total financial safety. Pay for your parcel right at your doorstep.
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60">
-                <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                <RefreshCw className="w-5 h-5 text-blue-600 dark:text-cyan-400 shrink-0 mt-0.5" />
                 <div>
                   <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide">
-                    Central Hassan Abdal Stop
+                    7-Day Easy Returns
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Prominent, easy-to-reach bus stop location with convenient customer parking nearby.
+                    Receive your order with confidence. Simple replacement or return if needed.
                   </p>
                 </div>
               </div>
@@ -117,10 +118,10 @@ export function AboutSection({ settings }: AboutSectionProps) {
                 <WhatsAppIcon className="w-5 h-5 fill-[#25D366] text-[#25D366] shrink-0 mt-0.5" />
                 <div>
                   <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide">
-                    Instant WhatsApp Support
+                    Dedicated WhatsApp Desk
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Ask availability, request pictures, or reserve items directly on WhatsApp at any time.
+                    Live customer support at 03189869746 for inquiries, tracking, and quick orders.
                   </p>
                 </div>
               </div>
@@ -129,21 +130,21 @@ export function AboutSection({ settings }: AboutSectionProps) {
             {/* Direct Connect Buttons */}
             <div className="flex flex-wrap items-center gap-3 pt-3">
               <a
-                href={`tel:${settings.phone1}`}
+                href={`tel:${settings.phone1 || OFFICIAL_WHATSAPP_NUMBER}`}
                 className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 transition-colors flex items-center gap-2"
               >
                 <Phone className="w-3.5 h-3.5" />
-                <span>Call {settings.phone1Name}: {settings.phone1}</span>
+                <span>Call Helpline: {settings.phone1 || OFFICIAL_WHATSAPP_NUMBER}</span>
               </a>
 
               <a
-                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronic, I would like to inquire about your products.')}`}
+                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Hello Zaplix Team! I would like to inquire about your products.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba59] text-white transition-all flex items-center gap-2 shadow-sm shadow-[#25D366]/20 cursor-pointer"
               >
                 <WhatsAppIcon className="w-3.5 h-3.5 fill-white text-white" />
-                <span>Chat on WhatsApp</span>
+                <span>Chat on WhatsApp (03189869746)</span>
               </a>
             </div>
 

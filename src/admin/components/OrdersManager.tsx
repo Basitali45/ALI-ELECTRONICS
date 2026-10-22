@@ -83,7 +83,7 @@ export function OrdersManager({ settings, showToast }: OrdersManagerProps) {
       .replace(/^0/, '92')
       .replace(/[^0-9]/g, '');
 
-    const msg = `Assalam-o-Alaikum ${order.customerName}, this is Zyvara regarding your order #${order.orderNumber}. We are preparing your order for Rs. ${order.totalAmount.toLocaleString()}. Please let us know if you have any questions!`;
+    const msg = `Assalam-o-Alaikum ${order.customerName}, this is ZAPLIX regarding your order #${order.orderNumber}. We are preparing your order for Rs. ${order.totalAmount.toLocaleString()} with Free Home Delivery (Cash on Delivery). Please let us know if you have any questions!`;
     window.open(`https://wa.me/${cleanCustomerPhone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Sparkles, ArrowRight, MessageCircle } from 'lucide-react';
 import { PromoPopupConfig } from '../types';
+import { OFFICIAL_WHATSAPP_NUMBER } from '../lib/policy';
 
 interface PromoPopupProps {
   config: PromoPopupConfig;
@@ -15,14 +16,14 @@ export function PromoPopup({ config, whatsappNumber, onNavigate }: PromoPopupPro
     if (!config.enabled) return;
 
     if (config.showOnce) {
-      const shown = sessionStorage.getItem('zyvara_promo_shown');
+      const shown = sessionStorage.getItem('zaplix_promo_shown');
       if (shown) return;
     }
 
     const timer = setTimeout(() => {
       setIsOpen(true);
       if (config.showOnce) {
-        sessionStorage.setItem('zyvara_promo_shown', 'true');
+        sessionStorage.setItem('zaplix_promo_shown', 'true');
       }
     }, (config.delaySeconds || 3) * 1000);
 
@@ -42,7 +43,7 @@ export function PromoPopup({ config, whatsappNumber, onNavigate }: PromoPopupPro
     }
   };
 
-  const cleanPhone = whatsappNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const cleanPhone = (whatsappNumber || OFFICIAL_WHATSAPP_NUMBER).replace(/^0/, '92').replace(/[^0-9]/g, '');
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-300">
@@ -52,7 +53,7 @@ export function PromoPopup({ config, whatsappNumber, onNavigate }: PromoPopupPro
       >
         <button
           onClick={() => setIsOpen(false)}
-          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-100 shadow-sm"
+          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-100 shadow-sm cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -85,18 +86,18 @@ export function PromoPopup({ config, whatsappNumber, onNavigate }: PromoPopupPro
           <div className="pt-2 flex flex-col sm:flex-row gap-3">
             <button
               onClick={handleAction}
-              className="flex-1 py-3 px-5 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+              className="flex-1 py-3 px-5 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>{config.buttonText || 'Shop Now'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
             <a
-              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hello Zyvara, I saw your special promotion: "${config.title}". What offers are available?`)}`}
+              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hello Zaplix Team! I saw your special promotion: "${config.title}". What offers are available?`)}`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setIsOpen(false)}
-              className="py-3 px-5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition-all flex items-center justify-center gap-2"
+              className="py-3 px-5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <MessageCircle className="w-4 h-4 fill-white" />
               <span>Ask on WhatsApp</span>

@@ -7,10 +7,11 @@ import {
   ShoppingBag, 
   ArrowRight, 
   ShieldCheck, 
+  Truck,
   Sparkles 
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { getDeliveryCharges, FREE_SHIPPING_THRESHOLD, RETURN_DAYS } from '../lib/policy';
+import { RETURN_DAYS, OFFICIAL_WHATSAPP_NUMBER } from '../lib/policy';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { StoreSettings } from '../types';
 
@@ -33,18 +34,19 @@ export function CartDrawer({ settings }: CartDrawerProps) {
 
   if (!isCartOpen) return null;
 
-  const deliveryCharges = getDeliveryCharges(subtotal, settings.deliveryCharges);
-  const amountToFree = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
+  // PHASE 4: 100% Free Home Delivery on all orders
+  const deliveryCharges = 0;
+  const totalAmount = subtotal;
 
-  const cleanAdminPhone = (settings.whatsappNumber || '03705776869')
+  const cleanAdminPhone = (settings.whatsappNumber || OFFICIAL_WHATSAPP_NUMBER)
     .replace(/^0/, '92')
     .replace(/[^0-9]/g, '');
 
   const handleQuickWhatsAppOrder = () => {
     if (items.length === 0) return;
 
-    let text = `*ORDER INQUIRY — ZVYARA*\n`;
-    text += `Hello, I want to order the following items from your website:\n\n`;
+    let text = `*ORDER INQUIRY — ZAPLIX*\n`;
+    text += `Hello Zaplix Team! I would like to order the following items from your online store:\n\n`;
 
     items.forEach((item, idx) => {
       text += `${idx + 1}. *${item.product.name}*\n`;
@@ -54,7 +56,10 @@ export function CartDrawer({ settings }: CartDrawerProps) {
     });
 
     text += `\n*Subtotal: Rs. ${subtotal.toLocaleString()}*\n`;
-    text += `Please confirm availability and delivery. Thank you!`;
+    text += `Delivery Charges: Rs. 0 — FREE HOME DELIVERY\n`;
+    text += `Payment Method: Cash on Delivery\n`;
+    text += `*Grand Total: Rs. ${totalAmount.toLocaleString()}*\n\n`;
+    text += `Please confirm my order and delivery details. Thank you!`;
 
     window.open(`https://wa.me/${cleanAdminPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
@@ -91,7 +96,7 @@ export function CartDrawer({ settings }: CartDrawerProps) {
                   )}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Zyvara · Minimal luxury for everyday living
+                  ZAPLIX &bull; Shop Smarter. Live Better.
                 </p>
               </div>
             </div>
@@ -100,18 +105,24 @@ export function CartDrawer({ settings }: CartDrawerProps) {
               {items.length > 0 && (
                 <button
                   onClick={clearCart}
-                  className="text-xs text-rose-500 hover:text-rose-600 px-2 py-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                  className="text-xs text-rose-500 hover:text-rose-600 px-2 py-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                 >
                   Clear
                 </button>
               )}
               <button
                 onClick={() => setIsCartOpen(false)}
-                className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+          </div>
+
+          {/* Free Shipping Badge */}
+          <div className="bg-emerald-50 dark:bg-emerald-950/30 border-b border-emerald-100 dark:border-emerald-900/40 px-5 py-2.5 flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+            <Truck className="w-4 h-4 text-emerald-600" />
+            <span>FREE HOME DELIVERY ON ALL ORDERS</span>
           </div>
 
           {/* Cart Items List */}
@@ -124,12 +135,12 @@ export function CartDrawer({ settings }: CartDrawerProps) {
                 <div className="space-y-1">
                   <h3 className="font-bold text-slate-800 dark:text-slate-200">Your cart is empty</h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
-                    Explore our fashion, beauty, home and accessories collections to add items.
+                    Browse our products and add your favorites to enjoy Free Home Delivery nationwide!
                   </p>
                 </div>
                 <button
                   onClick={() => setIsCartOpen(false)}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-md"
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-md cursor-pointer"
                 >
                   Start Shopping
                 </button>
@@ -156,7 +167,7 @@ export function CartDrawer({ settings }: CartDrawerProps) {
                         </h4>
                         <button
                           onClick={() => removeFromCart(item.product.id)}
-                          className="text-slate-400 hover:text-rose-500 p-0.5 rounded transition-colors"
+                          className="text-slate-400 hover:text-rose-500 p-0.5 rounded transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -178,7 +189,7 @@ export function CartDrawer({ settings }: CartDrawerProps) {
                       <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
                         <button
                           onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                          className="text-slate-500 hover:text-slate-800 dark:hover:text-white p-0.5"
+                          className="text-slate-500 hover:text-slate-800 dark:hover:text-white p-0.5 cursor-pointer"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -187,7 +198,7 @@ export function CartDrawer({ settings }: CartDrawerProps) {
                         </span>
                         <button
                           onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                          className="text-slate-500 hover:text-slate-800 dark:hover:text-white p-0.5"
+                          className="text-slate-500 hover:text-slate-800 dark:hover:text-white p-0.5 cursor-pointer"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -216,18 +227,17 @@ export function CartDrawer({ settings }: CartDrawerProps) {
                 </div>
                 <div className="flex justify-between text-slate-500 dark:text-slate-400">
                   <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    Shipping
+                    <Truck className="w-3.5 h-3.5" />
+                    Delivery Charges
                   </span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{deliveryCharges > 0 ? `Rs. ${deliveryCharges.toLocaleString()}` : 'FREE'}</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    Rs. 0 — FREE
+                  </span>
                 </div>
-                {amountToFree > 0 && (
-                  <p className="text-[11px] text-slate-500">Add Rs. {amountToFree.toLocaleString()} more for free shipping.</p>
-                )}
                 <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between text-sm">
                   <span className="font-bold text-slate-900 dark:text-white">Total Amount</span>
                   <span className="font-black text-base text-blue-600 dark:text-cyan-400">
-                    Rs. {(subtotal + deliveryCharges).toLocaleString()}
+                    Rs. {totalAmount.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -237,7 +247,7 @@ export function CartDrawer({ settings }: CartDrawerProps) {
                   onClick={handleProceedToCheckout}
                   className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
-                  <span>Checkout</span>
+                  <span>Checkout (COD)</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
@@ -246,12 +256,12 @@ export function CartDrawer({ settings }: CartDrawerProps) {
                   className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-[#25D366] hover:bg-[#20ba59] text-white shadow-lg shadow-[#25D366]/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <WhatsAppIcon className="w-4 h-4 fill-white" />
-                  <span>WhatsApp Cart</span>
+                  <span>WhatsApp (03189869746)</span>
                 </button>
               </div>
 
-              <p className="text-[11px] text-center text-slate-400">
-                Free shipping above Rs. 3,000 · 7-day returns
+              <p className="text-[11px] text-center text-slate-500 font-medium">
+                Cash on Delivery &bull; Free Home Delivery on All Orders &bull; {RETURN_DAYS}-Day Returns
               </p>
             </div>
           )}

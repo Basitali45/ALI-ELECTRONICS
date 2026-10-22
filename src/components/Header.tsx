@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Menu, X, User, ShoppingBag } from 'lucide-react';
+import { Search, Menu, X, User, ShoppingBag, Sun, Moon, Instagram, QrCode } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { StoreSettings, AnnouncementBarConfig, Category } from '../types';
 import { AnnouncementBar } from './AnnouncementBar';
+import ZaplixLogo from './ZaplixLogo';
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from '../lib/policy';
 
 interface HeaderProps {
   settings: StoreSettings;
@@ -13,11 +16,22 @@ interface HeaderProps {
   onOpenAdmin: () => void;
   onNavigate: (sectionId: string) => void;
   onSelectCategory: (categoryName: string) => void;
+  onOpenInstagram?: () => void;
 }
 
-export function Header({ settings, categories, announcementBar, onOpenSearch, onOpenAdmin, onNavigate, onSelectCategory }: HeaderProps) {
+export function Header({
+  settings,
+  categories,
+  announcementBar,
+  onOpenSearch,
+  onOpenAdmin,
+  onNavigate,
+  onSelectCategory,
+  onOpenInstagram,
+}: HeaderProps) {
   const { totalItems, setIsCartOpen } = useCart();
   const { isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -39,11 +53,14 @@ export function Header({ settings, categories, announcementBar, onOpenSearch, on
 
   const Logo = (
     <button
-      onClick={() => { setMenuOpen(false); onNavigate('home'); }}
-      aria-label={`${settings.businessName || 'Zyvara'} home`}
-      className="zv-logo text-[28px] sm:text-[26px] text-black cursor-pointer"
+      onClick={() => {
+        setMenuOpen(false);
+        onNavigate('home');
+      }}
+      aria-label={`${settings.businessName || 'ZAPLIX'} home`}
+      className="cursor-pointer flex items-center focus:outline-none"
     >
-      {settings.businessName || 'Zyvara'}
+      <ZaplixLogo variant="full" className="py-0.5" />
     </button>
   );
 
@@ -53,35 +70,94 @@ export function Header({ settings, categories, announcementBar, onOpenSearch, on
         <AnnouncementBar config={announcementBar} onNavigate={onNavigate} />
       )}
 
-      <div className={`bg-white transition-shadow ${isScrolled ? 'shadow-[0_2px_14px_rgba(0,0,0,0.06)]' : 'shadow-[0_1px_0_rgba(0,0,0,0.04)]'}`}>
-        <div className="max-w-6xl mx-auto px-5 sm:px-8">
-          {/* Desktop */}
-          <div className="hidden md:flex items-center justify-between h-[60px]">
+      <div
+        className={`bg-white dark:bg-[#070e1b] border-b border-slate-200/80 dark:border-slate-800/90 transition-all duration-300 ${
+          isScrolled
+            ? 'shadow-[0_4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_25px_rgba(0,0,0,0.45)]'
+            : ''
+        }`}
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center justify-between h-[64px]">
             {Logo}
 
-            <nav className="flex items-center gap-9">
+            <nav className="flex items-center gap-7 lg:gap-8">
               {navCats.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => pickCategory(c.name)}
-                  className="text-[13px] font-medium text-black hover:opacity-60 transition-opacity cursor-pointer"
+                  className="text-[13px] font-medium text-slate-700 dark:text-slate-200 hover:text-amber-500 dark:hover:text-amber-400 transition-colors cursor-pointer"
                 >
                   {c.name}
                 </button>
               ))}
             </nav>
 
-            <div className="flex items-center gap-5 text-black">
-              <button onClick={onOpenSearch} aria-label="Search products" className="hover:opacity-60 transition-opacity cursor-pointer">
-                <Search className="w-[18px] h-[18px]" strokeWidth={1.6} />
+            <div className="flex items-center gap-3.5 lg:gap-4 text-slate-800 dark:text-slate-100">
+              {/* Instagram Link & QR trigger */}
+              <div className="flex items-center">
+                <a
+                  href={INSTAGRAM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Follow ZAPLIX on Instagram (${INSTAGRAM_HANDLE})`}
+                  className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-pink-600 dark:hover:text-pink-400 hover:bg-pink-500/10 transition-all cursor-pointer"
+                  title={`Follow us on Instagram: ${INSTAGRAM_HANDLE}`}
+                >
+                  <Instagram className="w-[19px] h-[19px]" strokeWidth={1.8} />
+                </a>
+                {onOpenInstagram && (
+                  <button
+                    onClick={onOpenInstagram}
+                    aria-label="View Instagram QR Code"
+                    className="hidden lg:flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-pink-600 dark:text-pink-400 hover:bg-pink-500/10 rounded-lg transition-colors cursor-pointer"
+                    title="Scan Instagram QR Code"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>{INSTAGRAM_HANDLE}</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Light / Dark Mode Toggle */}
+              <button
+                onClick={toggleTheme}
+                aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+                className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-all cursor-pointer"
+                title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-[19px] h-[19px] text-amber-400 animate-spin-slow" strokeWidth={1.8} />
+                ) : (
+                  <Moon className="w-[19px] h-[19px] text-slate-700" strokeWidth={1.8} />
+                )}
               </button>
-              <button onClick={onOpenAdmin} aria-label={isAuthenticated ? 'Open admin panel' : 'Account / admin login'} className="hover:opacity-60 transition-opacity cursor-pointer">
-                <User className="w-[18px] h-[18px]" strokeWidth={1.6} />
+
+              <button
+                onClick={onOpenSearch}
+                aria-label="Search products"
+                className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-all cursor-pointer"
+              >
+                <Search className="w-[19px] h-[19px]" strokeWidth={1.8} />
               </button>
-              <button onClick={() => setIsCartOpen(true)} aria-label="Open shopping bag" className="relative hover:opacity-60 transition-opacity cursor-pointer">
-                <ShoppingBag className="w-[18px] h-[18px]" strokeWidth={1.6} />
+
+              <button
+                onClick={onOpenAdmin}
+                aria-label={isAuthenticated ? 'Open admin panel' : 'Account / admin login'}
+                className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-all cursor-pointer"
+              >
+                <User className="w-[19px] h-[19px]" strokeWidth={1.8} />
+              </button>
+
+              <button
+                onClick={() => setIsCartOpen(true)}
+                aria-label="Open shopping bag"
+                className="relative p-2 rounded-xl text-slate-800 dark:text-slate-100 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-all cursor-pointer"
+              >
+                <ShoppingBag className="w-[19px] h-[19px]" strokeWidth={1.8} />
                 {totalItems > 0 && (
-                  <span className="absolute -top-2 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-black text-white text-[9px] font-bold flex items-center justify-center">
+                  <span className="absolute 0 top-0.5 right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-amber-500 text-black text-[9px] font-black flex items-center justify-center shadow-sm">
                     {totalItems}
                   </span>
                 )}
@@ -89,20 +165,48 @@ export function Header({ settings, categories, announcementBar, onOpenSearch, on
             </div>
           </div>
 
-          {/* Mobile */}
-          <div className="md:hidden grid grid-cols-[1fr_auto_1fr] items-center h-[64px]">
-            <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu" className="justify-self-start text-black cursor-pointer">
-              {menuOpen ? <X className="w-6 h-6" strokeWidth={1.6} /> : <Menu className="w-6 h-6" strokeWidth={1.6} />}
+          {/* Mobile Navigation Bar */}
+          <div className="md:hidden grid grid-cols-[auto_1fr_auto] items-center h-[62px] gap-2">
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle menu"
+              className="p-2 text-slate-800 dark:text-slate-100 cursor-pointer"
+            >
+              {menuOpen ? <X className="w-6 h-6" strokeWidth={1.8} /> : <Menu className="w-6 h-6" strokeWidth={1.8} />}
             </button>
-            {Logo}
-            <div className="justify-self-end flex items-center gap-4 text-black">
-              <button onClick={onOpenSearch} aria-label="Search products" className="cursor-pointer">
-                <Search className="w-[22px] h-[22px]" strokeWidth={1.6} />
+
+            <div className="flex justify-center">{Logo}</div>
+
+            <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-100">
+              {/* Theme toggle mobile */}
+              <button
+                onClick={toggleTheme}
+                aria-label="Toggle Theme"
+                className="p-2 text-slate-600 dark:text-slate-300 hover:text-amber-500 dark:hover:text-amber-400 cursor-pointer"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-5 h-5 text-amber-400" strokeWidth={1.8} />
+                ) : (
+                  <Moon className="w-5 h-5" strokeWidth={1.8} />
+                )}
               </button>
-              <button onClick={() => setIsCartOpen(true)} aria-label="Open shopping bag" className="relative cursor-pointer">
-                <ShoppingBag className="w-[22px] h-[22px]" strokeWidth={1.6} />
+
+              <button
+                onClick={onOpenSearch}
+                aria-label="Search products"
+                className="p-2 text-slate-600 dark:text-slate-300 cursor-pointer"
+              >
+                <Search className="w-5 h-5" strokeWidth={1.8} />
+              </button>
+
+              <button
+                onClick={() => setIsCartOpen(true)}
+                aria-label="Open shopping bag"
+                className="relative p-2 text-slate-800 dark:text-slate-100 cursor-pointer"
+              >
+                <ShoppingBag className="w-5 h-5" strokeWidth={1.8} />
                 {totalItems > 0 && (
-                  <span className="absolute -top-2 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-black text-white text-[9px] font-bold flex items-center justify-center">
+                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-amber-500 text-black text-[9px] font-black flex items-center justify-center">
                     {totalItems}
                   </span>
                 )}
@@ -111,20 +215,88 @@ export function Header({ settings, categories, announcementBar, onOpenSearch, on
           </div>
         </div>
 
-        {/* Mobile menu */}
+        {/* Mobile Dropdown Menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-slate-100 bg-white px-5 pb-5 pt-2">
-            <button onClick={() => { setMenuOpen(false); onNavigate('home'); }} className="block w-full text-left py-3 text-sm font-medium text-black cursor-pointer">Home</button>
+          <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#070e1b] px-5 pb-5 pt-3 space-y-1">
+            {/* Quick Instagram Callout in Mobile Drawer */}
+            <div className="pb-3 mb-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-bold text-pink-600 dark:text-pink-400 py-1"
+              >
+                <Instagram className="w-4 h-4" />
+                <span>Instagram: {INSTAGRAM_HANDLE}</span>
+              </a>
+              {onOpenInstagram && (
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onOpenInstagram();
+                  }}
+                  className="px-2.5 py-1 text-[11px] font-semibold bg-pink-500/10 text-pink-600 dark:text-pink-400 rounded-lg cursor-pointer"
+                >
+                  View QR
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                onNavigate('home');
+              }}
+              className="block w-full text-left py-2.5 text-sm font-semibold text-slate-800 dark:text-slate-100 cursor-pointer"
+            >
+              Home
+            </button>
             {navCats.map((c) => (
-              <button key={c.id} onClick={() => pickCategory(c.name)} className="block w-full text-left py-3 text-sm font-medium text-black border-t border-slate-100 cursor-pointer">
+              <button
+                key={c.id}
+                onClick={() => pickCategory(c.name)}
+                className="block w-full text-left py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800/60 cursor-pointer"
+              >
                 {c.name}
               </button>
             ))}
-            <button onClick={() => { setMenuOpen(false); onNavigate('products'); }} className="block w-full text-left py-3 text-sm font-medium text-black border-t border-slate-100 cursor-pointer">Shop All</button>
-            <button onClick={() => { setMenuOpen(false); onNavigate('footer'); }} className="block w-full text-left py-3 text-sm font-medium text-black border-t border-slate-100 cursor-pointer">Customer Care</button>
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                onNavigate('products');
+              }}
+              className="block w-full text-left py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800/60 cursor-pointer"
+            >
+              Shop All Products
+            </button>
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                onNavigate('footer');
+              }}
+              className="block w-full text-left py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800/60 cursor-pointer"
+            >
+              Customer Care &amp; Support
+            </button>
+
+            {/* Dark mode switch in mobile drawer */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
+              <span className="flex items-center gap-1.5">
+                {theme === 'dark' ? <Moon className="w-4 h-4 text-amber-400" /> : <Sun className="w-4 h-4 text-amber-600" />}
+                Theme: {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+              </span>
+              <button
+                onClick={toggleTheme}
+                className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer"
+              >
+                Switch to {theme === 'dark' ? 'Light' : 'Dark'}
+              </button>
+            </div>
           </div>
         )}
       </div>
     </header>
   );
 }
+
+export default Header;

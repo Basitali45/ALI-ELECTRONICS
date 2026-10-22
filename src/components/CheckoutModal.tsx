@@ -2,22 +2,22 @@ import React, { useState } from 'react';
 import { 
   X, 
   CheckCircle2, 
-  ShoppingBag, 
   ArrowRight, 
   Printer, 
   MapPin, 
   Phone, 
   User, 
-  FileText, 
   AlertCircle,
-  Truck
+  Truck,
+  ShieldCheck,
+  Gift
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { StoreSettings, Order } from '../types';
 import { api } from '../services/api';
 import { InvoiceModal } from './InvoiceModal';
-import { getDeliveryCharges } from '../lib/policy';
+import ZaplixLogo from './ZaplixLogo';
 
 interface CheckoutModalProps {
   settings: StoreSettings;
@@ -38,7 +38,8 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [notes, setNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
+  // PHASE 3: Only Cash on Delivery allowed
+  const paymentMethod = 'Cash on Delivery';
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +49,8 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
 
   if (!isCheckoutOpen) return null;
 
-  const deliveryCharges = getDeliveryCharges(subtotal, settings.deliveryCharges);
+  // PHASE 4: 100% Free Home Delivery on all orders (PKR 0)
+  const deliveryCharges = 0;
   const totalAmount = subtotal + deliveryCharges;
 
   const validateForm = () => {
@@ -79,7 +81,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
           customerAddress: address.trim(),
           city: city.trim(),
           notes: notes.trim(),
-          paymentMethod,
+          paymentMethod: 'Cash on Delivery', // Enforced trusted COD
         },
         items
       );
@@ -106,21 +108,20 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-sm p-3 sm:p-6 flex animate-in fade-in duration-200">
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 backdrop-blur-sm p-3 sm:p-6 flex animate-in fade-in duration-200">
         <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden mx-auto my-auto">
           
           {/* Header */}
           <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/60">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-600/30">
-                Z
-              </div>
+              <ZaplixLogo variant="icon" />
               <div>
                 <h2 className="font-heading font-black text-lg text-slate-900 dark:text-white">
-                  {placedOrder ? 'Order Confirmed!' : 'Checkout & Order Placement'}
+                  {placedOrder ? 'Order Confirmed!' : 'Secure Checkout — ZAPLIX'}
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Zyvara · Free shipping above Rs. 3,000 · 7-day returns
+                <p className="text-xs text-blue-600 dark:text-cyan-400 font-semibold flex items-center gap-1.5 mt-0.5">
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>FREE HOME DELIVERY ON ALL ORDERS &bull; Cash on Delivery</span>
                 </p>
               </div>
             </div>
@@ -148,7 +149,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                   Thank you, {placedOrder.customerName}!
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Your order has been permanently recorded in our system. Our team at Zyvara will prepare your order and contact you shortly.
+                  Your order has been recorded in our system. Our team at <span className="font-bold text-slate-900 dark:text-white">ZAPLIX</span> will pack your items and dispatch them with <span className="font-bold text-emerald-600">Free Home Delivery</span>. You will pay via Cash on Delivery when your parcel arrives!
                 </p>
               </div>
 
@@ -161,19 +162,26 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                   </span>
                 </div>
                 <div className="flex justify-between text-xs text-slate-500">
-                  <span>Phone Number:</span>
+                  <span>Contact Phone:</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">
                     {placedOrder.customerPhone}
                   </span>
                 </div>
                 <div className="flex justify-between text-xs text-slate-500">
                   <span>Payment Method:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
-                    {placedOrder.paymentMethod}
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Cash on Delivery (COD)
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Shipping Fee:</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    Rs. 0 — FREE HOME DELIVERY
                   </span>
                 </div>
                 <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between text-sm font-bold text-slate-900 dark:text-white">
-                  <span>Total Amount:</span>
+                  <span>Total Amount (Pay on Delivery):</span>
                   <span className="text-blue-600 dark:text-cyan-400 font-black">
                     Rs. {placedOrder.totalAmount.toLocaleString()}
                   </span>
@@ -190,7 +198,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                     className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-[#25D366] hover:bg-[#20ba59] text-white shadow-lg shadow-[#25D366]/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <WhatsAppIcon className="w-4 h-4 fill-white" />
-                    <span>Open WhatsApp Confirmation</span>
+                    <span>Send Order to WhatsApp (03189869746)</span>
                   </a>
                 )}
 
@@ -218,7 +226,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
               <div className="lg:col-span-7 space-y-4">
                 <div className="border-b border-slate-100 dark:border-slate-800 pb-2">
                   <h3 className="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wider">
-                    1. Customer Information
+                    1. Delivery Details
                   </h3>
                 </div>
 
@@ -255,7 +263,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                       <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                       <input
                         type="tel"
-                        placeholder="0311-XXXXXXX"
+                        placeholder="0318-XXXXXXX"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -290,7 +298,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                       <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                       <input
                         type="text"
-                        placeholder="Your city"
+                        placeholder="e.g. Lahore, Karachi, Islamabad..."
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
                         className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -302,7 +310,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Complete Address (Street, Mohallah, Landmark) *
+                    Complete Street Address (House/Shop No., Street, Landmark) *
                   </label>
                   <textarea
                     rows={2}
@@ -314,33 +322,38 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                   />
                 </div>
 
+                {/* PHASE 3: CASH ON DELIVERY ONLY UI */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Payment Method
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('Cash on Delivery')}
-                      className={`p-3 rounded-xl border text-xs font-bold text-left transition-all ${
-                        paymentMethod === 'Cash on Delivery'
-                          ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
-                          : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      <Truck className="w-4 h-4 mb-1" />
-                      Cash on Delivery
-                    </button>
-
-      
+                  <div className="p-3.5 rounded-2xl border-2 border-emerald-500/80 bg-emerald-50/50 dark:bg-emerald-950/20 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                      <Truck className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-slate-900 dark:text-white">
+                          Cash on Delivery (COD)
+                        </span>
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
+                          Guaranteed
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                        Pay for your order when it arrives at your doorstep.
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Special Notes / Inquiries
+                    Special Notes / Delivery Instructions (Optional)
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Call before delivery, urgent delivery request..."
+                    placeholder="e.g. Call before delivery, deliver in afternoon..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -381,7 +394,13 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                     ))}
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+                  {/* Free Delivery Banner */}
+                  <div className="mt-4 p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900 flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300">
+                    <Gift className="w-4 h-4 shrink-0 text-blue-600 dark:text-cyan-400" />
+                    <span className="font-semibold">FREE HOME DELIVERY ON ALL ORDERS</span>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 space-y-2 text-xs">
                     <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Subtotal</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200">
@@ -389,11 +408,13 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                       </span>
                     </div>
                     <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                      <span>Shipping</span>
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{deliveryCharges > 0 ? `Rs. ${deliveryCharges.toLocaleString()}` : 'FREE'}</span>
+                      <span>Delivery Charges</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                        Rs. 0 — FREE
+                      </span>
                     </div>
                     <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between text-sm font-bold text-slate-900 dark:text-white">
-                      <span>Final Total:</span>
+                      <span>Grand Total:</span>
                       <span className="font-black text-blue-600 dark:text-cyan-400 text-base">
                         Rs. {totalAmount.toLocaleString()}
                       </span>
@@ -410,10 +431,10 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                     className="w-full py-3.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     {loading ? (
-                      <span>Recording Order...</span>
+                      <span>Placing Order...</span>
                     ) : (
                       <>
-                        <span>Confirm & Place Order</span>
+                        <span>Confirm Order (Cash on Delivery)</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
@@ -426,11 +447,11 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                     className="w-full py-3.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-[#25D366] hover:bg-[#20ba59] disabled:bg-slate-400 text-white shadow-lg shadow-[#25D366]/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <WhatsAppIcon className="w-4 h-4 fill-white" />
-                    <span>Order via WhatsApp (with Image URLs)</span>
+                    <span>Confirm via WhatsApp (03189869746)</span>
                   </button>
 
-                  <p className="text-[11px] text-center text-slate-400">
-                    Cash on delivery available. 7-day easy returns.
+                  <p className="text-[11px] text-center text-slate-400 font-medium">
+                    Cash on delivery available nationwide &bull; 7-day easy returns
                   </p>
                 </div>
 

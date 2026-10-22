@@ -9,7 +9,6 @@ import {
   Plus, 
   ShieldCheck, 
   Share2, 
-  Tag,
   ShoppingBag,
   Zap,
   Truck
@@ -17,6 +16,7 @@ import {
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { Product, StoreSettings } from '../types';
 import { useCart } from '../context/CartContext';
+import { toWhatsAppNumber } from '../lib/policy';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -55,14 +55,13 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
       : null;
 
   const displayDiscount = product.discount || (discountPercent ? `${discountPercent}% OFF` : null);
-
   const allImages = [product.image, ...(product.additionalImages || [])].filter(Boolean);
 
-  const cleanPhone = (settings.whatsappNumber || '03705776869').replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const cleanPhone = toWhatsAppNumber(settings.whatsappNumber);
 
   const handleWhatsAppOrder = () => {
     const qtyText = quantity > 1 ? ` (Quantity: ${quantity}, Total: Rs. ${(product.price * quantity).toLocaleString()})` : ` (Price: Rs. ${product.price.toLocaleString()})`;
-    const text = `Hello Zyvara, I want to ${isOutOfStock ? 'inquire about stock for' : 'order'}: ${product.name}${qtyText}. Product Image: ${product.image}. Please confirm availability.`;
+    const text = `Hello Zaplix Team! I would like to ${isOutOfStock ? 'inquire about stock for' : 'order'}: ${product.name}${qtyText}. Delivery: Rs. 0 (Free Home Delivery). Payment: Cash on Delivery. Product Image: ${product.image}. Please confirm my order and availability.`;
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
@@ -92,30 +91,27 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
   const showWhatsAppButton = settings.whatsappProductButtonEnabled !== false && product.whatsappEnabled !== false;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex p-3 sm:p-6 animate-in fade-in duration-200">
-      
-      {/* Modal Dialog with Spring Drop-Down Animation */}
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-sm flex p-3 sm:p-6 animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-3xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden mx-auto my-auto animate-modal-drop"
+        className="relative w-full max-w-3xl bg-white dark:bg-[#0d1524] rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden mx-auto my-auto animate-modal-drop"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
           aria-label="Close product modal"
-          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm transition-colors cursor-pointer"
+          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-0">
-          
           {/* Left Column: Image & Thumbnails Gallery */}
-          <div className="md:col-span-5 bg-slate-100 dark:bg-slate-800/50 p-6 flex flex-col items-center justify-start relative">
-            <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+          <div className="md:col-span-5 bg-slate-50 dark:bg-[#111927] p-6 flex flex-col items-center justify-start relative border-b md:border-b-0 md:border-r border-slate-200/80 dark:border-slate-800">
+            <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-white dark:bg-[#070e1b] shadow-sm border border-slate-100 dark:border-slate-800">
               <img
                 src={activeImage || product.image}
                 alt={product.name}
-                className="w-full h-full object-cover object-center"
+                className="w-full h-full object-contain p-2"
               />
 
               {displayDiscount && (
@@ -133,7 +129,7 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
                     key={idx}
                     onClick={() => setActiveImage(img)}
                     className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
-                      activeImage === img ? 'border-blue-600 scale-105 shadow-sm' : 'border-transparent opacity-60 hover:opacity-100'
+                      activeImage === img ? 'border-amber-500 scale-105 shadow-sm' : 'border-transparent opacity-60 hover:opacity-100'
                     }`}
                   >
                     <img src={img} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
@@ -144,19 +140,18 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
 
             {/* Shipping & returns badge */}
             <div className="mt-auto pt-6 w-full text-center">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold">
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                <span>Free shipping above Rs. 3,000 · 7-day returns</span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-[#070e1b] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold shadow-xs">
+                <Truck className="w-4 h-4 text-amber-500" />
+                <span>100% Free Home Delivery &bull; 7-day returns</span>
               </div>
             </div>
           </div>
 
           {/* Right Column: Product Specs & Ordering */}
           <div className="md:col-span-7 p-6 sm:p-8 flex flex-col justify-between space-y-6">
-            
             {/* Category, Brand, Stock Status */}
             <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-blue-600 dark:text-cyan-400">
+              <span className="font-bold text-amber-600 dark:text-amber-400">
                 {product.category} {product.brand ? `· ${product.brand}` : ''}
               </span>
 
@@ -225,7 +220,7 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
                 <div className="grid grid-cols-1 gap-1.5">
                   {product.specifications.map((spec, i) => (
                     <div key={i} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 mt-1.5 shrink-0" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
                       <span>{spec}</span>
                     </div>
                   ))}
@@ -278,7 +273,7 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
                 <button
                   onClick={handleBuyNow}
                   disabled={isOutOfStock}
-                  className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-amber-500 hover:bg-amber-600 text-black shadow-md shadow-amber-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <Zap className="w-4 h-4" />
                   <span>Buy Now</span>
@@ -310,15 +305,15 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
                   href={`tel:${settings.phone1}`}
                   className="py-2 px-3 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <Phone className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <span className="truncate">Call Customer Care</span>
                 </a>
                 <a
-                  href={`tel:${settings.phone2}`}
+                  href={`tel:${settings.phone2 || settings.phone1}`}
                   className="py-2 px-3 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span className="truncate">Call Customer Care 2</span>
+                  <Phone className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span className="truncate">Helpline 2</span>
                 </a>
               </div>
             </div>
@@ -333,16 +328,15 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
                 <span>{copiedLink ? 'Link Copied to Clipboard!' : 'Share Product'}</span>
               </button>
 
-              <span className="text-[11px] text-slate-400">
-                Zyvara
+              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">
+                ZAPLIX &bull; Free Delivery &bull; COD
               </span>
             </div>
-
           </div>
-
         </div>
-
       </div>
     </div>
   );
 }
+
+export default ProductDetailModal;

@@ -35,7 +35,7 @@ interface StoreSettingsManagerProps {
 export function StoreSettingsManager({ settings, onRefresh, showToast }: StoreSettingsManagerProps) {
   const [form, setForm] = useState<StoreSettings>({
     ...settings,
-    businessName: 'Zyvara'
+    businessName: 'ZAPLIX'
   });
 
   // Supabase Configuration State

@@ -25,13 +25,13 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'zyvara_cart_v1';
-const WISHLIST_STORAGE_KEY = 'zyvara_wishlist_v1';
+const CART_STORAGE_KEY = 'zaplix_cart_v1';
+const WISHLIST_STORAGE_KEY = 'zaplix_wishlist_v1';
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      const saved = localStorage.getItem(CART_STORAGE_KEY) || localStorage.getItem('zyvara_cart_v1');
       if (saved) return JSON.parse(saved);
     } catch {
       // ignore
@@ -41,7 +41,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem(WISHLIST_STORAGE_KEY);
+      const saved = localStorage.getItem(WISHLIST_STORAGE_KEY) || localStorage.getItem('zyvara_wishlist_v1');
       if (saved) return JSON.parse(saved);
     } catch {
       // ignore
@@ -121,7 +121,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const deliveryCharges = getDeliveryCharges(subtotal); // free above Rs. 3,000
+  const deliveryCharges = getDeliveryCharges(subtotal); // 100% Free Home Delivery on all orders
   const totalAmount = subtotal + deliveryCharges;
 
   return (

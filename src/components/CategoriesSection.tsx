@@ -10,7 +10,7 @@ interface CategoriesSectionProps {
 
 export function getCategoryIcon(name: string, className = 'w-[22px] h-[22px]') {
   const n = name.toLowerCase();
-  const props = { className, strokeWidth: 1.4 };
+  const props = { className, strokeWidth: 1.5 };
   if (n.includes('fashion') || n.includes('cloth') || n.includes('wear')) return <Shirt {...props} />;
   if (n.includes('beauty') || n.includes('skin') || n.includes('care')) return <Droplet {...props} />;
   if (n.includes('home') || n.includes('decor') || n.includes('living')) return <Sofa {...props} />;
@@ -26,18 +26,22 @@ export function CategoriesSection({ categories, onSelectCategory }: CategoriesSe
   if (visible.length === 0) return null;
 
   return (
-    <section id="categories" className="py-7 md:py-8">
+    <section id="categories" className="py-7 md:py-9">
       <div className="max-w-6xl mx-auto px-5 sm:px-8 space-y-4">
-        <h2 className="text-center text-[17px] font-semibold text-black">Shop by Category</h2>
+        <h2 className="text-center text-[18px] font-bold text-slate-900 dark:text-white">
+          Shop by Category
+        </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {visible.slice(0, 8).map((cat) => (
             <button
               key={cat.id}
               onClick={() => onSelectCategory(cat.name)}
-              className="flex flex-col items-center justify-center gap-2 py-4 rounded-xl bg-white shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_6px_18px_rgba(0,0,0,0.08)] transition-shadow text-black cursor-pointer"
+              className="flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-2xl bg-white dark:bg-[#0d1524] border border-slate-200/70 dark:border-slate-800 shadow-[0_2px_10px_rgba(0,0,0,0.03)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] dark:hover:border-amber-500/50 transition-all text-slate-800 dark:text-slate-100 cursor-pointer group"
             >
-              {getCategoryIcon(cat.name)}
-              <span className="text-[12px] font-medium">{cat.name}</span>
+              <div className="text-slate-700 dark:text-slate-300 group-hover:text-amber-500 transition-colors">
+                {getCategoryIcon(cat.name)}
+              </div>
+              <span className="text-[13px] font-semibold text-center">{cat.name}</span>
             </button>
           ))}
         </div>
@@ -45,3 +49,5 @@ export function CategoriesSection({ categories, onSelectCategory }: CategoriesSe
     </section>
   );
 }
+
+export default CategoriesSection;

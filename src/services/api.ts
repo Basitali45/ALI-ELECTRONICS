@@ -21,7 +21,7 @@ const API_BASE = '/api';
 // Local storage fallback helpers for resilience
 function getLocal<T>(key: string, fallback: T): T {
   try {
-    const item = localStorage.getItem(`zyvara_${key}`);
+    const item = localStorage.getItem(`zaplix_${key}`) || localStorage.getItem(`zyvara_${key}`);
     return item ? JSON.parse(item) : fallback;
   } catch {
     return fallback;
@@ -30,14 +30,14 @@ function getLocal<T>(key: string, fallback: T): T {
 
 function setLocal<T>(key: string, data: T): void {
   try {
-    localStorage.setItem(`zyvara_${key}`, JSON.stringify(data));
+    localStorage.setItem(`zaplix_${key}`, JSON.stringify(data));
   } catch {
     // quota exceeded or private mode
   }
 }
 
 function getAuthHeader(): Record<string, string> {
-  const token = localStorage.getItem('zyvara_token');
+  const token = localStorage.getItem('zaplix_token') || localStorage.getItem('zyvara_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -621,13 +621,14 @@ export const api = {
     items: { product: Product; quantity: number }[]
   ): Promise<{ order: Order; whatsappUrl: string }> {
     const settings = await this.getStoreSettings();
-    const cleanAdminPhone = (settings.whatsappNumber || '03705776869')
+    const cleanAdminPhone = (settings.whatsappNumber || '03189869746')
       .replace(/^0/, '92')
       .replace(/[^0-9]/g, '');
 
-    const orderNumber = `ZV-${Math.floor(1000 + Math.random() * 9000)}`;
+    const orderNumber = `ZX-${Math.floor(1000 + Math.random() * 9000)}`;
     const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-    const deliveryCharges = getDeliveryCharges(subtotal, settings.deliveryCharges);
+    // PHASE 4: Free Home Delivery on all orders
+    const deliveryCharges = 0;
     const totalAmount = subtotal + deliveryCharges;
     const orderId = `ord-${Date.now()}`;
 
@@ -637,12 +638,13 @@ export const api = {
       productId: item.product.id,
       productName: item.product.name,
       productImage: item.product.image,
-      sku: item.product.sku || `ZV-${item.product.id.substring(0, 6)}`,
+      sku: item.product.sku || `ZX-${item.product.id.substring(0, 6)}`,
       price: item.product.price,
       quantity: item.quantity,
       subtotal: item.product.price * item.quantity,
     }));
 
+    // PHASE 3: Enforce Cash on Delivery only
     const newOrder: Order = {
       id: orderId,
       orderNumber,
@@ -654,11 +656,11 @@ export const api = {
       city: orderData.city || '',
       notes: orderData.notes,
       subtotal,
-      deliveryCharges,
+      deliveryCharges: 0,
       discount: 0,
       totalAmount,
       status: 'Pending',
-      paymentMethod: orderData.paymentMethod || 'Cash on Delivery',
+      paymentMethod: 'Cash on Delivery',
       items: orderItems,
       createdAt: new Date().toISOString(),
     };
@@ -679,11 +681,11 @@ export const api = {
             city: newOrder.city,
             notes: newOrder.notes,
             subtotal: newOrder.subtotal,
-            delivery_charges: newOrder.deliveryCharges,
+            delivery_charges: 0,
             discount: newOrder.discount,
             total_amount: newOrder.totalAmount,
             status: newOrder.status,
-            payment_method: newOrder.paymentMethod,
+            payment_method: 'Cash on Delivery',
             created_at: newOrder.createdAt,
           },
         ]);
@@ -714,38 +716,20 @@ export const api = {
     const orders = getLocal<Order[]>('orders', []);
     setLocal('orders', [newOrder, ...orders]);
 
-    // 2. CONSTRUCT STRUCTURED WHATSAPP ORDER MESSAGE WITH PERMANENT IMAGE URLS
-    let message = `*NEW ORDER — ZVYARA*\n`;
-    message += `Order ID: #${orderNumber}\n`;
-    message += `Date: ${new Date().toLocaleDateString('en-PK')}\n\n`;
-    message += `*--- CUSTOMER DETAILS ---*\n`;
-    message += `Name: ${newOrder.customerName}\n`;
-    message += `Phone: ${newOrder.customerPhone}\n`;
-    if (newOrder.customerWhatsapp && newOrder.customerWhatsapp !== newOrder.customerPhone) {
-      message += `WhatsApp: ${newOrder.customerWhatsapp}\n`;
-    }
+    // 2. CONSTRUCT STRUCTURED WHATSAPP ORDER MESSAGE (PHASE 5 FORMAT)
+    let message = `Hello Zaplix Team!\n\n`;
+    message += `I would like to place an order through your online store.\n\n`;
+    message += `Order ID: #${orderNumber}\n\n`;
+    message += `Products: ${items.map((i) => i.product.name).join(', ')}\n\n`;
+    message += `Quantities: ${items.map((i) => `${i.product.name} (Qty: ${i.quantity})`).join(', ')}\n\n`;
+    message += `Subtotal: Rs. ${subtotal.toLocaleString()}\n\n`;
+    message += `Delivery Charges: Rs. 0 — FREE HOME DELIVERY\n\n`;
+    message += `Payment Method: Cash on Delivery\n\n`;
+    message += `Grand Total: Rs. ${totalAmount.toLocaleString()}\n\n`;
+    message += `Customer: ${newOrder.customerName} (${newOrder.customerPhone})\n`;
     message += `Address: ${newOrder.customerAddress}, ${newOrder.city}\n`;
-    if (newOrder.notes) {
-      message += `Notes: ${newOrder.notes}\n`;
-    }
-    message += `\n*--- ORDER ITEMS ---*\n`;
-
-    items.forEach((item, index) => {
-      message += `\n${index + 1}. *${item.product.name}*\n`;
-      if (item.product.sku) message += `   SKU: ${item.product.sku}\n`;
-      message += `   Qty: ${item.quantity} x Rs. ${item.product.price.toLocaleString()}\n`;
-      message += `   Subtotal: Rs. ${(item.product.price * item.quantity).toLocaleString()}\n`;
-      if (item.product.image) {
-        message += `   Product Image: ${item.product.image}\n`;
-      }
-    });
-
-    message += `\n*--- PAYMENT SUMMARY ---*\n`;
-    message += `Subtotal: Rs. ${subtotal.toLocaleString()}\n`;
-    message += `Delivery: ${deliveryCharges > 0 ? `Rs. ${deliveryCharges.toLocaleString()}` : 'FREE'}\n`;
-    message += `*Grand Total: Rs. ${totalAmount.toLocaleString()}*\n`;
-    message += `Payment Method: ${newOrder.paymentMethod}\n\n`;
-    message += `Please confirm my order. Thank you!`;
+    if (newOrder.notes) message += `Notes: ${newOrder.notes}\n`;
+    message += `\nPlease confirm my order and delivery details.`;
 
     const whatsappUrl = `https://wa.me/${cleanAdminPhone}?text=${encodeURIComponent(message)}`;
 
@@ -836,25 +820,25 @@ export const api = {
         const { data, error } = await supabase.from('store_settings').select('*').eq('id', 'default').single();
         if (!error && data) {
           const mapped: StoreSettings = {
-            businessName: data.business_name || 'Zyvara',
-            tagline: data.tagline || 'Smart Technology. Better Living.',
-            supportingText: data.supporting_text || 'Curated products for fashion, beauty, home & accessories — designed for modern living.',
+            businessName: data.business_name || 'ZAPLIX',
+            tagline: data.tagline || 'Shop Smarter. Live Better.',
+            supportingText: data.supporting_text || 'Pakistan\'s trusted online shopping destination. Free Home Delivery on all orders with Cash on Delivery nationwide.',
             location: data.location || 'Pakistan (Online Store)',
             googleMapsUrl: data.google_maps_url || '',
-            phone1: data.phone1 || '03701893960',
-            phone1Name: data.phone1_name || 'Customer Service',
-            phone2: data.phone2 || '03079371104',
-            phone2Name: data.phone2_name || 'Customer Service',
-            whatsappNumber: data.whatsapp_number || '03705776869',
+            phone1: data.phone1 || '03189869746',
+            phone1Name: data.phone1_name || 'Customer Helpline',
+            phone2: data.phone2 || '03189869746',
+            phone2Name: data.phone2_name || 'WhatsApp Support',
+            whatsappNumber: data.whatsapp_number || '03189869746',
             whatsappFloatingEnabled: data.whatsapp_floating_enabled !== false,
             whatsappProductButtonEnabled: data.whatsapp_product_button_enabled !== false,
-            whatsappTemplate: data.whatsapp_template || 'Hello Zyvara, I am interested in {product_name}. Current price is {price}. Please confirm availability.',
-            deliveryCharges: Number(data.delivery_charges) || 0,
-            businessHours: data.business_hours || 'Mon - Sat: 9:00 AM - 9:00 PM',
-            email: data.email || '',
-            aboutText: data.about_text || 'Zyvara — minimal luxury for everyday living.',
-            logoUrl: data.logo_url || '',
-            footerText: data.footer_text || '© 2026 ZVYARA. All rights reserved.',
+            whatsappTemplate: data.whatsapp_template || 'Hello Zaplix Team!\n\nI would like to inquire about {product_name} (Price: {price}). Please confirm availability and delivery.',
+            deliveryCharges: 0,
+            businessHours: data.business_hours || 'Daily 9:00 AM - 11:00 PM',
+            email: data.email || 'support@zaplix.pk',
+            aboutText: data.about_text || 'ZAPLIX is Pakistan\'s premier multi-category online shopping brand.',
+            logoUrl: data.logo_url || '/images/zaplix/zaplix-logo-full-light.svg',
+            footerText: data.footer_text || '© 2026 ZAPLIX. All rights reserved. Shop Smarter. Live Better.',
             themePreset: (data.theme_preset as any) || 'clean-premium',
             currency: data.currency || 'PKR',
           };
@@ -870,13 +854,13 @@ export const api = {
 
   async updateStoreSettings(settings: Partial<StoreSettings>): Promise<StoreSettings> {
     const current = await this.getStoreSettings();
-    const updated = { ...current, ...settings, businessName: 'Zyvara' };
+    const updated = { ...current, ...settings, businessName: 'ZAPLIX' };
 
     const supabase = await requireAdminClient();
     {
       const { error } = await supabase.from('store_settings').upsert({
         id: 'default',
-        business_name: 'Zyvara',
+        business_name: 'ZAPLIX',
         tagline: updated.tagline,
         supporting_text: updated.supportingText,
         location: updated.location,
@@ -1019,8 +1003,8 @@ export const api = {
   // ================= CONTACT MESSAGES =================
   async submitContact(data: { name: string; phone: string; message: string }): Promise<{ success: boolean; whatsappUrl: string }> {
     const settings = await this.getStoreSettings();
-    const cleanPhone = (settings.whatsappNumber || '03705776869').replace(/^0/, '92').replace(/[^0-9]/g, '');
-    const waText = `Hello Zyvara, Message from ${data.name} (${data.phone}): ${data.message}`;
+    const cleanPhone = (settings.whatsappNumber || '03189869746').replace(/^0/, '92').replace(/[^0-9]/g, '');
+    const waText = `Hello Zaplix Team, message from ${data.name} (${data.phone}): ${data.message}`;
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}`;
 
     const newMsg: ContactMessage = {
@@ -1151,7 +1135,7 @@ export const api = {
         // ignore
       }
     }
-    localStorage.removeItem('zyvara_token');
+    localStorage.removeItem('zaplix_token');
     localStorage.removeItem('zyvara_token');
   },
 

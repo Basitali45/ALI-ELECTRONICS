@@ -2,59 +2,48 @@
 
 @variant dark (&:where(.dark, .dark *));
 
-/* ZVYARA — minimal luxury theme: black / white / soft neutral.
-   Re-maps the colour scales used across storefront AND admin panel so both share one look. */
+/* ZAPLIX — Modern E-Commerce Palette
+   Primary: Deep Navy & Electric Blue
+   Accent: Crisp White & Vibrant Cyan */
 @theme {
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-logo: 'Jost', 'Inter', sans-serif;
+  --font-logo: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  --color-slate-50: #f7f7f6;
-  --color-slate-100: #f0f0ee;
-  --color-slate-200: #e5e5e3;
-  --color-slate-300: #d1d1cf;
-  --color-slate-400: #a3a3a1;
-  --color-slate-500: #737372;
-  --color-slate-600: #525252;
-  --color-slate-700: #404040;
-  --color-slate-800: #262626;
-  --color-slate-900: #171717;
-  --color-slate-950: #0a0a0a;
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #070d18;
 
-  --color-blue-50: #f5f5f4;
-  --color-blue-100: #ececea;
-  --color-blue-200: #dcdcda;
-  --color-blue-300: #b5b5b3;
-  --color-blue-400: #8a8a88;
-  --color-blue-500: #3f3f3f;
-  --color-blue-600: #0a0a0a;
-  --color-blue-700: #000000;
-  --color-blue-800: #000000;
-  --color-blue-900: #000000;
-  --color-blue-950: #0a0a0a;
+  --color-blue-50: #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
+  --color-blue-900: #1e3a8a;
+  --color-blue-950: #0b192c;
 
-  --color-indigo-50: #f5f5f4;
-  --color-indigo-100: #ececea;
-  --color-indigo-200: #dcdcda;
-  --color-indigo-300: #b5b5b3;
-  --color-indigo-400: #8a8a88;
-  --color-indigo-500: #3f3f3f;
-  --color-indigo-600: #171717;
-  --color-indigo-700: #0a0a0a;
-  --color-indigo-800: #000000;
-  --color-indigo-900: #000000;
-  --color-indigo-950: #0a0a0a;
-
-  --color-cyan-50: #f5f5f4;
-  --color-cyan-100: #ececea;
-  --color-cyan-200: #dcdcda;
-  --color-cyan-300: #b5b5b3;
-  --color-cyan-400: #8a8a88;
-  --color-cyan-500: #3f3f3f;
-  --color-cyan-600: #0a0a0a;
-  --color-cyan-700: #000000;
-  --color-cyan-800: #000000;
-  --color-cyan-900: #000000;
-  --color-cyan-950: #0a0a0a;
+  --color-cyan-50: #ecfeff;
+  --color-cyan-100: #cffafe;
+  --color-cyan-200: #a5f3fc;
+  --color-cyan-300: #67e8f9;
+  --color-cyan-400: #22d3ee;
+  --color-cyan-500: #06b6d4;
+  --color-cyan-600: #0891b2;
+  --color-cyan-700: #0e7490;
+  --color-cyan-800: #155e75;
+  --color-cyan-900: #164e63;
+  --color-cyan-950: #083344;
 }
 
 @layer base {
@@ -65,22 +54,35 @@
   html {
     scroll-behavior: smooth;
     font-family: var(--font-sans);
-    background: #f7f7f6;
+    background: #f8fafc;
+    color: #0f172a;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  html.dark {
+    background: #070b14;
+    color: #f1f5f9;
   }
 
   body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: #f7f7f6;
-    color: #0a0a0a;
+    background: #f8fafc;
+    color: #0f172a;
+    min-height: 100vh;
+  }
+
+  .dark body {
+    background: #070b14;
+    color: #f1f5f9;
   }
 }
 
-/* Zyvara logo wordmark */
-.zv-logo {
-  font-family: 'Jost', 'Inter', sans-serif;
-  font-weight: 300;
-  letter-spacing: 0.22em;
+/* Zaplix logo wordmark */
+.zaplix-logo, .zv-logo {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   line-height: 1;
 }

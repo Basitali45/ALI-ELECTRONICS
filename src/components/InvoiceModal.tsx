@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, Printer, Download, CheckCircle2 } from 'lucide-react';
+import { X, Printer } from 'lucide-react';
 import { Order, StoreSettings } from '../types';
+import ZaplixLogo from './ZaplixLogo';
 
 interface InvoiceModalProps {
   order: Order;
@@ -38,7 +39,7 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-500 hover:bg-slate-200 transition-colors"
+              className="p-2 rounded-xl text-slate-500 hover:bg-slate-200 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -51,23 +52,21 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 border-b border-slate-200 pb-6">
             <div>
-              <div className="inline-block px-2.5 py-1 rounded bg-blue-600 text-white font-black text-xs tracking-wider uppercase mb-2">
-                Tech Showroom & Accessories
-              </div>
-              <h1 className="font-heading font-black text-3xl tracking-tight text-slate-900">
-                ZVYARA
-              </h1>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                Minimal luxury for everyday living
+              <ZaplixLogo variant="full" showTagline={false} className="mb-2" />
+              <p className="text-xs text-slate-500 mt-1 max-w-sm font-medium">
+                Shop Smarter. Live Better.
               </p>
-              <p className="text-xs text-slate-600 mt-1 font-mono">
-                Tel: 0311-5321647 / 0313-3332141
+              <p className="text-xs text-slate-700 mt-1 font-mono">
+                Official Helpline & WhatsApp: 03189869746
+              </p>
+              <p className="text-xs text-slate-600">
+                Pakistan Online Shopping Store
               </p>
             </div>
 
             <div className="text-left sm:text-right">
               <span className="text-xs uppercase font-bold text-slate-400 tracking-wider">
-                INVOICE
+                CUSTOMER INVOICE
               </span>
               <div className="text-xl font-black font-mono text-blue-600">
                 #{order.orderNumber}
@@ -80,7 +79,7 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
                 })}
               </p>
               <span className="inline-block mt-2 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                Status: {order.status}
+                Payment: Cash on Delivery
               </span>
             </div>
           </div>
@@ -93,7 +92,7 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
               </span>
               <p className="font-bold text-sm text-slate-900">{order.customerName}</p>
               <p className="text-slate-600 mt-0.5">{order.customerAddress}</p>
-              <p className="text-slate-600">{order.city}, Pakistan</p>
+              <p className="text-slate-600">{order.city || 'Pakistan'}</p>
             </div>
 
             <div>
@@ -104,7 +103,8 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
               {order.customerWhatsapp && (
                 <p className="text-slate-700">WhatsApp: <strong className="text-slate-900">{order.customerWhatsapp}</strong></p>
               )}
-              <p className="text-slate-700">Payment: <strong className="text-slate-900">{order.paymentMethod}</strong></p>
+              <p className="text-slate-700">Payment Method: <strong className="text-emerald-700 font-bold">Cash on Delivery (COD)</strong></p>
+              <p className="text-slate-700">Shipping: <strong className="text-emerald-700 font-bold">Free Home Delivery (Rs. 0)</strong></p>
             </div>
           </div>
 
@@ -129,7 +129,7 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
                       {item.productName}
                     </td>
                     <td className="py-3 px-2 text-slate-500 font-mono">
-                      {item.sku || 'ZV-GEN'}
+                      {item.sku || `ZX-${idx + 1}`}
                     </td>
                     <td className="py-3 px-2 text-right text-slate-700">
                       Rs. {item.price.toLocaleString()}
@@ -154,12 +154,12 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
             </div>
             <div className="flex justify-between w-64 text-slate-600">
               <span>Delivery Charges:</span>
-              <span className="font-semibold text-slate-900">
-                {order.deliveryCharges > 0 ? `Rs. ${order.deliveryCharges.toLocaleString()}` : 'FREE'}
+              <span className="font-bold text-emerald-600">
+                Rs. 0 — FREE
               </span>
             </div>
             <div className="flex justify-between w-64 pt-2 border-t border-slate-200 text-sm font-black text-slate-900">
-              <span>Grand Total:</span>
+              <span>Total Payable on Delivery:</span>
               <span className="text-blue-600 text-base">Rs. {order.totalAmount.toLocaleString()}</span>
             </div>
           </div>
@@ -167,13 +167,13 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
           {/* Footer Terms */}
           <div className="pt-6 border-t border-slate-200 text-[11px] text-slate-500 flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
-              <p className="font-bold text-slate-700">Terms & Showroom Assurance:</p>
-              <p>Free shipping on orders above Rs. 3,000. 7-day returns on unused items in original packaging.</p>
+              <p className="font-bold text-slate-700">ZAPLIX Assurance &amp; Store Terms:</p>
+              <p>FREE HOME DELIVERY ON ALL ORDERS across Pakistan. Pay via Cash on Delivery at your doorstep. 7-day hassle-free return policy on unused items in original packaging.</p>
             </div>
             <div className="text-right sm:text-right shrink-0">
-              <p className="font-bold text-slate-900">Authorized Signature</p>
+              <p className="font-bold text-slate-900">Authorized Dispatch</p>
               <div className="mt-4 border-b border-dashed border-slate-400 w-32"></div>
-              <p className="text-[10px] text-slate-400 mt-1">Zyvara</p>
+              <p className="text-[10px] text-slate-400 mt-1">ZAPLIX Operations</p>
             </div>
           </div>
 

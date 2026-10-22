@@ -32,7 +32,7 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 // Session secret
-const JWT_SECRET = process.env.JWT_SECRET || 'zyvara-secret-key-2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'zaplix-secret-key-2026';
 
 export interface StoreData {
   admin: {
@@ -82,13 +82,13 @@ function verifyToken(token: string): boolean {
   }
 }
 
-// Initial seed data (Zyvara)
+// Initial seed data (ZAPLIX)
 const initialSalt = crypto.randomBytes(16).toString('hex');
 
 const defaultHomepageConfig: HomepageConfig = {
-  "heroHeading": "Elevate Your Everyday",
-  "heroSubtitle": "Curated products for fashion, beauty, home & accessories — designed for modern living.",
-  "heroBackgroundImage": "/images/zyvara/hero.jpg",
+  "heroHeading": "Shop Smarter. Live Better.",
+  "heroSubtitle": "Pakistan's trusted multi-category online store. Free Home Delivery on all orders with guaranteed Cash on Delivery.",
+  "heroBackgroundImage": "/images/zaplix/hero.jpg",
   "heroOverlayOpacity": 0,
   "heroCtaText": "Shop Now",
   "heroCtaDestination": "#products",
@@ -134,17 +134,17 @@ const defaultHomepageConfig: HomepageConfig = {
     }
   ],
   "announcementBar": {
-    "enabled": false,
-    "text": "Free shipping on orders above Rs. 3,000 • 7-day easy returns",
+    "enabled": true,
+    "text": "FREE HOME DELIVERY ON ALL ORDERS • CASH ON DELIVERY • 7-DAY EASY RETURNS",
     "link": "#products",
     "style": "navy"
   },
   "promoPopup": {
     "enabled": false,
-    "title": "Welcome to Zyvara",
-    "description": "Free shipping on orders above Rs. 3,000 and 7-day easy returns.",
-    "image": "/images/zyvara/hero.jpg",
-    "buttonText": "Shop Now",
+    "title": "Welcome to ZAPLIX",
+    "description": "FREE HOME DELIVERY ON ALL ORDERS with zero minimum purchase requirement. Pay via Cash on Delivery when your parcel arrives.",
+    "image": "/images/zaplix/hero.jpg",
+    "buttonText": "Start Shopping",
     "buttonLink": "#products",
     "delaySeconds": 4,
     "showOnce": true
@@ -152,26 +152,26 @@ const defaultHomepageConfig: HomepageConfig = {
 } as HomepageConfig;
 
 const defaultSettings: StoreSettings = {
-  "businessName": "Zyvara",
-  "tagline": "Minimal luxury for everyday living",
-  "supportingText": "Curated products for fashion, beauty, home & accessories — designed for modern living.",
+  "businessName": "ZAPLIX",
+  "tagline": "Shop Smarter. Live Better.",
+  "supportingText": "Pakistan's trusted multi-category online store — electronics, fashion, beauty, home & accessories with Cash on Delivery & Free Home Delivery nationwide.",
   "location": "Pakistan (Online Store)",
   "googleMapsUrl": "",
-  "phone1": "03701893960",
-  "phone1Name": "Customer Service",
-  "phone2": "03079371104",
-  "phone2Name": "Customer Service",
-  "whatsappNumber": "03705776869",
+  "phone1": "03189869746",
+  "phone1Name": "Customer Support",
+  "phone2": "03189869746",
+  "phone2Name": "WhatsApp Desk",
+  "whatsappNumber": "03189869746",
   "whatsappFloatingEnabled": true,
   "whatsappProductButtonEnabled": true,
-  "whatsappTemplate": "Assalam-o-Alaikum Zyvara, I am interested in {product_name}. Current price is {price}. Please confirm availability.",
-  "businessHours": "Customer care available daily on phone & WhatsApp",
-  "email": "",
-  "aboutText": "Zyvara — minimal luxury for everyday living. Curated fashion, beauty, home & accessories.",
-  "logoUrl": "",
-  "footerText": "© 2026 ZVYARA. All rights reserved.",
+  "whatsappTemplate": "Hello Zaplix Team!\n\nI would like to inquire about {product_name} (Price: {price}). Please confirm availability and delivery.",
+  "businessHours": "Customer care available daily on phone & WhatsApp (03189869746)",
+  "email": "support@zaplix.pk",
+  "aboutText": "ZAPLIX is Pakistan's premier multi-category online shopping brand. We bring you curated, top-grade products with guaranteed Cash on Delivery, 100% Free Home Delivery on all orders, and 7-day hassle-free returns.",
+  "logoUrl": "/images/zaplix/zaplix-logo-full-light.svg",
+  "footerText": "© 2026 ZAPLIX. All rights reserved. Shop Smarter. Live Better.",
   "themePreset": "clean-premium",
-  "deliveryCharges": 200,
+  "deliveryCharges": 0,
   "currency": "PKR"
 } as StoreSettings;
 
@@ -180,7 +180,7 @@ const defaultCategories: Category[] = [
     "id": "cat-1",
     "name": "Fashion",
     "description": "Jackets, bags and everyday wardrobe essentials",
-    "image": "/images/zyvara/red-jacket.jpg",
+    "image": "/images/zaplix/red-jacket.jpg",
     "order": 1,
     "isVisible": true
   },
@@ -188,7 +188,7 @@ const defaultCategories: Category[] = [
     "id": "cat-2",
     "name": "Beauty",
     "description": "Skincare and beauty essentials",
-    "image": "/images/zyvara/vitamin-c-serum.jpg",
+    "image": "/images/zaplix/vitamin-c-serum.jpg",
     "order": 2,
     "isVisible": true
   },
@@ -196,7 +196,7 @@ const defaultCategories: Category[] = [
     "id": "cat-3",
     "name": "Home",
     "description": "Planters, decor and living essentials",
-    "image": "/images/zyvara/ceramic-plant-pot.jpg",
+    "image": "/images/zaplix/ceramic-plant-pot.jpg",
     "order": 3,
     "isVisible": true
   },
@@ -204,7 +204,7 @@ const defaultCategories: Category[] = [
     "id": "cat-4",
     "name": "Accessories",
     "description": "Sunglasses, totes and finishing touches",
-    "image": "/images/zyvara/tortoise-sunglasses.jpg",
+    "image": "/images/zaplix/tortoise-sunglasses.jpg",
     "order": 4,
     "isVisible": true
   }
@@ -215,9 +215,9 @@ const defaultProducts: Product[] = [
     "id": "prod-1",
     "name": "Classic Red Handbag",
     "category": "Fashion",
-    "brand": "Zyvara",
+    "brand": "ZAPLIX",
     "price": 8900,
-    "image": "/images/zyvara/red-handbag.jpg",
+    "image": "/images/zaplix/red-handbag.jpg",
     "shortDescription": "Structured crossbody in rich red with a gold clasp.",
     "description": "A timeless structured crossbody with a gold-tone clasp and adjustable strap. Roomy enough for daily essentials.",
     "specifications": [
@@ -238,9 +238,9 @@ const defaultProducts: Product[] = [
     "id": "prod-2",
     "name": "Brightening Serum",
     "category": "Beauty",
-    "brand": "Zyvara",
+    "brand": "ZAPLIX",
     "price": 4200,
-    "image": "/images/zyvara/vitamin-c-serum.jpg",
+    "image": "/images/zaplix/vitamin-c-serum.jpg",
     "shortDescription": "Daily glow serum with a lightweight dropper.",
     "description": "A lightweight brightening serum for a fresh, even-looking complexion. Apply a few drops morning or night.",
     "specifications": [
@@ -261,9 +261,9 @@ const defaultProducts: Product[] = [
     "id": "prod-3",
     "name": "Ceramic Plant Pot",
     "category": "Home",
-    "brand": "Zyvara",
+    "brand": "ZAPLIX",
     "price": 2800,
-    "image": "/images/zyvara/ceramic-plant-pot.jpg",
+    "image": "/images/zaplix/ceramic-plant-pot.jpg",
     "shortDescription": "Glazed sage-green ceramic planter with saucer.",
     "description": "A hand-finished glazed ceramic planter in soft sage green with a matching saucer. Perfect for succulents.",
     "specifications": [
@@ -284,9 +284,9 @@ const defaultProducts: Product[] = [
     "id": "prod-4",
     "name": "Tortoise Sunglasses",
     "category": "Accessories",
-    "brand": "Zyvara",
+    "brand": "ZAPLIX",
     "price": 3500,
-    "image": "/images/zyvara/tortoise-sunglasses.jpg",
+    "image": "/images/zaplix/tortoise-sunglasses.jpg",
     "shortDescription": "Olive tortoise frames with gradient lenses.",
     "description": "Modern olive tortoise frames with gradient lenses for all-day comfort and UV protection.",
     "specifications": [
@@ -307,9 +307,9 @@ const defaultProducts: Product[] = [
     "id": "prod-5",
     "name": "Essential Red Jacket",
     "category": "Fashion",
-    "brand": "Zyvara",
+    "brand": "ZAPLIX",
     "price": 8900,
-    "image": "/images/zyvara/red-jacket.jpg",
+    "image": "/images/zaplix/red-jacket.jpg",
     "shortDescription": "Clean-cut zip jacket in deep red.",
     "description": "An everyday zip jacket with a clean collar, front zip and ribbed hem. Easy to layer, easy to wear.",
     "specifications": [
@@ -330,9 +330,9 @@ const defaultProducts: Product[] = [
     "id": "prod-6",
     "name": "Vitamin C Serum",
     "category": "Beauty",
-    "brand": "Zyvara",
+    "brand": "ZAPLIX",
     "price": 3200,
-    "image": "/images/zyvara/vitamin-c-serum.jpg",
+    "image": "/images/zaplix/vitamin-c-serum.jpg",
     "shortDescription": "Brightening vitamin C serum, 30 ml.",
     "description": "A vitamin C serum that helps brighten and refresh dull-looking skin. Light texture, quick absorption.",
     "specifications": [
@@ -353,9 +353,9 @@ const defaultProducts: Product[] = [
     "id": "prod-7",
     "name": "Ceramic Plant Pot",
     "category": "Home",
-    "brand": "Zyvara",
+    "brand": "ZAPLIX",
     "price": 2400,
-    "image": "/images/zyvara/ceramic-plant-pot.jpg",
+    "image": "/images/zaplix/ceramic-plant-pot.jpg",
     "shortDescription": "Compact sage-green ceramic planter.",
     "description": "A compact glazed ceramic planter in sage green — a small touch of greenery for any shelf or desk.",
     "specifications": [
@@ -376,9 +376,9 @@ const defaultProducts: Product[] = [
     "id": "prod-8",
     "name": "Woven Mini Tote",
     "category": "Accessories",
-    "brand": "Zyvara",
+    "brand": "ZAPLIX",
     "price": 4500,
-    "image": "/images/zyvara/woven-mini-tote.jpg",
+    "image": "/images/zaplix/woven-mini-tote.jpg",
     "shortDescription": "Hand-woven mini tote in lime green.",
     "description": "A hand-woven mini tote with sturdy handles. Light, roomy and easy to style.",
     "specifications": [
@@ -400,14 +400,14 @@ const defaultProducts: Product[] = [
 const defaultOffers: Offer[] = [
   {
     "id": "offer-1",
-    "title": "Free Shipping Over Rs. 3,000",
-    "description": "Enjoy free shipping on all orders above Rs. 3,000 — plus 7-day easy returns.",
+    "title": "Free Home Delivery Nationwide",
+    "description": "FREE HOME DELIVERY ON ALL ORDERS — Cash on Delivery guaranteed nationwide.",
     "discountType": "fixed",
     "discountValue": 0,
-    "bannerImage": "/images/zyvara/hero.jpg",
+    "bannerImage": "/images/zaplix/hero.jpg",
     "buttonText": "Shop Now",
     "buttonLink": "#products",
-    "isActive": false,
+    "isActive": true,
     "displayLocation": "banner",
     "productIds": [],
     "createdAt": "2026-10-10T10:00:00Z"
@@ -417,50 +417,50 @@ const defaultOffers: Offer[] = [
 const defaultMedia: MediaItem[] = [
   {
     "id": "m-1",
-    "title": "Zyvara Hero Banner",
-    "url": "/images/zyvara/hero.jpg",
+    "title": "Zaplix Hero Banner",
+    "url": "/images/zaplix/hero.jpg",
     "category": "hero",
     "createdAt": "2026-10-10T10:00:00Z"
   },
   {
     "id": "m-2",
     "title": "Classic Red Handbag",
-    "url": "/images/zyvara/red-handbag.jpg",
+    "url": "/images/zaplix/red-handbag.jpg",
     "category": "product",
     "createdAt": "2026-10-10T10:00:00Z"
   },
   {
     "id": "m-3",
     "title": "Vitamin C Serum",
-    "url": "/images/zyvara/vitamin-c-serum.jpg",
+    "url": "/images/zaplix/vitamin-c-serum.jpg",
     "category": "product",
     "createdAt": "2026-10-10T10:00:00Z"
   },
   {
     "id": "m-4",
     "title": "Ceramic Plant Pot",
-    "url": "/images/zyvara/ceramic-plant-pot.jpg",
+    "url": "/images/zaplix/ceramic-plant-pot.jpg",
     "category": "product",
     "createdAt": "2026-10-10T10:00:00Z"
   },
   {
     "id": "m-5",
     "title": "Tortoise Sunglasses",
-    "url": "/images/zyvara/tortoise-sunglasses.jpg",
+    "url": "/images/zaplix/tortoise-sunglasses.jpg",
     "category": "product",
     "createdAt": "2026-10-10T10:00:00Z"
   },
   {
     "id": "m-6",
     "title": "Essential Red Jacket",
-    "url": "/images/zyvara/red-jacket.jpg",
+    "url": "/images/zaplix/red-jacket.jpg",
     "category": "product",
     "createdAt": "2026-10-10T10:00:00Z"
   },
   {
     "id": "m-7",
     "title": "Woven Mini Tote",
-    "url": "/images/zyvara/woven-mini-tote.jpg",
+    "url": "/images/zaplix/woven-mini-tote.jpg",
     "category": "product",
     "createdAt": "2026-10-10T10:00:00Z"
   }
@@ -1147,7 +1147,7 @@ app.post('/api/inquiries', (req: Request, res: Response) => {
   const product = data.products.find(p => p.id === productId);
   const categoryStr = product?.category || 'Product';
 
-  let template = data.settings.whatsappTemplate || 'Hello Zyvara, I am interested in {product_name}. Current price is {price}. Please confirm availability.';
+  let template = data.settings.whatsappTemplate || 'Hello Zaplix Team!\n\nI would like to inquire about {product_name} (Price: {price}). Please confirm availability.';
   
   template = template
     .replace('{product_name}', newInquiry.productName)
@@ -1215,7 +1215,7 @@ app.post('/api/contact', (req: Request, res: Response) => {
   writeData(data);
 
   const cleanPhone = data.settings.whatsappNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
-  const text = `Hello Zyvara, my name is ${name.trim()} (${phone.trim()}). ${message.trim()}`;
+  const text = `Hello Zaplix Team, my name is ${name.trim()} (${phone.trim()}). ${message.trim()}`;
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
 
   res.status(201).json({ success: true, message: 'Thank you! Your message has been received.', whatsappUrl });
@@ -1283,8 +1283,8 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, () => {
-    console.log(`Zyvara Server listening on port ${PORT} (mode: ${isProduction ? 'production' : 'development'})`);
+  app.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`ZAPLIX Server listening on http://0.0.0.0:${PORT} (mode: ${isProduction ? 'production' : 'development'})`);
   });
 }
 

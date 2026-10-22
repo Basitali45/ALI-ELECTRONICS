@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="favBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070D18" />
+      <stop offset="100%" stop-color="#0B192C" />
+    </linearGradient>
+    <linearGradient id="favGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F0FF" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+    <linearGradient id="favGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00F0FF" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#favBg)" />
+  <rect width="62" height="62" x="1" y="1" rx="13" fill="none" stroke="#2563EB" stroke-width="1" stroke-opacity="0.5" />
+  <!-- Crisp Z symbol -->
+  <path d="M14 16 L49 16 C51.5 16 53 18.8 51.5 21 L38 38 L27 38 L37 24 L18 24 C15.8 24 14 22.2 14 20 Z" fill="url(#favGrad1)" />
+  <path d="M50 48 L15 48 C12.5 48 11 45.2 12.5 43 L26 26 L37 26 L27 40 L46 40 C48.2 40 50 41.8 50 44 Z" fill="url(#favGrad2)" />
+  <circle cx="51" cy="18" r="2.2" fill="#00F0FF" />
+  <circle cx="13" cy="46" r="2.2" fill="#00F0FF" />
+</svg>

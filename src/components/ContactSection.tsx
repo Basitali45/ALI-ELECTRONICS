@@ -5,16 +5,15 @@ import {
   Clock, 
   Send, 
   CheckCircle2, 
-  Navigation, 
-  ExternalLink, 
   AlertCircle,
-  Copy,
-  Check,
-  Compass
+  Truck,
+  ShieldCheck,
+  Mail
 } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { StoreSettings } from '../types';
 import { api } from '../services/api';
+import { OFFICIAL_WHATSAPP_NUMBER } from '../lib/policy';
 
 interface ContactSectionProps {
   settings: StoreSettings;
@@ -27,21 +26,13 @@ export function ContactSection({ settings }: ContactSectionProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  const [copiedAddress, setCopiedAddress] = useState(false);
 
-  const cleanWhatsApp = (settings?.whatsappNumber || '03115321647').replace(/^0/, '92').replace(/[^0-9]/g, '');
+  const officialNumber = settings?.whatsappNumber || OFFICIAL_WHATSAPP_NUMBER;
+  const cleanWhatsApp = officialNumber.replace(/^0/, '92').replace(/[^0-9]/g, '');
 
   const validatePakistaniPhone = (num: string): boolean => {
-    // Accepts: 03115321647, 0313-3332141, +923115321647, 03XXXXXXXXX (10-11 digits)
     const cleaned = num.replace(/[\s-]/g, '');
     return /^(03[0-9]{9}|\+923[0-9]{9}|923[0-9]{9})$/.test(cleaned);
-  };
-
-  const handleCopyAddress = () => {
-    const fullAddr = settings.location || 'Main Bus Stop, Islam Shaheed Road, Opposite New Sethi Flour Mills, Hassan Abdal, Pakistan';
-    navigator.clipboard.writeText(fullAddr);
-    setCopiedAddress(true);
-    setTimeout(() => setCopiedAddress(false), 2500);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,7 +48,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
       return;
     }
     if (!validatePakistaniPhone(phone)) {
-      setError('Please enter a valid Pakistani mobile number (e.g., 03115321647).');
+      setError('Please enter a valid Pakistani mobile number (e.g., 0318-9869746).');
       return;
     }
     if (!message.trim()) {
@@ -78,19 +69,11 @@ export function ContactSection({ settings }: ContactSectionProps) {
       setMessage('');
       setTimeout(() => setSuccess(false), 8000);
     } catch (err: any) {
-      setError(err.message || 'Could not send message. You can contact us directly on WhatsApp or call.');
+      setError(err.message || 'Could not send message. You can contact us directly on WhatsApp.');
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // Safe Google Maps Search & Directions URLs based on exact Hassan Abdal address
-  const fullAddress = settings.location || 'Main Bus Stop, Islam Shaheed Road, Opposite New Sethi Flour Mills, Hassan Abdal, Pakistan';
-  const encodedAddress = encodeURIComponent(fullAddress);
-  const googleMapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`;
-  const googleMapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-  // High-precision embed with exact query and standard responsive widget
-  const googleMapsEmbedUrl = `https://maps.google.com/maps?q=${encodedAddress}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
 
   return (
     <section id="contact" className="py-16 md:py-24 bg-slate-50 dark:bg-slate-950/80 border-t border-slate-200/60 dark:border-slate-800/60">
@@ -98,168 +81,113 @@ export function ContactSection({ settings }: ContactSectionProps) {
         
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto space-y-2">
-          <span className="text-xs font-bold tracking-wider text-blue-600 dark:text-blue-400 uppercase">
+          <span className="text-xs font-bold tracking-wider text-blue-600 dark:text-cyan-400 uppercase">
             Get In Touch
           </span>
           <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
-            Visit Us or Contact Ali Electronic
+            Contact ZAPLIX Customer Care
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-            We are always happy to assist with product availability, prices, and technical questions.
+            Have questions about product availability, order tracking, or special inquiries? We are here to help.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Left Column: Contact Details, Phone lines, Business Hours */}
+          {/* Left Column: Contact Channels & Delivery Info */}
           <div className="lg:col-span-5 space-y-6">
             
-            {/* Location Card */}
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                  <MapPin className="w-5 h-5 text-rose-500" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white">
-                      Shop Address & Location
-                    </h3>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                      Hassan Abdal
-                    </span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                    {fullAddress}
-                  </p>
-                </div>
-              </div>
-
-              {/* Exact Landmarks in Hassan Abdal */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs text-slate-600 dark:text-slate-400">
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2">
-                  <span className="text-blue-600 dark:text-cyan-400">📍</span>
-                  <span>Opposite New Sethi Flour Mills</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2">
-                  <span className="text-blue-600 dark:text-cyan-400">🚌</span>
-                  <span>Main Bus Stop, Islam Shaheed Rd</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                <a
-                  href={googleMapsDirectionsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-2.5 px-3 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors flex items-center justify-center gap-2"
-                >
-                  <Navigation className="w-3.5 h-3.5" />
-                  <span>Get Directions</span>
-                  <ExternalLink className="w-3 h-3 ml-auto opacity-80" />
-                </a>
-
-                <button
-                  type="button"
-                  onClick={handleCopyAddress}
-                  className="py-2.5 px-3 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {copiedAddress ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-                  <span>{copiedAddress ? 'Address Copied!' : 'Copy Address'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Direct Phone Lines Card */}
+            {/* WhatsApp Priority Card */}
             <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                  <Phone className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-2xl bg-[#25D366]/15 text-[#25D366] flex items-center justify-center shrink-0">
+                  <WhatsAppIcon className="w-7 h-7 fill-[#25D366]" />
                 </div>
                 <div>
                   <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white">
-                    Direct Phone Calls
+                    Official WhatsApp Desk
                   </h3>
-                  <p className="text-xs text-slate-500">Tap to call our store representatives</p>
+                  <p className="text-xs text-slate-500">Fastest response for inquiries &amp; orders</p>
                 </div>
               </div>
 
-              <div className="space-y-2 pt-1">
-                {/* Contact Person 1: Arbaz Ahmed */}
-                <a
-                  href={`tel:${settings.phone1}`}
-                  className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 transition-all flex items-center justify-between group"
-                >
-                  <div className="space-y-0.5">
-                    <div className="text-xs font-semibold text-slate-900 dark:text-white">
-                      {settings.phone1Name || 'Arbaz Ahmed'}
-                    </div>
-                    <div className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">
-                      {settings.phone1}
-                    </div>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    Call Now
-                  </span>
-                </a>
-
-                {/* Contact Person 2: Faraz Ahmed */}
-                <a
-                  href={`tel:${settings.phone2}`}
-                  className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 transition-all flex items-center justify-between group"
-                >
-                  <div className="space-y-0.5">
-                    <div className="text-xs font-semibold text-slate-900 dark:text-white">
-                      {settings.phone2Name || 'Faraz Ahmed'}
-                    </div>
-                    <div className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">
-                      {settings.phone2}
-                    </div>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    Call Now
-                  </span>
-                </a>
+              <div className="p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-emerald-800 dark:text-emerald-300 block mb-0.5">
+                  Direct WhatsApp Helpline:
+                </span>
+                <div className="font-mono text-lg font-black text-slate-900 dark:text-white">
+                  0318-9869746
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                  Click below to open chat instantly on your phone or desktop.
+                </p>
               </div>
 
-              {/* Direct WhatsApp Action */}
               <a
-                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Assalam-o-Alaikum Ali Electronic, I would like to inquire about products.')}`}
+                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Hello Zaplix Team! I would like to inquire about your products.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba59] text-white transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                className="w-full py-3.5 px-4 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba59] text-white transition-all flex items-center justify-center gap-2 shadow-sm shadow-[#25D366]/30 cursor-pointer"
               >
-                <WhatsAppIcon className="w-4 h-4 fill-white text-white" />
-                <span>Message on WhatsApp ({settings.whatsappNumber})</span>
+                <WhatsAppIcon className="w-4 h-4 fill-white" />
+                <span>Chat on WhatsApp (03189869746)</span>
               </a>
             </div>
 
-            {/* Business Hours Card */}
+            {/* Nationwide Delivery & Payment Highlights */}
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3.5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white">
+                    Nationwide Shipping
+                  </h3>
+                  <p className="text-xs text-slate-500">Free Home Delivery on all orders</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span><strong>Zero Delivery Fees:</strong> Rs. 0 delivery charge nationwide.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span><strong>Cash on Delivery (COD):</strong> Pay at your doorstep upon arrival.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  <span><strong>7-Day Returns:</strong> Easy replacement if damaged or incorrect.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Business Hours */}
             <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
               <div className="flex items-center gap-2.5">
-                <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <Clock className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
                 <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-white">
-                  Business Timings
+                  Customer Support Timings
                 </h4>
               </div>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium pl-6">
-                {settings.businessHours || 'Opening Hours — Contact us for current timings'}
+                Daily 9:00 AM – 11:00 PM (Monday through Sunday)
               </p>
             </div>
 
           </div>
 
-          {/* Right Column: Contact Form & Google Map */}
-          <div className="lg:col-span-7 space-y-6">
-            
-            {/* Interactive Contact Form */}
+          {/* Right Column: Contact Form */}
+          <div className="lg:col-span-7">
             <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-5">
               <div>
                 <h3 className="font-heading font-bold text-xl text-slate-900 dark:text-white">
-                  Send us a Direct Message
+                  Send a Message to ZAPLIX
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Have a question about an electronics model, stock, or bulk quantity? Leave a message below.
+                  Submit your inquiry below and our team will get back to you via call or WhatsApp.
                 </p>
               </div>
 
@@ -267,7 +195,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
                 <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>
-                    Thank you! Your message has been received by Ali Electronic. We will get back to you promptly.
+                    Thank you! Your message has been received by ZAPLIX Customer Care. We will contact you promptly.
                   </span>
                 </div>
               )}
@@ -301,7 +229,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
                     </label>
                     <input
                       type="tel"
-                      placeholder="e.g. 03115321647"
+                      placeholder="0318-XXXXXXX"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       required
@@ -312,11 +240,11 @@ export function ContactSection({ settings }: ContactSectionProps) {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Your Message <span className="text-rose-500">*</span>
+                    Your Message / Inquiry <span className="text-rose-500">*</span>
                   </label>
                   <textarea
                     rows={4}
-                    placeholder="Tell us what product you are looking for or any question you have..."
+                    placeholder="Tell us about the product you wish to order or any question you have..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     required
@@ -328,77 +256,24 @@ export function ContactSection({ settings }: ContactSectionProps) {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="py-3 px-6 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                    className="py-3 px-6 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>{isSubmitting ? 'Sending Message...' : 'Submit Message'}</span>
                   </button>
 
                   <a
-                    href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(`Assalam-o-Alaikum Ali Electronic, my name is ${name || 'Customer'}. I am contacting you from your website.`)}`}
+                    href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(`Hello Zaplix Team, my name is ${name || 'Customer'}. I am contacting you from your website.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1.5"
                   >
                     <WhatsAppIcon className="w-3.5 h-3.5 fill-[#25D366] text-[#25D366]" />
-                    <span>Or send directly via WhatsApp</span>
+                    <span>Or send via WhatsApp</span>
                   </a>
                 </div>
               </form>
             </div>
-
-            {/* Embedded Google Maps Section */}
-            <div className="rounded-3xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-rose-500" />
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">
-                    Hassan Abdal Location Map
-                  </span>
-                </div>
-                <a
-                  href={googleMapsDirectionsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                >
-                  <span>Open Full Map</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-
-              <div className="relative h-64 sm:h-80 w-full bg-slate-200 dark:bg-slate-800">
-                <iframe
-                  title="Ali Electronic Hassan Abdal Location Map"
-                  src={googleMapsEmbedUrl}
-                  className="w-full h-full border-0"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              </div>
-
-              {/* Map Footer Bar */}
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                  <Compass className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span className="font-medium truncate max-w-xs sm:max-w-sm md:max-w-md">
-                    Islam Shaheed Rd, Opposite New Sethi Flour Mills, Hassan Abdal
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <a
-                    href={googleMapsDirectionsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-bold text-blue-600 dark:text-cyan-400 hover:underline flex items-center gap-1"
-                  >
-                    <span>Start Navigation</span>
-                    <Navigation className="w-3 h-3" />
-                  </a>
-                </div>
-              </div>
-            </div>
-
           </div>
 
         </div>

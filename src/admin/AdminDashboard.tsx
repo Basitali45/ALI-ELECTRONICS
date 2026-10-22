@@ -38,6 +38,7 @@ import { ProductsManager } from './components/ProductsManager';
 import { CategoriesManager } from './components/CategoriesManager';
 import { OffersManager } from './components/OffersManager';
 import { HomepageCustomizer } from './components/HomepageCustomizer';
+import ZaplixLogo from '../components/ZaplixLogo';
 import { MediaLibrary } from './components/MediaLibrary';
 import { StoreSettingsManager } from './components/StoreSettingsManager';
 import { OrdersManager } from './components/OrdersManager';
@@ -214,19 +215,9 @@ export function AdminDashboard({ initialSettings, onClose, onRefreshData }: Admi
           }`}
         >
           {/* Header */}
-          <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
-                Z
-              </div>
-              <div>
-                <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white">
-                  Zyvara
-                </h3>
-                <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 block">
-                  Control Center
-                </span>
-              </div>
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ZaplixLogo variant="compact" />
             </div>
             <button onClick={() => setMobileSidebarOpen(false)} className="md:hidden p-1 text-slate-400">
               <X className="w-5 h-5" />

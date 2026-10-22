@@ -26,6 +26,7 @@ import { ProductDetailModal } from './components/ProductDetailModal';
 import { SearchModal } from './components/SearchModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
+import { InstagramModal } from './components/InstagramModal';
 import { AdminLoginModal } from './admin/AdminLoginModal';
 import { AdminDashboard } from './admin/AdminDashboard';
 import { Product, Category, Offer, HomepageConfig, StoreSettings } from './types';
@@ -49,6 +50,7 @@ function MainContent() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [isInstagramOpen, setIsInstagramOpen] = useState(false);
   const [policy, setPolicy] = useState<PolicyKey | null>(null);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
@@ -114,7 +116,7 @@ function MainContent() {
 
   const handleDirectOrder = (prod: Product) => {
     const waUrl = `https://wa.me/${toWhatsAppNumber(settings.whatsappNumber)}?text=${encodeURIComponent(
-      `Hello Zyvara, I want to order: ${prod.name} (Price: Rs. ${prod.price.toLocaleString()}). Please confirm availability.`
+      `Hello Zaplix Team! I would like to order: ${prod.name} (Price: Rs. ${prod.price.toLocaleString()}). Delivery: Free Home Delivery (Rs. 0). Payment: Cash on Delivery. Please confirm availability.`
     )}`;
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
@@ -128,7 +130,7 @@ function MainContent() {
   const openProduct = (prod: Product) => setSelectedProduct(prod);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f7f7f6] text-black selection:bg-black selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[#f8fafc] dark:bg-[#070b14] text-slate-900 dark:text-slate-100 selection:bg-amber-500 selection:text-black transition-colors duration-200">
       <Header
         settings={settings}
         categories={categories}
@@ -137,6 +139,7 @@ function MainContent() {
         onOpenAdmin={handleOpenAdmin}
         onNavigate={handleNavigate}
         onSelectCategory={handleSelectCategory}
+        onOpenInstagram={() => setIsInstagramOpen(true)}
       />
 
       <main className="flex-1 flex flex-col">
@@ -216,7 +219,11 @@ function MainContent() {
         </div>
       </main>
 
-      <Footer settings={settings} onOpenPolicy={setPolicy} />
+      <Footer
+        settings={settings}
+        onOpenPolicy={setPolicy}
+        onOpenInstagram={() => setIsInstagramOpen(true)}
+      />
 
       {settings.whatsappFloatingEnabled && <FloatingWhatsApp settings={settings} />}
 
@@ -251,6 +258,11 @@ function MainContent() {
         onClose={() => setIsWishlistOpen(false)}
         products={products}
         onViewDetails={openProduct}
+      />
+
+      <InstagramModal
+        isOpen={isInstagramOpen}
+        onClose={() => setIsInstagramOpen(false)}
       />
 
       <PolicyModal policy={policy} settings={settings} onClose={() => setPolicy(null)} />

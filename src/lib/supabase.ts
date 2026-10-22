@@ -5,16 +5,16 @@ const ENV_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const ENV_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 // Storage keys for custom client credentials
-const STORAGE_KEY_URL = 'zyvara_custom_supabase_url';
-const STORAGE_KEY_KEY = 'zyvara_custom_supabase_anon_key';
+const STORAGE_KEY_URL = 'zaplix_custom_supabase_url';
+const STORAGE_KEY_KEY = 'zaplix_custom_supabase_anon_key';
 
 export function getSupabaseConfig(): { url: string; key: string; isConfigured: boolean } {
   let url = ENV_SUPABASE_URL;
   let key = ENV_SUPABASE_ANON_KEY;
 
   if (typeof window !== 'undefined') {
-    const customUrl = localStorage.getItem(STORAGE_KEY_URL);
-    const customKey = localStorage.getItem(STORAGE_KEY_KEY);
+    const customUrl = localStorage.getItem(STORAGE_KEY_URL) || localStorage.getItem('zyvara_custom_supabase_url');
+    const customKey = localStorage.getItem(STORAGE_KEY_KEY) || localStorage.getItem('zyvara_custom_supabase_anon_key');
     if (customUrl && customKey) {
       url = customUrl;
       key = customKey;
