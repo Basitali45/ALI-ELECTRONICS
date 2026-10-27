@@ -11,7 +11,7 @@ import {
   Sparkles 
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { RETURN_DAYS, OFFICIAL_WHATSAPP_NUMBER } from '../lib/policy';
+import { RETURN_DAYS, OFFICIAL_WHATSAPP_NUMBER, getWhatsAppUrl } from '../lib/policy';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { StoreSettings } from '../types';
 
@@ -61,7 +61,7 @@ export function CartDrawer({ settings }: CartDrawerProps) {
     text += `*Grand Total: Rs. ${totalAmount.toLocaleString()}*\n\n`;
     text += `Please confirm my order and delivery details. Thank you!`;
 
-    window.open(`https://wa.me/${cleanAdminPhone}?text=${encodeURIComponent(text)}`, '_blank');
+    window.open(getWhatsAppUrl(text), '_blank');
   };
 
   const handleProceedToCheckout = () => {

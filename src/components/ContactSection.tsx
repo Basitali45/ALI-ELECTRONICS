@@ -13,7 +13,7 @@ import {
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { StoreSettings } from '../types';
 import { api } from '../services/api';
-import { OFFICIAL_WHATSAPP_NUMBER } from '../lib/policy';
+import { OFFICIAL_WHATSAPP_NUMBER, getWhatsAppUrl } from '../lib/policy';
 
 interface ContactSectionProps {
   settings: StoreSettings;
@@ -124,13 +124,13 @@ export function ContactSection({ settings }: ContactSectionProps) {
               </div>
 
               <a
-                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Hello Zaplix Team! I would like to inquire about your products.')}`}
+                href={getWhatsAppUrl('Hello Zaplix Team! I would like to inquire about your products.')}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3.5 px-4 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba59] text-white transition-all flex items-center justify-center gap-2 shadow-sm shadow-[#25D366]/30 cursor-pointer"
               >
                 <WhatsAppIcon className="w-4 h-4 fill-white" />
-                <span>Chat on WhatsApp (03189869746)</span>
+                <span>Message on WhatsApp</span>
               </a>
             </div>
 
@@ -263,7 +263,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
                   </button>
 
                   <a
-                    href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(`Hello Zaplix Team, my name is ${name || 'Customer'}. I am contacting you from your website.`)}`}
+                    href={getWhatsAppUrl(`Hello Zaplix Team, my name is ${name || 'Customer'}. I am contacting you from your website.`)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1.5"

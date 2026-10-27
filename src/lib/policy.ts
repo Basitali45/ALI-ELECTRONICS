@@ -16,6 +16,7 @@ export function getDeliveryCharges(_subtotal: number, _configuredFee?: number): 
   return 0;
 }
 
+export const OFFICIAL_WHATSAPP_LINK = 'https://wa.me/message/4DT24PTIDNPXB1';
 export const OFFICIAL_WHATSAPP_NUMBER = '03189869746';
 
 // Official Zaplix Brand Assets & Social Channels
@@ -26,10 +27,21 @@ export const INSTAGRAM_URL = 'https://www.instagram.com/gs.online21/';
 export const INSTAGRAM_QR_IMAGE = '/images/zaplix/instagram-gs-online21.jpeg';
 
 /**
+ * Builds the official WhatsApp click-to-chat URL with optional prefilled message text.
+ * Always points to the official Zaplix Store link https://wa.me/message/4DT24PTIDNPXB1
+ */
+export function getWhatsAppUrl(text?: string): string {
+  if (!text) return OFFICIAL_WHATSAPP_LINK;
+  return `${OFFICIAL_WHATSAPP_LINK}?text=${encodeURIComponent(text)}`;
+}
+
+/**
  * Formats a Pakistani phone number into standard international format for WhatsApp click-to-chat.
  */
 export function toWhatsAppNumber(num?: string, fallback = OFFICIAL_WHATSAPP_NUMBER): string {
-  const clean = (num || fallback).replace(/[^0-9]/g, '');
+  if (!num) return '923189869746';
+  if (num.includes('wa.me')) return num;
+  const clean = num.replace(/[^0-9]/g, '');
   if (clean.startsWith('0')) {
     return '92' + clean.slice(1);
   }

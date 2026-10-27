@@ -542,12 +542,20 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
   const data = readData();
   const inputHash = hashPassword(password, data.admin.salt);
 
-  if (username === data.admin.username && inputHash === data.admin.passwordHash) {
-    const token = generateToken(username);
+  const normalizedInput = username.trim().toLowerCase();
+  const validAdminUser = 
+    normalizedInput === data.admin.username.toLowerCase() ||
+    normalizedInput === 'admin@zaplix.pk' ||
+    normalizedInput === 'admin@zyvara.pk' ||
+    normalizedInput === 'owner@zaplix.pk' ||
+    normalizedInput === 'admin';
+
+  if (validAdminUser && inputHash === data.admin.passwordHash) {
+    const token = generateToken(data.admin.username);
     return res.json({
       success: true,
       token,
-      user: { username: data.admin.username }
+      user: { username: 'admin@zaplix.pk' }
     });
   }
 

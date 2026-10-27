@@ -16,7 +16,7 @@ import {
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { Product, StoreSettings } from '../types';
 import { useCart } from '../context/CartContext';
-import { toWhatsAppNumber } from '../lib/policy';
+import { toWhatsAppNumber, getWhatsAppUrl } from '../lib/policy';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -62,7 +62,7 @@ export function ProductDetailModal({ product, settings, onClose }: ProductDetail
   const handleWhatsAppOrder = () => {
     const qtyText = quantity > 1 ? ` (Quantity: ${quantity}, Total: Rs. ${(product.price * quantity).toLocaleString()})` : ` (Price: Rs. ${product.price.toLocaleString()})`;
     const text = `Hello Zaplix Team! I would like to ${isOutOfStock ? 'inquire about stock for' : 'order'}: ${product.name}${qtyText}. Delivery: Rs. 0 (Free Home Delivery). Payment: Cash on Delivery. Product Image: ${product.image}. Please confirm my order and availability.`;
-    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+    const waUrl = getWhatsAppUrl(text);
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 

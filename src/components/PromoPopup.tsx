@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Sparkles, ArrowRight, MessageCircle } from 'lucide-react';
 import { PromoPopupConfig } from '../types';
-import { OFFICIAL_WHATSAPP_NUMBER } from '../lib/policy';
+import { OFFICIAL_WHATSAPP_NUMBER, getWhatsAppUrl } from '../lib/policy';
 
 interface PromoPopupProps {
   config: PromoPopupConfig;
@@ -93,7 +93,7 @@ export function PromoPopup({ config, whatsappNumber, onNavigate }: PromoPopupPro
             </button>
 
             <a
-              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hello Zaplix Team! I saw your special promotion: "${config.title}". What offers are available?`)}`}
+              href={getWhatsAppUrl(`Hello Zaplix Team! I saw your special promotion: "${config.title}". What offers are available?`)}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setIsOpen(false)}

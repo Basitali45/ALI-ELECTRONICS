@@ -4,7 +4,7 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 import { Product, Category, StoreSettings } from '../types';
 import { ProductCard } from './ProductCard';
 import { useAuth } from '../context/AuthContext';
-import { toWhatsAppNumber } from '../lib/policy';
+import { toWhatsAppNumber, getWhatsAppUrl } from '../lib/policy';
 
 interface ProductCatalogueProps {
   products: Product[];
@@ -184,9 +184,9 @@ export function ProductCatalogue({
                 </button>
               )}
               <a
-                href={`https://wa.me/${toWhatsAppNumber(settings?.whatsappNumber)}?text=${encodeURIComponent(
+                href={getWhatsAppUrl(
                   `Hello Zaplix Team, I was looking for ${search || 'a product'}. Could you please share what is currently available?`
-                )}`}
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2 rounded-xl text-[12px] font-semibold bg-[#25D366] text-white flex items-center gap-1.5 shadow-sm"

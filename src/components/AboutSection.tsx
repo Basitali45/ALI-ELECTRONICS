@@ -2,7 +2,7 @@ import React from 'react';
 import { ShieldCheck, Award, Truck, RefreshCw, Phone } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { StoreSettings } from '../types';
-import { OFFICIAL_WHATSAPP_NUMBER } from '../lib/policy';
+import { OFFICIAL_WHATSAPP_NUMBER, getWhatsAppUrl } from '../lib/policy';
 
 interface AboutSectionProps {
   settings: StoreSettings;
@@ -138,13 +138,13 @@ export function AboutSection({ settings }: AboutSectionProps) {
               </a>
 
               <a
-                href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent('Hello Zaplix Team! I would like to inquire about your products.')}`}
+                href={getWhatsAppUrl('Hello Zaplix Team! I would like to inquire about your products.')}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba59] text-white transition-all flex items-center gap-2 shadow-sm shadow-[#25D366]/20 cursor-pointer"
               >
                 <WhatsAppIcon className="w-3.5 h-3.5 fill-white text-white" />
-                <span>Chat on WhatsApp (03189869746)</span>
+                <span>Message Zaplix on WhatsApp</span>
               </a>
             </div>
 

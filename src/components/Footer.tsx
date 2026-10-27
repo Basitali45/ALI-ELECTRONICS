@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { PolicyKey } from './PolicyModal';
 import ZaplixLogo from './ZaplixLogo';
 import { Truck, ShieldCheck, RefreshCw, Instagram, QrCode, ExternalLink, Phone } from 'lucide-react';
-import { OFFICIAL_WHATSAPP_NUMBER, INSTAGRAM_HANDLE, INSTAGRAM_URL } from '../lib/policy';
+import { OFFICIAL_WHATSAPP_NUMBER, OFFICIAL_WHATSAPP_LINK, INSTAGRAM_HANDLE, INSTAGRAM_URL } from '../lib/policy';
 
 interface FooterProps {
   settings: StoreSettings;
@@ -171,7 +171,7 @@ export function Footer({ settings, onOpenPolicy, onOpenInstagram }: FooterProps)
             <p className="text-slate-600 dark:text-slate-300 text-[11px]">
               WhatsApp / Call:{' '}
               <a
-                href={`https://wa.me/923189869746`}
+                href={OFFICIAL_WHATSAPP_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-bold text-amber-600 dark:text-amber-400 hover:underline"
@@ -209,7 +209,7 @@ export function Footer({ settings, onOpenPolicy, onOpenInstagram }: FooterProps)
               </a>
               <Dot />
               <a
-                href={`https://wa.me/923189869746`}
+                href={OFFICIAL_WHATSAPP_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"

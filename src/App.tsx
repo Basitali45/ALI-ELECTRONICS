@@ -32,7 +32,7 @@ import { AdminDashboard } from './admin/AdminDashboard';
 import { Product, Category, Offer, HomepageConfig, StoreSettings } from './types';
 import { api } from './services/api';
 import { initialSettings, initialHomepage } from './services/seedData';
-import { toWhatsAppNumber } from './lib/policy';
+import { toWhatsAppNumber, getWhatsAppUrl } from './lib/policy';
 
 const defaultHomepage: HomepageConfig = initialHomepage;
 const defaultSettings: StoreSettings = initialSettings;
@@ -115,9 +115,8 @@ function MainContent() {
   };
 
   const handleDirectOrder = (prod: Product) => {
-    const waUrl = `https://wa.me/${toWhatsAppNumber(settings.whatsappNumber)}?text=${encodeURIComponent(
-      `Hello Zaplix Team! I would like to order: ${prod.name} (Price: Rs. ${prod.price.toLocaleString()}). Delivery: Free Home Delivery (Rs. 0). Payment: Cash on Delivery. Please confirm availability.`
-    )}`;
+    const text = `Hello Zaplix Team! I would like to order: ${prod.name} (Price: Rs. ${prod.price.toLocaleString()}). Delivery: Free Home Delivery (Rs. 0). Payment: Cash on Delivery. Please confirm availability.`;
+    const waUrl = getWhatsAppUrl(text);
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 

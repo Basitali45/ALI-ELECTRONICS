@@ -67,14 +67,34 @@ export function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLoginModalP
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Quick-fill helper banner */}
+          <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-200 flex items-center justify-between">
+            <div>
+              <p className="font-semibold">Default Store Credentials:</p>
+              <p className="text-[11px] text-blue-700 dark:text-blue-300">
+                Email: <span className="font-mono font-bold">admin@zaplix.pk</span> &bull; Pass: <span className="font-mono font-bold">admin123</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setUsername('admin@zaplix.pk');
+                setPassword('admin123');
+              }}
+              className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer"
+            >
+              Quick Fill
+            </button>
+          </div>
+
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Admin Email
+              Admin Email or Username
             </label>
             <input
-              type="email"
-              autoComplete="email"
-              placeholder="owner@example.com"
+              type="text"
+              autoComplete="username"
+              placeholder="admin@zaplix.pk or admin"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -91,7 +111,7 @@ export function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLoginModalP
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter admin password"
+                placeholder="admin123"
                 required
                 className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -108,7 +128,7 @@ export function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLoginModalP
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             <Lock className="w-4 h-4" />
             <span>{loading ? 'Authenticating...' : 'Sign In as Owner'}</span>
