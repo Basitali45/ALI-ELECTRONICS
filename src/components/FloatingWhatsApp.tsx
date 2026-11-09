@@ -182,17 +182,14 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
               overflow: hidden !important;
               border: 2px solid #f59e0b !important;
               box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35) !important;
-              background: #000000 !important;
+              background-image: url('${OFFICIAL_LOGO_IMAGE}') !important;
+              background-size: cover !important;
+              background-position: center !important;
+              color: transparent !important;
               display: flex !important;
               align-items: center !important;
               justify-content: center !important;
               flex-shrink: 0 !important;
-            }
-
-            .panel .head #avatar img {
-              width: 100% !important;
-              height: 100% !important;
-              object-fit: cover !important;
             }
 
             .panel .head .who .name,
@@ -212,11 +209,6 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
               display: flex !important;
               align-items: center !important;
               gap: 6px !important;
-            }
-
-            .panel .head .status .dot {
-              background: #10b981 !important;
-              box-shadow: 0 0 8px #10b981 !important;
             }
 
             /* HEADER ACTION BUTTONS */
@@ -252,22 +244,11 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
           host.shadowRoot.appendChild(customStyle);
         }
 
-        // 3. Customize Header Avatar & Title with Zaplix Official Logo & Branding
-        const avatarEl = host.shadowRoot.querySelector('#avatar');
-        if (avatarEl && !avatarEl.querySelector('img')) {
-          avatarEl.innerHTML = `<img src="${OFFICIAL_LOGO_IMAGE}" alt="ZAPLIX Support" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='/favicon.svg';" />`;
-        }
-
+        // 3. Set Header Title to Zaplix Customer Support (leaving #dot and #status completely untouched for voice recording)
         const titleEl = host.shadowRoot.querySelector('#title');
         if (titleEl && !titleEl.getAttribute('data-zaplix-branded')) {
           titleEl.textContent = 'ZAPLIX Customer Support';
           titleEl.setAttribute('data-zaplix-branded', 'true');
-        }
-
-        const statusEl = host.shadowRoot.querySelector('.head .status');
-        if (statusEl && !statusEl.getAttribute('data-zaplix-branded')) {
-          statusEl.innerHTML = `<span class="dot"></span> 24/7 Live Support · اردو & English`;
-          statusEl.setAttribute('data-zaplix-branded', 'true');
         }
 
         // 4. Inject Fullscreen Toggle button on Desktop header actions if not already injected
@@ -299,24 +280,14 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
           }
         }
 
-        // 5. Track when panel opens or closes
+        // 5. Track when panel opens or closes without modifying internal voice/status nodes
         const panel = host.shadowRoot.querySelector('.panel');
         if (panel) {
           const checkOpen = () => {
-            const open = panel.classList.contains('open');
-            setIsAgentOpen(open);
-            // Re-apply Zaplix avatar/title if VoicePilot re-rendered its header
-            const currentTitle = host.shadowRoot?.querySelector('#title');
-            if (currentTitle && currentTitle.textContent !== 'ZAPLIX Customer Support') {
-              currentTitle.textContent = 'ZAPLIX Customer Support';
-            }
-            const currentAvatar = host.shadowRoot?.querySelector('#avatar');
-            if (currentAvatar && !currentAvatar.querySelector('img')) {
-              currentAvatar.innerHTML = `<img src="${OFFICIAL_LOGO_IMAGE}" alt="ZAPLIX Support" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='/favicon.svg';" />`;
-            }
+            setIsAgentOpen(panel.classList.contains('open'));
           };
           const observer = new MutationObserver(checkOpen);
-          observer.observe(panel, { attributes: true, attributeFilter: ['class', 'style'] });
+          observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
           return () => observer.disconnect();
         }
       }
