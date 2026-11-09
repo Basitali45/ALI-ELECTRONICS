@@ -13,7 +13,10 @@ import {
   MediaItem, 
   Inquiry, 
   ContactMessage, 
-  AdminStats 
+  AdminStats,
+  Order,
+  OrderItem,
+  OrderStatus 
 } from './src/types/index';
 
 dotenv.config();
@@ -48,6 +51,7 @@ export interface StoreData {
   media: MediaItem[];
   inquiries: Inquiry[];
   contactMessages: ContactMessage[];
+  orders: Order[];
 }
 
 // Password hashing helper
@@ -479,7 +483,8 @@ const defaultInitialData: StoreData = {
   offers: defaultOffers,
   media: defaultMedia,
   inquiries: [],
-  contactMessages: []
+  contactMessages: [],
+  orders: []
 };
 
 // Database operations
@@ -495,6 +500,9 @@ function readData(): StoreData {
     if (!parsed.homepage) parsed.homepage = defaultHomepageConfig;
     if (!parsed.offers) parsed.offers = defaultOffers;
     if (!parsed.media) parsed.media = defaultMedia;
+    if (!parsed.orders) parsed.orders = [];
+    if (!parsed.inquiries) parsed.inquiries = [];
+    if (!parsed.contactMessages) parsed.contactMessages = [];
     if (!parsed.settings.whatsappTemplate) parsed.settings.whatsappTemplate = defaultSettings.whatsappTemplate;
     if (parsed.settings.whatsappFloatingEnabled === undefined) parsed.settings.whatsappFloatingEnabled = true;
     if (parsed.settings.whatsappProductButtonEnabled === undefined) parsed.settings.whatsappProductButtonEnabled = true;
@@ -1242,6 +1250,47 @@ app.delete('/api/contact/:id', requireAdmin, (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
+// --- ORDERS ---
+app.get('/api/orders', (_req: Request, res: Response) => {
+  const data = readData();
+  res.json(data.orders || []);
+});
+
+app.post('/api/orders', (req: Request, res: Response) => {
+  const { order } = req.body;
+  if (!order || !order.customerName || !order.customerPhone) {
+    return res.status(400).json({ error: 'Valid order data is required' });
+  }
+  const data = readData();
+  if (!data.orders) data.orders = [];
+  data.orders.unshift(order);
+  writeData(data);
+  res.status(201).json({ success: true, order });
+});
+
+app.patch('/api/orders/:id/status', requireAdmin, (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const data = readData();
+  if (!data.orders) data.orders = [];
+  const found = data.orders.find(o => o.id === id);
+  if (!found) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+  found.status = status;
+  writeData(data);
+  res.json(found);
+});
+
+app.delete('/api/orders/:id', requireAdmin, (req: Request, res: Response) => {
+  const { id } = req.params;
+  const data = readData();
+  if (!data.orders) data.orders = [];
+  data.orders = data.orders.filter(o => o.id !== id);
+  writeData(data);
+  res.json({ success: true, message: 'Order deleted' });
+});
+
 // --- ADMIN STATS ---
 app.get('/api/admin/stats', requireAdmin, (_req: Request, res: Response) => {
   const data = readData();
@@ -1256,6 +1305,14 @@ app.get('/api/admin/stats', requireAdmin, (_req: Request, res: Response) => {
   const newInquiries = data.inquiries.filter(i => i.status === 'New').length;
   const unreadMessages = data.contactMessages.filter(m => m.status === 'Unread').length;
 
+  const orders = data.orders || [];
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter(o => o.status === 'Pending').length;
+  const totalSales = orders.reduce((sum, o) => sum + (o.status !== 'Cancelled' ? o.totalAmount : 0), 0);
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayOrders = orders.filter(o => o.createdAt && o.createdAt.startsWith(todayStr));
+  const todaySales = todayOrders.reduce((sum, o) => sum + (o.status !== 'Cancelled' ? o.totalAmount : 0), 0);
+
   res.json({
     totalProducts,
     inStock,
@@ -1264,9 +1321,14 @@ app.get('/api/admin/stats', requireAdmin, (_req: Request, res: Response) => {
     activeOffers,
     outOfStock,
     totalCategories,
+    totalOrders,
+    pendingOrders,
+    totalSales,
+    todaySales,
     totalInquiries,
     newInquiries,
     unreadMessages,
+    recentOrders: orders.slice(0, 5),
     recentInquiries: data.inquiries.slice(0, 5),
     recentProducts: data.products.slice(0, 5),
   });

@@ -10,9 +10,10 @@ interface FooterProps {
   settings: StoreSettings;
   onOpenPolicy: (p: PolicyKey) => void;
   onOpenInstagram?: () => void;
+  onOpenSupport?: () => void;
 }
 
-export function Footer({ settings, onOpenPolicy, onOpenInstagram }: FooterProps) {
+export function Footer({ settings, onOpenPolicy, onOpenInstagram, onOpenSupport }: FooterProps) {
   const brand = settings.businessName || 'ZAPLIX';
   const phone = settings.phone1 || OFFICIAL_WHATSAPP_NUMBER;
   const [email, setEmail] = useState('');
@@ -165,9 +166,19 @@ export function Footer({ settings, onOpenPolicy, onOpenInstagram }: FooterProps)
             </p>
           </div>
           <div className="space-y-1.5 sm:text-center">
-            <p className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">
-              Customer Support
-            </p>
+            {onOpenSupport ? (
+              <button
+                onClick={onOpenSupport}
+                className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] hover:text-amber-500 dark:hover:text-amber-400 transition-colors inline-flex items-center gap-1 cursor-pointer"
+              >
+                <span>Customer Support</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              </button>
+            ) : (
+              <p className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">
+                Customer Support
+              </p>
+            )}
             <p className="text-slate-600 dark:text-slate-300 text-[11px]">
               WhatsApp / Call:{' '}
               <a

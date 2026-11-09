@@ -184,6 +184,19 @@ export async function uploadProductImageToStorage(
     };
   }
 
+  if (!isSupabaseConfigured()) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve({ url: reader.result as string, error: null });
+      };
+      reader.onerror = () => {
+        resolve({ url: null, error: 'Failed to process local image file.' });
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   let client: SupabaseClient;
   try {
     client = await requireAdminClient();

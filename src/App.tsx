@@ -27,6 +27,7 @@ import { SearchModal } from './components/SearchModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { InstagramModal } from './components/InstagramModal';
+import { CustomerSupportModal } from './components/CustomerSupportModal';
 import { AdminLoginModal } from './admin/AdminLoginModal';
 import { AdminDashboard } from './admin/AdminDashboard';
 import { Product, Category, Offer, HomepageConfig, StoreSettings } from './types';
@@ -51,10 +52,15 @@ function MainContent() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isInstagramOpen, setIsInstagramOpen] = useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [policy, setPolicy] = useState<PolicyKey | null>(null);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'home' | 'shop'>('home');
+
+  const handleOpenVoiceAgent = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('zaplix:open-voice-agent'));
+  }, []);
 
   // Catalogue filter synchronization
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
@@ -139,6 +145,7 @@ function MainContent() {
         onNavigate={handleNavigate}
         onSelectCategory={handleSelectCategory}
         onOpenInstagram={() => setIsInstagramOpen(true)}
+        onOpenSupport={() => setIsSupportModalOpen(true)}
       />
 
       <main className="flex-1 flex flex-col">
@@ -222,9 +229,15 @@ function MainContent() {
         settings={settings}
         onOpenPolicy={setPolicy}
         onOpenInstagram={() => setIsInstagramOpen(true)}
+        onOpenSupport={() => setIsSupportModalOpen(true)}
       />
 
-      {settings.whatsappFloatingEnabled && <FloatingWhatsApp settings={settings} />}
+      {settings.whatsappFloatingEnabled && (
+        <FloatingWhatsApp 
+          settings={settings} 
+          onOpenSupportModal={() => setIsSupportModalOpen(true)}
+        />
+      )}
 
       <MobileBottomNav
         active={isWishlistOpen ? 'wishlist' : activeTab}
@@ -262,6 +275,13 @@ function MainContent() {
       <InstagramModal
         isOpen={isInstagramOpen}
         onClose={() => setIsInstagramOpen(false)}
+      />
+
+      <CustomerSupportModal
+        isOpen={isSupportModalOpen}
+        onClose={() => setIsSupportModalOpen(false)}
+        onOpenVoiceAgent={handleOpenVoiceAgent}
+        settings={settings}
       />
 
       <PolicyModal policy={policy} settings={settings} onClose={() => setPolicy(null)} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Menu, X, User, ShoppingBag, Sun, Moon, Instagram, QrCode } from 'lucide-react';
+import { Search, Menu, X, User, ShoppingBag, Sun, Moon, Instagram, QrCode, Headset } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -17,6 +17,7 @@ interface HeaderProps {
   onNavigate: (sectionId: string) => void;
   onSelectCategory: (categoryName: string) => void;
   onOpenInstagram?: () => void;
+  onOpenSupport?: () => void;
 }
 
 export function Header({
@@ -28,6 +29,7 @@ export function Header({
   onNavigate,
   onSelectCategory,
   onOpenInstagram,
+  onOpenSupport,
 }: HeaderProps) {
   const { totalItems, setIsCartOpen } = useCart();
   const { isAuthenticated } = useAuth();
@@ -141,6 +143,18 @@ export function Header({
               >
                 <Search className="w-[19px] h-[19px]" strokeWidth={1.8} />
               </button>
+
+              {onOpenSupport && (
+                <button
+                  onClick={onOpenSupport}
+                  aria-label="Open ZAPLIX Customer Support"
+                  title="ZAPLIX Customer Support (Voice & Chat)"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800/80 transition-all cursor-pointer"
+                >
+                  <Headset className="w-4 h-4 text-amber-500" strokeWidth={2} />
+                  <span className="hidden lg:inline text-[11px]">Support</span>
+                </button>
+              )}
 
               <button
                 onClick={onOpenAdmin}
@@ -269,6 +283,23 @@ export function Header({
             >
               Shop All Products
             </button>
+            {onOpenSupport && (
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenSupport();
+                }}
+                className="flex items-center justify-between w-full text-left py-2.5 text-sm font-bold text-amber-600 dark:text-amber-400 border-t border-slate-100 dark:border-slate-800/60 cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <Headset className="w-4 h-4" />
+                  <span>ZAPLIX Customer Support</span>
+                </span>
+                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                  24/7 Live
+                </span>
+              </button>
+            )}
             <button
               onClick={() => {
                 setMenuOpen(false);
@@ -276,7 +307,7 @@ export function Header({
               }}
               className="block w-full text-left py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800/60 cursor-pointer"
             >
-              Customer Care &amp; Support
+              Help &amp; Policies
             </button>
 
             {/* Dark mode switch in mobile drawer */}
