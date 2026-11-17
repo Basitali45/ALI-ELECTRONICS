@@ -68,15 +68,41 @@ function splitIntoRuleLines(raw: string): string[] {
   return lines;
 }
 
-function getFallbackRulesForQuery(userQuery: string, botText: string): string[] | null {
+type WidgetLang = 'ur' | 'en';
+
+function getActiveWidgetLang(shadowRoot: ShadowRoot | null | undefined): WidgetLang {
+  if (!shadowRoot) return 'ur';
+  const langBtn = shadowRoot.getElementById('lang');
+  const label = (langBtn?.textContent || '').trim().toUpperCase();
+  if (label === 'EN' || label === 'ENG' || label === 'ENGLISH') {
+    return 'en';
+  }
+  return 'ur';
+}
+
+function formatOrderStatusForLang(status: string, lang: WidgetLang): string {
+  if (lang === 'en') return status;
+  const s = status.trim().toLowerCase();
+  if (s === 'pending') return 'زیرِ التواء (Pending)';
+  if (s === 'confirmed') return 'کنفرم شدہ (Confirmed)';
+  if (s === 'processing') return 'پیکنگ جاری ہے (Processing)';
+  if (s === 'shipped' || s === 'dispatched') return 'روانہ کر دیا گیا (Shipped)';
+  if (s === 'delivered') return 'ڈیلیور ہو چکا (Delivered)';
+  if (s === 'cancelled') return 'منسوخ (Cancelled)';
+  return status;
+}
+
+function getZaplixReplyForMode(
+  userQuery: string,
+  botText: string,
+  targetLang: WidgetLang
+): string[] | null {
+  const q = (userQuery || '').toLowerCase();
+  const isUr = targetLang === 'ur';
   const isErrorReply = /not allowed|something went wrong|connection problem|could not|error/i.test(botText);
-  if (!isErrorReply) return null;
 
-  const q = userQuery.toLowerCase();
-  const isUrdu = /[\u0600-\u06FF]/.test(userQuery);
-
-  if (/return|ریٹرن|واپس/.test(q)) {
-    return isUrdu
+  if (/return|ریٹرن|واپس|exchange|refund|بدل/.test(q)) {
+    return isUr
       ? [
           'ZAPLIX پر تمام آرڈرز کے لیے 7 دن کی آسان ریٹرن اور تبدیلی (Replacement) پالیسی موجود ہے۔',
           'اگر آپ کو خراب، ٹوٹا ہوا یا غلط پروڈکٹ موصول ہو تو 7 دن کے اندر واپس یا تبدیل کروا سکتے ہیں۔',
@@ -91,8 +117,8 @@ function getFallbackRulesForQuery(userQuery: string, botText: string): string[] 
         ];
   }
 
-  if (/delivery|ڈیلیوری|shipping|شپنگ/.test(q)) {
-    return isUrdu
+  if (/delivery|ڈیلیوری|shipping|شپنگ|چارجز|courier/.test(q)) {
+    return isUr
       ? [
           'ZAPLIX پورے پاکستان میں تمام آرڈرز پر 100% مفت ہوم ڈیلیوری (Rs. 0 چارجز) فراہم کرتا ہے۔',
           'تمام آرڈرز پر کیش آن ڈیلیوری (Cash on Delivery) کی سہولت دستیاب ہے، پارسل ملنے پر ادائیگی کریں۔',
@@ -107,24 +133,24 @@ function getFallbackRulesForQuery(userQuery: string, botText: string): string[] 
         ];
   }
 
-  if (/track|آرڈر|order/.test(q)) {
-    return isUrdu
+  if (/track|آرڈر|order|status|parcel|کہاں/.test(q)) {
+    return isUr
       ? [
-          'اپنا آرڈر ٹریک کرنے کے لیے اپنا نام اور موبائل نمبر یا آرڈر آئی ڈی درج کریں۔',
+          'اپنا آرڈر ٹریک کرنے کے لیے اپنا آرڈر آئی ڈی (مثال: ZX-1234) یا نام و موبائل نمبر درج کریں۔',
           'آرڈر کنفرم ہونے کے بعد ڈسپیچ اور کوریئر ٹریکنگ تفصیلات آپ کو فراہم کر دی جاتی ہیں۔',
           `فوری آرڈر اسٹیٹس کے لیے ہمارے آفیشل واٹس ایپ نمبر ${OFFICIAL_WHATSAPP_NUMBER} پر میسج کریں۔`,
           'ہمارا کسٹمر سپورٹ عملہ روزانہ صبح 9 بجے سے رات 11 بجے تک آپ کی رہنمائی کے لیے دستیاب ہے۔',
         ]
       : [
-          'Please share your full name, phone number, or Order ID to check your parcel status.',
+          'Please share your Order ID (e.g. ZX-1234) or your full name and phone number to check your parcel status.',
           'Once your order is confirmed and dispatched, courier tracking details are shared directly with you.',
           `For instant live tracking updates, message our official WhatsApp desk at ${OFFICIAL_WHATSAPP_NUMBER}.`,
           'Our support team is available 7 days a week from 9:00 AM to 11:00 PM.',
         ];
   }
 
-  if (/complaint|شکایت|issue|problem/.test(q)) {
-    return isUrdu
+  if (/complaint|شکایت|issue|problem|مسئلہ|damaged|wrong/.test(q)) {
+    return isUr
       ? [
           'ZAPLIX کسٹمر کیئر آپ کی شکایت کو اولین ترجیح پر حل کرنے کے لیے موجود ہے۔',
           'براہِ کرم اپنی شکایت کی تفصیل، آرڈر نمبر اور اگر ممکن ہو تو پروڈکٹ کی تصویر شیئر کریں۔',
@@ -139,7 +165,49 @@ function getFallbackRulesForQuery(userQuery: string, botText: string): string[] 
         ];
   }
 
-  return null;
+  if (!isErrorReply) {
+    return null;
+  }
+
+  if (/\b(cod|cash|payment|pay|پیمنٹ|کیش|ادائیگی)\b/.test(q)) {
+    return isUr
+      ? [
+          'ZAPLIX پر کیش آن ڈیلیوری (Cash on Delivery) کی سہولت پورے پاکستان میں دستیاب ہے۔',
+          'آپ اپنا پارسل موصول ہونے پر اپنے دروازے پر ادائیگی کر سکتے ہیں۔',
+          'تمام آرڈرز پر ہوم ڈیلیوری بالکل مفت (Rs. 0) ہے۔',
+        ]
+      : [
+          'ZAPLIX supports convenient Cash on Delivery (COD) nationwide across Pakistan.',
+          'You pay directly at your doorstep when your parcel arrives.',
+          'Home delivery is 100% Free (Rs. 0) on every order.',
+        ];
+  }
+
+  if (/\b(whatsapp|contact|number|phone|call|helpline|رابطہ|نمبر|واٹس ایپ)\b/.test(q)) {
+    return isUr
+      ? [
+          `ZAPLIX آفیشل واٹس ایپ اور ہیلپ لائن نمبر ${OFFICIAL_WHATSAPP_NUMBER} ہے۔`,
+          'ہماری سپورٹ ٹیم روزانہ صبح 9 بجے سے رات 11 بجے تک دستیاب ہے۔',
+          'آپ کسی بھی وقت آرڈر، ریٹرن یا پروڈکٹ کے متعلق معلومات حاصل کر سکتے ہیں۔',
+        ]
+      : [
+          `You can reach ZAPLIX Official WhatsApp & Helpline at ${OFFICIAL_WHATSAPP_NUMBER}.`,
+          'Our customer support team is available daily from 9:00 AM to 11:00 PM.',
+          'Feel free to contact us anytime for order help, returns, or product questions.',
+        ];
+  }
+
+  return isUr
+    ? [
+        'خوش آمدید! ZAPLIX کسٹمر سپورٹ آپ کی خدمت کے لیے حاضر ہے۔',
+        'آپ یہاں اپنا آرڈر آئی ڈی (مثال: ZX-1234) لکھ کر آرڈر ٹریک کر سکتے ہیں یا ڈیلیوری، ریٹرن اور شکایت کے بارے میں پوچھ سکتے ہیں۔',
+        `فوری براہِ راست مدد کے لیے ہمارے واٹس ایپ نمبر ${OFFICIAL_WHATSAPP_NUMBER} پر رابطہ کریں۔`,
+      ]
+    : [
+        'Welcome to ZAPLIX Customer Support! We are here to help you.',
+        'You can enter your Order ID (e.g. ZX-1234) to track your order, or ask about Delivery, Returns, COD, or Complaints.',
+        `For direct live assistance, message our official WhatsApp helpline at ${OFFICIAL_WHATSAPP_NUMBER}.`,
+      ];
 }
 
 function cleanTextForSpeech(text: string): string {
@@ -205,17 +273,17 @@ function splitLongChunk(text: string, maxLen = 175): string[] {
   return out;
 }
 
-function buildLanguageSpeechChunks(rawText: string): SpeechChunk[] {
+function buildLanguageSpeechChunks(rawText: string, forcedLang?: WidgetLang): SpeechChunk[] {
   const cleaned = cleanTextForSpeech(rawText);
   if (!cleaned) return [];
 
   const sentences = splitIntoRuleLines(cleaned);
   const rawSegments = sentences.length > 0 ? sentences : [cleaned];
 
-  // Merge consecutive sentences of the same language, then chunk safely under 175 chars
+  // Use the active header mode (EN / اردو) when specified so voice strictly matches selected mode
   const merged: SpeechChunk[] = [];
   for (const seg of rawSegments) {
-    const lang: 'ur' | 'en' = isDominantlyUrdu(seg) ? 'ur' : 'en';
+    const lang: 'ur' | 'en' = forcedLang || (isDominantlyUrdu(seg) ? 'ur' : 'en');
     const last = merged[merged.length - 1];
     if (last && last.lang === lang && last.text.length + 1 + seg.length <= 175) {
       last.text = `${last.text} ${seg}`.trim();
@@ -255,11 +323,13 @@ function stopAllBotSpeech(shadowRoot?: ShadowRoot | null) {
   }
 
   if (shadowRoot) {
+    const activeLang = getActiveWidgetLang(shadowRoot);
     shadowRoot.querySelectorAll('.bot .b.vp-speaking').forEach((el) => {
       el.classList.remove('vp-speaking');
       const hint = el.querySelector('.vp-listen-tag');
       if (hint) {
-        const isUr = isDominantlyUrdu((el as HTMLElement).dataset.speakText || '');
+        const bubbleLang = (el as HTMLElement).dataset.speakLang as WidgetLang | undefined;
+        const isUr = (bubbleLang || activeLang) === 'ur';
         hint.textContent = isUr ? '🔊 آواز میں سنیں' : '🔊 Tap to listen';
       }
     });
@@ -320,6 +390,10 @@ function speakChunkViaServerAudio(chunk: SpeechChunk, token: number): Promise<bo
       resolve(ok);
     };
 
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+
     audio.onended = () => finish(true);
     audio.onerror = () => finish(false);
 
@@ -335,11 +409,12 @@ async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot) {
     return;
   }
 
+  const activeLang = getActiveWidgetLang(shadowRoot);
   const rawSpeak = bubbleEl.dataset.speakText || bubbleEl.textContent || '';
-  const chunks = buildLanguageSpeechChunks(rawSpeak);
+  const chunks = buildLanguageSpeechChunks(rawSpeak, activeLang);
   if (chunks.length === 0) return;
 
-  const isUrUI = isDominantlyUrdu(rawSpeak);
+  const isUrUI = activeLang === 'ur';
   const myToken = ttsSessionToken;
 
   bubbleEl.classList.add('vp-speaking');
@@ -366,8 +441,37 @@ async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot) {
   }
 }
 
-function renderBulletBubble(b: HTMLElement, lines: string[], speakContent: string) {
+function renderGreetingBubble(b: HTMLElement, targetLang: WidgetLang) {
+  const greetingText =
+    targetLang === 'ur'
+      ? 'السلام علیکم! ZAPLIX کسٹمر سپورٹ میں خوش آمدید۔ آج میں آپ کی کیا مدد کر سکتا ہوں؟'
+      : 'Hello! Welcome to ZAPLIX Customer Support. How can I help you today?';
+
+  b.dataset.speakText = greetingText;
+  b.dataset.speakLang = targetLang;
+  b.setAttribute('dir', targetLang === 'ur' ? 'rtl' : 'ltr');
+  b.innerHTML = '';
+
+  const textSpan = document.createElement('span');
+  textSpan.className = 'vp-line-text';
+  textSpan.textContent = greetingText;
+  b.appendChild(textSpan);
+
+  const listenTag = document.createElement('div');
+  listenTag.className = 'vp-listen-tag';
+  listenTag.textContent = targetLang === 'ur' ? '🔊 آواز میں سنیں' : '🔊 Tap to listen';
+  b.appendChild(listenTag);
+  b.setAttribute('title', targetLang === 'ur' ? 'آواز میں سننے کے لیے کلک کریں' : 'Click to hear in voice');
+}
+
+function renderBulletBubble(
+  b: HTMLElement,
+  lines: string[],
+  speakContent: string,
+  targetLang: WidgetLang
+) {
   b.dataset.speakText = speakContent;
+  b.dataset.speakLang = targetLang;
   b.innerHTML = '';
 
   const listEl = document.createElement('div');
@@ -376,7 +480,7 @@ function renderBulletBubble(b: HTMLElement, lines: string[], speakContent: strin
   for (const line of lines) {
     const lineEl = document.createElement('div');
     lineEl.className = 'vp-bullet-line';
-    lineEl.setAttribute('dir', 'auto');
+    lineEl.setAttribute('dir', targetLang === 'ur' ? 'rtl' : 'ltr');
 
     const dotEl = document.createElement('span');
     dotEl.className = 'vp-bullet';
@@ -394,7 +498,7 @@ function renderBulletBubble(b: HTMLElement, lines: string[], speakContent: strin
 
   b.appendChild(listEl);
 
-  const isUrduOutput = isDominantlyUrdu(speakContent);
+  const isUrduOutput = targetLang === 'ur';
   const listenTag = document.createElement('div');
   listenTag.className = 'vp-listen-tag';
   listenTag.textContent = isUrduOutput ? '🔊 آواز میں سنیں' : '🔊 Tap to listen';
@@ -440,6 +544,139 @@ async function lookupLocalOrder(orderNumberQuery: string): Promise<TrackedOrderR
   return null;
 }
 
+async function translateTextForMode(text: string, targetLang: WidgetLang): Promise<string> {
+  try {
+    const res = await fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, to: targetLang }),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { translatedText?: string };
+      if (data?.translatedText?.trim()) {
+        return data.translatedText.trim();
+      }
+    }
+  } catch {
+    // ignore translation errors and return original
+  }
+  return text;
+}
+
+async function renderBotBubbleInMode(
+  b: HTMLElement,
+  shadowRoot: ShadowRoot,
+  rawSource: string,
+  userText: string,
+  isGreeting: boolean,
+  targetLang: WidgetLang,
+  autoSpeakIfPending: boolean
+) {
+  const renderToken = String((Number(b.dataset.renderToken || '0') || 0) + 1);
+  b.dataset.renderToken = renderToken;
+
+  const triggerAutoSpeak = () => {
+    if (!autoSpeakIfPending || b.dataset.vpAutoSpoken === '1') return;
+    if (b.dataset.renderToken !== renderToken) return;
+    b.dataset.vpAutoSpoken = '1';
+    speakBotOutput(b, shadowRoot);
+  };
+
+  if (isGreeting) {
+    renderGreetingBubble(b, targetLang);
+    return;
+  }
+
+  const orderIdMatch = userText.match(/\b(ZX[-\s]?\d{3,6})\b/i);
+  if (orderIdMatch) {
+    const queriedId = orderIdMatch[1];
+    const order = await lookupLocalOrder(queriedId);
+    if (b.dataset.renderToken !== renderToken) return;
+
+    if (order) {
+      const dateStr = order.createdAt
+        ? new Date(order.createdAt).toLocaleDateString('en-PK', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          })
+        : targetLang === 'ur'
+          ? 'حالیہ'
+          : 'Recent';
+      const statusText = formatOrderStatusForLang(order.status || 'Pending', targetLang);
+      const amount = Number(order.totalAmount || 0).toLocaleString();
+      const lines =
+        targetLang === 'ur'
+          ? [
+              `آرڈر آئی ڈی: ${order.orderNumber}`,
+              `اسٹیٹس: ${statusText}`,
+              `کسٹمر: ${order.customerName || 'Customer'}${order.city ? ` (${order.city})` : ''}`,
+              `کل رقم: Rs. ${amount} (کیش آن ڈیلیوری · مفت ہوم ڈیلیوری)`,
+              `آرڈر کی تاریخ: ${dateStr}`,
+            ]
+          : [
+              `Order ID: ${order.orderNumber}`,
+              `Current Status: ${statusText}`,
+              `Customer: ${order.customerName || 'Customer'}${order.city ? ` (${order.city})` : ''}`,
+              `Total Amount: Rs. ${amount} (Cash on Delivery · Free Home Delivery)`,
+              `Order Date: ${dateStr}`,
+            ];
+      renderBulletBubble(b, lines, lines.join('. '), targetLang);
+      triggerAutoSpeak();
+      return;
+    }
+
+    if (/not allowed|something went wrong|connection problem|could not|error/i.test(rawSource)) {
+      const normalized = queriedId.toUpperCase().replace(/^ZX\s*-?\s*/, 'ZX-');
+      const notFoundLines =
+        targetLang === 'ur'
+          ? [
+              `آرڈر آئی ڈی ${normalized} ہمارے ریکارڈ میں فی الحال دستیاب نہیں ہے۔`,
+              'براہِ کرم اپنا صحیح آرڈر نمبر چیک کریں (مثال: ZX-1234)۔',
+              `مزید معلومات کے لیے ہمارے آفیشل واٹس ایپ نمبر ${OFFICIAL_WHATSAPP_NUMBER} پر رابطہ کریں۔`,
+            ]
+          : [
+              `Order ID ${normalized} was not found in our current order records.`,
+              'Please verify your Order ID (for example: ZX-1234) and try again.',
+              `For further assistance, message our WhatsApp helpline at ${OFFICIAL_WHATSAPP_NUMBER}.`,
+            ];
+      renderBulletBubble(b, notFoundLines, notFoundLines.join('. '), targetLang);
+      triggerAutoSpeak();
+      return;
+    }
+  }
+
+  const ruleOrFallbackLines = getZaplixReplyForMode(userText, rawSource, targetLang);
+  if (ruleOrFallbackLines && ruleOrFallbackLines.length > 0) {
+    renderBulletBubble(b, ruleOrFallbackLines, ruleOrFallbackLines.join('. '), targetLang);
+    triggerAutoSpeak();
+    return;
+  }
+
+  // Genuine remote AI reply: translate cleanly if its script does not match targetLang
+  const replyIsUrdu = isDominantlyUrdu(rawSource);
+  let displayText = rawSource;
+  if ((targetLang === 'ur' && !replyIsUrdu) || (targetLang === 'en' && replyIsUrdu)) {
+    const cacheAttr = targetLang === 'ur' ? 'translatedUr' : 'translatedEn';
+    const cached = b.dataset[cacheAttr];
+    if (cached) {
+      displayText = cached;
+    } else {
+      displayText = await translateTextForMode(rawSource, targetLang);
+      if (b.dataset.renderToken !== renderToken) return;
+      b.dataset[cacheAttr] = displayText;
+    }
+  }
+
+  const parsedLines = splitIntoRuleLines(displayText);
+  if (parsedLines.length > 1) {
+    renderBulletBubble(b, parsedLines, parsedLines.join('. '), targetLang);
+  } else {
+    renderBulletBubble(b, [displayText], displayText, targetLang);
+  }
+  triggerAutoSpeak();
+}
+
 function enhanceBotRow(row: Element, shadowRoot: ShadowRoot) {
   if (!row.classList.contains('bot') || row.classList.contains('typing')) return;
   const b = row.querySelector('.b') as HTMLElement | null;
@@ -448,38 +685,32 @@ function enhanceBotRow(row: Element, shadowRoot: ShadowRoot) {
   const rawText = (b.textContent || '').trim();
   if (!rawText) return;
 
-  // Locate preceding user query bubble
+  // Locate preceding user query bubble & whether it came from voice
   let userText = '';
+  let isVoiceQuery = false;
   let prev = row.previousElementSibling;
   while (prev) {
     if (prev.classList.contains('me')) {
-      userText = (prev.querySelector('.b')?.textContent || '').trim();
+      const prevB = prev.querySelector('.b');
+      userText = (prevB?.textContent || '').trim();
+      isVoiceQuery = !!prevB?.classList.contains('voice');
       break;
     }
     prev = prev.previousElementSibling;
   }
 
-  const orderIdMatch = userText.match(/\b(ZX[-\s]?\d{3,6})\b/i);
-  const isRuleTopic = /track|آرڈر|return|ریٹرن|واپس|delivery|ڈیلیوری|shipping|complaint|شکایت/i.test(userText);
-  const fallbackLines = isRuleTopic ? getFallbackRulesForQuery(userText, rawText) : null;
-  const parsedLines = fallbackLines || splitIntoRuleLines(rawText);
+  const isGreeting = !userText && rawText.startsWith('السلام علیکم');
+  b.dataset.rawSourceText = rawText;
+  b.dataset.userQuery = userText;
+  b.dataset.isGreeting = isGreeting ? '1' : '0';
 
-  const speakContent = fallbackLines ? fallbackLines.join(' ') : rawText;
-  b.dataset.speakText = speakContent;
+  const targetLang = getActiveWidgetLang(shadowRoot);
+  const spkBtn = shadowRoot.getElementById('spk');
+  const spkOn = spkBtn?.getAttribute('aria-pressed') === 'true';
+  const shouldAutoSpeak = !isGreeting && Boolean(userText) && (spkOn || isVoiceQuery);
 
-  const isInitialGreeting = !userText && rawText.startsWith('السلام علیکم');
-  const shouldBulletize = !isInitialGreeting && (isRuleTopic || parsedLines.length > 1);
-
-  if (shouldBulletize && parsedLines.length > 0) {
-    renderBulletBubble(b, parsedLines, speakContent);
-  } else {
-    // Keep single-line greeting text intact and add subtle tap-to-listen hint
-    const isUrduOutput = isDominantlyUrdu(speakContent);
-    const listenTag = document.createElement('div');
-    listenTag.className = 'vp-listen-tag';
-    listenTag.textContent = isUrduOutput ? '🔊 آواز میں سنیں' : '🔊 Tap to listen';
-    b.appendChild(listenTag);
-    b.setAttribute('title', isUrduOutput ? 'آواز میں سننے کے لیے کلک کریں' : 'Click to hear in voice');
+  if (shouldAutoSpeak && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
   }
 
   // Enable click & keyboard accessibility to hear the output in voice
@@ -497,57 +728,22 @@ function enhanceBotRow(row: Element, shadowRoot: ShadowRoot) {
   });
 
   b.setAttribute('data-vp-enhanced', '1');
+  void renderBotBubbleInMode(b, shadowRoot, rawText, userText, isGreeting, targetLang, shouldAutoSpeak);
+}
 
-  // If the customer entered a copied Order ID (e.g. ZX-4821), look it up directly in ZAPLIX orders
-  if (orderIdMatch) {
-    const queriedId = orderIdMatch[1];
-    const isUrUser = isDominantlyUrdu(userText);
-    lookupLocalOrder(queriedId).then((order) => {
-      if (!order) {
-        if (/not allowed|something went wrong|connection problem|could not|error/i.test(rawText)) {
-          const normalized = queriedId.toUpperCase().replace(/^ZX\s*-?\s*/, 'ZX-');
-          const notFoundLines = isUrUser
-            ? [
-                `آرڈر آئی ڈی ${normalized} ہمارے ریکارڈ میں فی الحال دستیاب نہیں ہے۔`,
-                `براہِ کرم اپنا صحیح آرڈر نمبر چیک کریں (مثال: ZX-1234)۔`,
-                `مزید معلومات کے لیے ہمارے آفیشل واٹس ایپ نمبر ${OFFICIAL_WHATSAPP_NUMBER} پر رابطہ کریں۔`,
-              ]
-            : [
-                `Order ID ${normalized} was not found in our current order records.`,
-                `Please verify your Order ID (for example: ZX-1234) and try again.`,
-                `For further assistance, message our WhatsApp helpline at ${OFFICIAL_WHATSAPP_NUMBER}.`,
-              ];
-          renderBulletBubble(b, notFoundLines, notFoundLines.join('. '));
-        }
-        return;
-      }
-      const dateStr = order.createdAt
-        ? new Date(order.createdAt).toLocaleDateString('en-PK', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          })
-        : 'Recent';
-      const status = order.status || 'Pending';
-      const amount = Number(order.totalAmount || 0).toLocaleString();
-      const lines = isUrUser
-        ? [
-            `آرڈر آئی ڈی: ${order.orderNumber}`,
-            `اسٹیٹس: ${status}`,
-            `کسٹمر: ${order.customerName || 'Customer'}${order.city ? ` (${order.city})` : ''}`,
-            `کل رقم: Rs. ${amount} (کیش آن ڈیلیوری · مفت ہوم ڈیلیوری)`,
-            `آرڈر کی تاریخ: ${dateStr}`,
-          ]
-        : [
-            `Order ID: ${order.orderNumber}`,
-            `Current Status: ${status}`,
-            `Customer: ${order.customerName || 'Customer'}${order.city ? ` (${order.city})` : ''}`,
-            `Total Amount: Rs. ${amount} (Cash on Delivery · Free Home Delivery)`,
-            `Order Date: ${dateStr}`,
-          ];
-      renderBulletBubble(b, lines, lines.join('. '));
-    });
-  }
+function refreshAllBotRowsForLanguage(shadowRoot: ShadowRoot) {
+  stopAllBotSpeech(shadowRoot);
+  const targetLang = getActiveWidgetLang(shadowRoot);
+  const msgsEl = shadowRoot.querySelector('#msgs');
+  if (!msgsEl) return;
+
+  msgsEl.querySelectorAll('.row.bot:not(.typing) .b[data-vp-enhanced="1"]').forEach((el) => {
+    const b = el as HTMLElement;
+    const rawSource = b.dataset.rawSourceText || (b.textContent || '').trim();
+    const userText = b.dataset.userQuery || '';
+    const isGreeting = b.dataset.isGreeting === '1';
+    void renderBotBubbleInMode(b, shadowRoot, rawSource, userText, isGreeting, targetLang, false);
+  });
 }
 
 export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: FloatingWhatsAppProps) {
@@ -763,6 +959,21 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
               transform: scale(1.05) !important;
             }
 
+            .panel .head .actions #lang {
+              min-width: 54px !important;
+              padding: 0 10px !important;
+              font-weight: 800 !important;
+              font-size: 12px !important;
+              letter-spacing: 0.02em !important;
+              background: rgba(245, 158, 11, 0.22) !important;
+              border-color: rgba(245, 158, 11, 0.55) !important;
+              color: #fde68a !important;
+            }
+
+            .panel .head .actions #lang:hover {
+              background: rgba(245, 158, 11, 0.36) !important;
+            }
+
             #min {
               background: rgba(255, 255, 255, 0.22) !important;
             }
@@ -887,6 +1098,50 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
           micBtn.addEventListener('pointerdown', onMicStart, { capture: true });
         }
 
+        const langBtn = shadowRoot.getElementById('lang');
+        const onLangToggle = () => {
+          queueMicrotask(() => {
+            refreshAllBotRowsForLanguage(shadowRoot);
+          });
+        };
+        if (langBtn) {
+          langBtn.addEventListener('click', onLangToggle);
+        }
+
+        const spkBtn = shadowRoot.getElementById('spk');
+        const onSpkToggle = () => {
+          queueMicrotask(() => {
+            if (spkBtn?.getAttribute('aria-pressed') !== 'true') {
+              stopAllBotSpeech(shadowRoot);
+            }
+          });
+        };
+        if (spkBtn) {
+          spkBtn.addEventListener('click', onSpkToggle);
+        }
+
+        // Sync outgoing VoicePilot chat/voice language with the top EN / اردو button
+        const origFetch = window.fetch.bind(window);
+        const patchedFetch: typeof window.fetch = (input, init) => {
+          try {
+            const url = typeof input === 'string' ? input : input instanceof Request ? input.url : '';
+            if (
+              url.includes('fyp-2jte.vercel.app/api/v1/public/') &&
+              init &&
+              typeof init.body === 'string'
+            ) {
+              const activeLang = getActiveWidgetLang(shadowRoot);
+              const parsed = JSON.parse(init.body) as Record<string, unknown>;
+              parsed.language = activeLang;
+              return origFetch(input, { ...init, body: JSON.stringify(parsed) });
+            }
+          } catch {
+            // fallback to original fetch
+          }
+          return origFetch(input, init);
+        };
+        window.fetch = patchedFetch;
+
         const panel = shadowRoot.querySelector('.panel');
         if (panel) {
           const checkOpen = () => {
@@ -902,6 +1157,9 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
             panelObserver.disconnect();
             if (msgsObserver) msgsObserver.disconnect();
             if (micBtn) micBtn.removeEventListener('pointerdown', onMicStart, { capture: true });
+            if (langBtn) langBtn.removeEventListener('click', onLangToggle);
+            if (spkBtn) spkBtn.removeEventListener('click', onSpkToggle);
+            if (window.fetch === patchedFetch) window.fetch = origFetch;
             stopAllBotSpeech(shadowRoot);
           };
         }

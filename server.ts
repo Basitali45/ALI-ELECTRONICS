@@ -1369,6 +1369,63 @@ app.get('/api/tts', async (req: Request, res: Response) => {
   }
 });
 
+// --- BILINGUAL TRANSLATION PROXY (Urdu <-> English) ---
+const translationCache = new Map<string, string>();
+
+app.post('/api/translate', async (req: Request, res: Response) => {
+  try {
+    const rawText = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
+    const toParam = typeof req.body?.to === 'string' ? req.body.to.trim().toLowerCase() : 'en';
+    const targetLang = toParam === 'ur' ? 'ur' : 'en';
+
+    if (!rawText) {
+      return res.status(400).json({ error: 'Missing text parameter' });
+    }
+
+    const cacheKey = `${targetLang}:${rawText}`;
+    const cached = translationCache.get(cacheKey);
+    if (cached) {
+      return res.json({ translatedText: cached, targetLang });
+    }
+
+    const sourceLang = targetLang === 'ur' ? 'en' : 'ur';
+    const langPair = `${sourceLang}|${targetLang}`;
+
+    // Translate line by line to preserve bullet structure
+    const lines = rawText.split(/\n+/).map((l: string) => l.trim()).filter(Boolean);
+    const translatedLines: string[] = [];
+
+    for (const line of lines) {
+      const snippet = line.slice(0, 480);
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(snippet)}&langpair=${encodeURIComponent(langPair)}`;
+      const upstream = await fetch(url);
+      if (upstream.ok) {
+        const json = (await upstream.json()) as {
+          responseStatus?: number;
+          responseData?: { translatedText?: string };
+        };
+        const out = json?.responseData?.translatedText?.trim();
+        if (json?.responseStatus === 200 && out) {
+          translatedLines.push(out);
+          continue;
+        }
+      }
+      translatedLines.push(line);
+    }
+
+    const result = translatedLines.join('\n');
+    if (translationCache.size > 500) {
+      translationCache.clear();
+    }
+    translationCache.set(cacheKey, result);
+
+    res.json({ translatedText: result, targetLang });
+  } catch (err) {
+    console.error('Translate error:', err);
+    res.json({ translatedText: req.body?.text || '', targetLang: req.body?.to === 'ur' ? 'ur' : 'en' });
+  }
+});
+
 // ==================== SERVE FRONTEND ====================
 async function startServer() {
   const isProduction = process.env.NODE_ENV === 'production';
