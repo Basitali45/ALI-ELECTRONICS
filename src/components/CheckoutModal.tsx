@@ -10,7 +10,9 @@ import {
   AlertCircle,
   Truck,
   ShieldCheck,
-  Gift
+  Gift,
+  Copy,
+  Check
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -46,8 +48,30 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
   const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null);
   const [showInvoice, setShowInvoice] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
 
   if (!isCheckoutOpen) return null;
+
+  const handleCopyOrderId = async (orderIdText: string) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(orderIdText);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = orderIdText;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2500);
+    } catch {
+      // ignore
+    }
+  };
 
   // PHASE 4: 100% Free Home Delivery on all orders (PKR 0)
   const deliveryCharges = 0;
@@ -104,6 +128,7 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
     setIsCheckoutOpen(false);
     setPlacedOrder(null);
     setError(null);
+    setCopiedId(false);
   };
 
   return (
@@ -142,14 +167,53 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
               </div>
 
               <div className="space-y-2 max-w-md mx-auto">
-                <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
-                  Order #{placedOrder.orderNumber}
-                </span>
                 <h3 className="font-heading font-black text-2xl text-slate-900 dark:text-white">
                   Thank you, {placedOrder.customerName}!
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                   Your order has been recorded in our system. Our team at <span className="font-bold text-slate-900 dark:text-white">ZAPLIX</span> will pack your items and dispatch them with <span className="font-bold text-emerald-600">Free Home Delivery</span>. You will pay via Cash on Delivery when your parcel arrives!
+                </p>
+              </div>
+
+              {/* Copy Order ID for Future Order Tracking Card */}
+              <div className="max-w-lg mx-auto p-4 sm:p-5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/25 border-2 border-amber-400/70 dark:border-amber-500/40 text-left space-y-2.5 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 block">
+                      Copy Your Order ID for Future Order Tracking
+                    </span>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="font-mono text-xl sm:text-2xl font-black tracking-wide text-slate-900 dark:text-white select-all">
+                        {placedOrder.orderNumber}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopyOrderId(placedOrder.orderNumber)}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-sm ${
+                      copiedId
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-slate-950'
+                    }`}
+                  >
+                    {copiedId ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Order ID Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copy Order ID</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <p className="text-[11px] sm:text-xs text-slate-700 dark:text-slate-300 leading-relaxed pt-1 border-t border-amber-200/70 dark:border-amber-700/40">
+                  Please note or copy this Order ID (<strong className="font-mono">{placedOrder.orderNumber}</strong>). You can paste or share it with our <strong>ZAPLIX Support Agent</strong> anytime later to track your order!
                 </p>
               </div>
 

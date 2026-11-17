@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Printer } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Printer, Copy, Check } from 'lucide-react';
 import { Order, StoreSettings } from '../types';
 import ZaplixLogo from './ZaplixLogo';
 
@@ -10,8 +10,31 @@ interface InvoiceModalProps {
 }
 
 export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
+  const [copiedId, setCopiedId] = useState(false);
+
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleCopyOrderId = async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(order.orderNumber);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = order.orderNumber;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2500);
+    } catch {
+      // ignore
+    }
   };
 
   return (
@@ -24,12 +47,23 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
               Official Invoice Preview
             </span>
-            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-700">
-              #{order.orderNumber}
+            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-700 font-mono">
+              {order.orderNumber}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopyOrderId}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer ${
+                copiedId
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300'
+              }`}
+            >
+              {copiedId ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedId ? 'Order ID Copied!' : 'Copy Order ID'}</span>
+            </button>
             <button
               onClick={handlePrint}
               className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow transition-colors cursor-pointer"
@@ -47,7 +81,7 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
         </div>
 
         {/* ================= INVOICE BODY (PRINTABLE) ================= */}
-        <div className="p-8 sm:p-12 space-y-8 bg-white print:p-4 print:text-black">
+        <div className="p-8 sm:p-12 space-y-6 bg-white print:p-4 print:text-black">
           
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 border-b border-slate-200 pb-6">
@@ -68,8 +102,8 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
               <span className="text-xs uppercase font-bold text-slate-400 tracking-wider">
                 CUSTOMER INVOICE
               </span>
-              <div className="text-xl font-black font-mono text-blue-600">
-                #{order.orderNumber}
+              <div className="text-xl font-black font-mono text-blue-600 select-all">
+                {order.orderNumber}
               </div>
               <p className="text-xs text-slate-500 mt-1">
                 Date: {new Date(order.createdAt).toLocaleDateString('en-PK', {
@@ -82,6 +116,30 @@ export function InvoiceModal({ order, settings, onClose }: InvoiceModalProps) {
                 Payment: Cash on Delivery
               </span>
             </div>
+          </div>
+
+          {/* Copy Order ID Banner for Future Tracking */}
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50 border border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-amber-900">
+                Copy Your Order ID for Future Order Tracking
+              </p>
+              <p className="text-xs text-slate-700 mt-0.5">
+                Order ID: <strong className="font-mono text-slate-900 select-all">{order.orderNumber}</strong> &mdash; Note or copy this ID to track your order later with our ZAPLIX Support Agent.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleCopyOrderId}
+              className={`print:hidden px-3.5 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+                copiedId
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-slate-900 hover:bg-slate-800 text-white'
+              }`}
+            >
+              {copiedId ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedId ? 'Copied!' : 'Copy ID'}</span>
+            </button>
           </div>
 
           {/* Customer & Shipping Details */}

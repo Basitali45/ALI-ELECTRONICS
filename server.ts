@@ -1334,6 +1334,41 @@ app.get('/api/admin/stats', requireAdmin, (_req: Request, res: Response) => {
   });
 });
 
+// --- BILINGUAL TTS AUDIO PROXY (Urdu & English) ---
+app.get('/api/tts', async (req: Request, res: Response) => {
+  try {
+    const rawText = typeof req.query.text === 'string' ? req.query.text.trim() : '';
+    const langParam = typeof req.query.lang === 'string' ? req.query.lang.trim().toLowerCase() : 'en';
+    const lang = langParam === 'ur' ? 'ur' : 'en';
+
+    if (!rawText) {
+      return res.status(400).json({ error: 'Missing text parameter' });
+    }
+
+    const text = rawText.slice(0, 200);
+    const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(text)}`;
+
+    const upstream = await fetch(ttsUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        Referer: 'https://translate.google.com/',
+      },
+    });
+
+    if (!upstream.ok) {
+      return res.status(upstream.status).json({ error: 'TTS upstream unavailable' });
+    }
+
+    const arrayBuffer = await upstream.arrayBuffer();
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(Buffer.from(arrayBuffer));
+  } catch (err) {
+    console.error('TTS error:', err);
+    res.status(500).json({ error: 'TTS generation failed' });
+  }
+});
+
 // ==================== SERVE FRONTEND ====================
 async function startServer() {
   const isProduction = process.env.NODE_ENV === 'production';
