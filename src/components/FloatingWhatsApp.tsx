@@ -165,8 +165,71 @@ function getZaplixReplyForMode(
         ];
   }
 
+  if (/thank|thanks|shukriya|شکریہ|جزاک/.test(q)) {
+    return isUr
+      ? [
+          'بہت شکریہ! زیپلیکس پر خریداری کرنے کے لیے ہم آپ کے شکر گزار ہیں۔',
+          'اگر آپ کو کسی بھی آرڈر، ڈیلیوری یا پروڈکٹ کے بارے میں مزید مدد درکار ہو تو بلا جھجھک پوچھیں۔',
+        ]
+      : [
+          'Thank you for choosing ZAPLIX! We truly appreciate your trust.',
+          'Feel free to ask anytime if you need help with an order, delivery, returns, or any product.',
+        ];
+  }
+
   if (!isErrorReply) {
     return null;
+  }
+
+  if (/\b(hi|hello|hey|salam|assalam|assalamualaikum)\b|السلام|ہیلو|سلام/.test(q)) {
+    return isUr
+      ? [
+          'وعلیکم السلام! زیپلیکس کسٹمر سپورٹ میں خوش آمدید۔',
+          'میں آپ کے آرڈر کو ٹریک کرنے، مفت ہوم ڈیلیوری، ریٹرن پالیسی اور پروڈکٹس کے بارے میں آپ کی مکمل رہنمائی کر سکتا ہوں۔',
+          'براہِ کرم بتائیں آج میں آپ کی کیا مدد کر سکتا ہوں؟',
+        ]
+      : [
+          'Hello! Welcome to ZAPLIX Customer Support.',
+          'I can help you track an order (e.g. ZX-1234), explain our Free Home Delivery and 7-day Return Policy, or answer product questions.',
+          'How can I assist you today?',
+        ];
+  }
+
+  if (/product|products|item|items|shop|price|rate|catalog|پروڈکٹ|قیمت|سامان|خرید/.test(q)) {
+    try {
+      const rawProducts = localStorage.getItem('zaplix_products') || localStorage.getItem('zyvara_products');
+      if (rawProducts) {
+        const list = JSON.parse(rawProducts) as { name?: string; price?: number; category?: string }[];
+        const top = list.filter((p) => p.name && typeof p.price === 'number').slice(0, 4);
+        if (top.length > 0) {
+          if (isUr) {
+            return [
+              'زیپلیکس کے چند مقبول اور بہترین پروڈکٹس یہ ہیں:',
+              ...top.map((p) => `${p.name} — قیمت ${Number(p.price).toLocaleString()} روپے (مفت ہوم ڈیلیوری)`),
+              'تمام آرڈرز پر کیش آن ڈیلیوری کی سہولت پورے پاکستان میں دستیاب ہے۔',
+            ];
+          }
+          return [
+            'Here are some popular products currently available on ZAPLIX:',
+            ...top.map((p) => `${p.name} — Rs. ${Number(p.price).toLocaleString()} (Free Home Delivery)`),
+            'Cash on Delivery (COD) is available nationwide across Pakistan.',
+          ];
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+    return isUr
+      ? [
+          'زیپلیکس پر فیشن، الیکٹرانکس، بیوٹی، بیگز اور ہوم ڈیکور کی بہترین مصنوعات دستیاب ہیں۔',
+          'تمام پروڈکٹس پر پورے پاکستان میں 100 فیصد مفت ہوم ڈیلیوری اور کیش آن ڈیلیوری کی سہولت موجود ہے۔',
+          'کسی خاص پروڈکٹ کے بارے میں جاننے کے لیے اس کا نام لکھیں یا اسٹور کیٹلاگ دیکھیں۔',
+        ]
+      : [
+          'ZAPLIX offers curated collections across Fashion, Bags, Accessories, Beauty, Home Decor, and Electronics.',
+          'Every product includes 100% Free Home Delivery and Cash on Delivery across Pakistan.',
+          'Tell me the item name you are looking for or browse our store catalogue to order right away.',
+        ];
   }
 
   if (/\b(cod|cash|payment|pay|پیمنٹ|کیش|ادائیگی)\b/.test(q)) {
@@ -200,12 +263,12 @@ function getZaplixReplyForMode(
   return isUr
     ? [
         'خوش آمدید! زیپلیکس کسٹمر سپورٹ آپ کی خدمت کے لیے حاضر ہے۔',
-        'آپ یہاں اپنا آرڈر آئی ڈی لکھ کر آرڈر ٹریک کر سکتے ہیں یا ڈیلیوری، ریٹرن اور شکایت کے بارے میں پوچھ سکتے ہیں۔',
+        'آپ یہاں اپنا آرڈر آئی ڈی لکھ کر آرڈر ٹریک کر سکتے ہیں یا ڈیلیوری، ریٹرن، پروڈکٹس اور شکایت کے بارے میں پوچھ سکتے ہیں۔',
         `فوری براہِ راست مدد کے لیے ہمارے واٹس ایپ نمبر ${OFFICIAL_WHATSAPP_NUMBER} پر رابطہ کریں۔`,
       ]
     : [
         'Welcome to ZAPLIX Customer Support! We are here to help you.',
-        'You can enter your Order ID (e.g. ZX-1234) to track your order, or ask about Delivery, Returns, COD, or Complaints.',
+        'You can enter your Order ID (e.g. ZX-1234) to track your order, or ask about Delivery, Returns, Products, COD, or Complaints.',
         `For direct live assistance, message our official WhatsApp helpline at ${OFFICIAL_WHATSAPP_NUMBER}.`,
       ];
 }
@@ -312,16 +375,23 @@ function buildLanguageSpeechChunks(rawText: string, forcedLang?: WidgetLang): Sp
 }
 
 let activeTtsAudio: HTMLAudioElement | null = null;
+let activeAudioResolver: ((result: 'ok' | 'blocked' | 'error') => void) | null = null;
 let sharedTtsAudio: HTMLAudioElement | null = null;
+let sharedTtsUnlocked = false;
 let sharedAudioCtx: AudioContext | null = null;
 let activeBufferSource: AudioBufferSourceNode | null = null;
 let ttsSessionToken = 0;
 let allowZaplixWebSpeech = false;
 
-function unlockTtsPlayback() {
+const SILENT_WAV_DATA_URI =
+  'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
+function unlockTtsPlayback(withSilentPrime = false) {
   if (typeof window === 'undefined') return;
   try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (AudioCtx) {
       if (!sharedAudioCtx) {
         sharedAudioCtx = new AudioCtx();
@@ -333,6 +403,14 @@ function unlockTtsPlayback() {
     if (!sharedTtsAudio) {
       sharedTtsAudio = new Audio();
       sharedTtsAudio.preload = 'auto';
+    }
+    // Only prime with silent WAV on non-bubble interactions so we never interrupt direct TTS playback
+    if (withSilentPrime && !sharedTtsUnlocked && !activeTtsAudio) {
+      sharedTtsUnlocked = true;
+      sharedTtsAudio.src = SILENT_WAV_DATA_URI;
+      void sharedTtsAudio.play().catch(() => {
+        sharedTtsUnlocked = false;
+      });
     }
   } catch {
     // ignore unlock issues
@@ -363,6 +441,12 @@ function stopAllBotSpeech(shadowRoot?: ShadowRoot | null) {
       // ignore
     }
     activeTtsAudio = null;
+  }
+
+  if (activeAudioResolver) {
+    const r = activeAudioResolver;
+    activeAudioResolver = null;
+    r('ok');
   }
 
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -429,6 +513,87 @@ function speakChunkViaWebSpeech(chunk: SpeechChunk, token: number): Promise<void
   });
 }
 
+function playViaHtmlAudioSync(url: string, token: number): Promise<'ok' | 'blocked' | 'error'> {
+  return new Promise((resolve) => {
+    if (token !== ttsSessionToken) {
+      resolve('ok');
+      return;
+    }
+
+    const audio = sharedTtsAudio || new Audio();
+    sharedTtsAudio = audio;
+    activeTtsAudio = audio;
+
+    let settled = false;
+    const finish = (result: 'ok' | 'blocked' | 'error') => {
+      if (settled) return;
+      settled = true;
+      audio.onended = null;
+      audio.onerror = null;
+      if (activeAudioResolver === finish) {
+        activeAudioResolver = null;
+      }
+      if (activeTtsAudio === audio) {
+        activeTtsAudio = null;
+      }
+      resolve(result);
+    };
+
+    activeAudioResolver = finish;
+    audio.onended = () => finish('ok');
+    audio.onerror = () => finish('error');
+    audio.src = url;
+
+    // Called synchronously inside click call-stack so browser autoplay policy never blocks chunk playback
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.then === 'function') {
+      playPromise
+        .then(() => {
+          sharedTtsUnlocked = true;
+        })
+        .catch((err: unknown) => {
+          const name = err instanceof Error ? err.name : '';
+          finish(name === 'NotAllowedError' ? 'blocked' : 'error');
+        });
+    }
+  });
+}
+
+async function playViaAudioContextFallback(url: string, token: number): Promise<boolean> {
+  if (token !== ttsSessionToken) return true;
+  try {
+    unlockTtsPlayback(false);
+    if (!sharedAudioCtx) return false;
+    if (sharedAudioCtx.state === 'suspended') {
+      await sharedAudioCtx.resume();
+    }
+    const res = await fetch(url);
+    if (!res.ok || token !== ttsSessionToken) return false;
+    const arrBuf = await res.arrayBuffer();
+    if (token !== ttsSessionToken) return true;
+    const decoded = await sharedAudioCtx.decodeAudioData(arrBuf);
+    if (token !== ttsSessionToken) return true;
+
+    return await new Promise<boolean>((resolve) => {
+      if (!sharedAudioCtx || token !== ttsSessionToken) {
+        resolve(true);
+        return;
+      }
+      const src = sharedAudioCtx.createBufferSource();
+      src.buffer = decoded;
+      src.connect(sharedAudioCtx.destination);
+      activeBufferSource = src;
+      src.onended = () => {
+        if (activeBufferSource === src) activeBufferSource = null;
+        resolve(true);
+      };
+      src.start(0);
+    });
+  } catch {
+    return false;
+  }
+}
+
 async function speakChunkViaServerAudio(chunk: SpeechChunk, token: number): Promise<boolean> {
   if (token !== ttsSessionToken) return true;
 
@@ -438,69 +603,13 @@ async function speakChunkViaServerAudio(chunk: SpeechChunk, token: number): Prom
 
   const url = `/api/tts?lang=${chunk.lang}&text=${encodeURIComponent(chunk.text)}`;
 
-  // Primary: Web Audio API (bypasses multi-chunk / async-fetch autoplay blocks completely once unlocked)
-  try {
-    unlockTtsPlayback();
-    if (sharedAudioCtx) {
-      if (sharedAudioCtx.state === 'suspended') {
-        await sharedAudioCtx.resume();
-      }
-      const res = await fetch(url);
-      if (token !== ttsSessionToken) return true;
-      if (res.ok) {
-        const arrBuf = await res.arrayBuffer();
-        if (token !== ttsSessionToken) return true;
-        const decoded = await sharedAudioCtx.decodeAudioData(arrBuf);
-        if (token !== ttsSessionToken) return true;
+  // Primary: Synchronous HTMLAudioElement.play() — preserves user click gesture immediately
+  const htmlResult = await playViaHtmlAudioSync(url, token);
+  if (htmlResult === 'ok') return true;
+  if (token !== ttsSessionToken) return true;
 
-        return await new Promise<boolean>((resolve) => {
-          if (!sharedAudioCtx || token !== ttsSessionToken) {
-            resolve(true);
-            return;
-          }
-          const src = sharedAudioCtx.createBufferSource();
-          src.buffer = decoded;
-          src.connect(sharedAudioCtx.destination);
-          activeBufferSource = src;
-          src.onended = () => {
-            if (activeBufferSource === src) activeBufferSource = null;
-            resolve(true);
-          };
-          src.start(0);
-        });
-      }
-    }
-  } catch {
-    // fallback to shared HTMLAudioElement below
-  }
-
-  // Secondary: Reused HTMLAudioElement
-  return new Promise((resolve) => {
-    if (token !== ttsSessionToken) {
-      resolve(true);
-      return;
-    }
-
-    const audio = sharedTtsAudio || new Audio();
-    sharedTtsAudio = audio;
-    activeTtsAudio = audio;
-    audio.src = url;
-
-    let settled = false;
-    const finish = (ok: boolean) => {
-      if (settled) return;
-      settled = true;
-      if (activeTtsAudio === audio) {
-        activeTtsAudio = null;
-      }
-      resolve(ok);
-    };
-
-    audio.onended = () => finish(true);
-    audio.onerror = () => finish(false);
-
-    audio.play().catch(() => finish(false));
-  });
+  // Backup: Web Audio API decode (works after async fetches once AudioContext is resumed)
+  return await playViaAudioContextFallback(url, token);
 }
 
 async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot) {
@@ -757,8 +866,13 @@ async function renderBotBubbleInMode(
   }
 
   // Genuine remote AI reply: translate cleanly whenever target language doesn't match reply script
-  const { urduCount, englishCount } = countScriptChars(rawSource);
-  const needsUrduTranslation = targetLang === 'ur' && (urduCount === 0 || englishCount > urduCount * 0.4);
+  const strippedLatin = rawSource
+    .replace(/\bZX[-\s]?\d{3,6}\b/gi, '')
+    .replace(/\bRs\.?\b/gi, '')
+    .replace(/\bZAPLIX\b/gi, '');
+  const { urduCount } = countScriptChars(rawSource);
+  const hasForeignEnglish = /[A-Za-z]{2,}/.test(strippedLatin);
+  const needsUrduTranslation = targetLang === 'ur' && (urduCount === 0 || hasForeignEnglish);
   const needsEnglishTranslation = targetLang === 'en' && urduCount > 0;
 
   let displayText = rawSource;
@@ -770,6 +884,9 @@ async function renderBotBubbleInMode(
     } else {
       displayText = await translateTextForMode(rawSource, targetLang);
       if (b.dataset.renderToken !== renderToken) return;
+      if (targetLang === 'ur') {
+        displayText = displayText.replace(/\bZAPLIX\b/gi, 'زیپلیکس').replace(/\bRs\.?\s*/gi, 'روپے ');
+      }
       b.dataset[cacheAttr] = displayText;
     }
   }
@@ -781,6 +898,87 @@ async function renderBotBubbleInMode(
     renderBulletBubble(b, [displayText], displayText, targetLang);
   }
   triggerAutoSpeak();
+}
+
+const CHIP_QUERY_TRANSLATIONS: Record<string, { ur: string; en: string }> = {
+  'میرا آرڈر کہاں ہے؟': { ur: 'میرا آرڈر کہاں ہے؟', en: 'Where is my order?' },
+  'Where is my order?': { ur: 'میرا آرڈر کہاں ہے؟', en: 'Where is my order?' },
+  'آپ کی ریٹرن پالیسی کیا ہے؟': { ur: 'آپ کی ریٹرن پالیسی کیا ہے؟', en: 'What is your return policy?' },
+  'What is your return policy?': { ur: 'آپ کی ریٹرن پالیسی کیا ہے؟', en: 'What is your return policy?' },
+  'ڈیلیوری میں کتنے دن لگتے ہیں؟': { ur: 'ڈیلیوری میں کتنے دن لگتے ہیں؟', en: 'How long does delivery take?' },
+  'How long does delivery take?': { ur: 'ڈیلیوری میں کتنے دن لگتے ہیں؟', en: 'How long does delivery take?' },
+  'میں شکایت درج کرانا چاہتا ہوں': { ur: 'میں شکایت درج کرانا چاہتا ہوں', en: 'I want to make a complaint' },
+  'I want to make a complaint': { ur: 'میں شکایت درج کرانا چاہتا ہوں', en: 'I want to make a complaint' },
+};
+
+async function renderUserBubbleInMode(b: HTMLElement, targetLang: WidgetLang) {
+  if (!b.dataset.rawSourceText) {
+    b.dataset.rawSourceText = (b.textContent || '').trim();
+  }
+  const orig = b.dataset.rawSourceText;
+  if (!orig || b.classList.contains('voice')) return;
+
+  // Keep pure Order IDs untouched
+  if (/^\s*ZX[-\s]?\d{3,6}\s*$/i.test(orig)) {
+    return;
+  }
+
+  const mapped = CHIP_QUERY_TRANSLATIONS[orig];
+  if (mapped) {
+    b.textContent = mapped[targetLang];
+    b.setAttribute('dir', targetLang === 'ur' ? 'rtl' : 'ltr');
+    return;
+  }
+
+  const { urduCount } = countScriptChars(orig);
+  const hasLatin = /[A-Za-z]{2,}/.test(orig.replace(/\bZX[-\s]?\d{3,6}\b/gi, ''));
+  const needsTranslate =
+    (targetLang === 'ur' && (urduCount === 0 || hasLatin)) ||
+    (targetLang === 'en' && urduCount > 0);
+
+  if (!needsTranslate) {
+    b.textContent = orig;
+    b.setAttribute('dir', targetLang === 'ur' ? 'rtl' : 'ltr');
+    return;
+  }
+
+  const cacheAttr = targetLang === 'ur' ? 'translatedUr' : 'translatedEn';
+  if (b.dataset[cacheAttr]) {
+    b.textContent = b.dataset[cacheAttr]!;
+    b.setAttribute('dir', targetLang === 'ur' ? 'rtl' : 'ltr');
+    return;
+  }
+
+  const translated = await translateTextForMode(orig, targetLang);
+  b.dataset[cacheAttr] = translated;
+  b.textContent = translated;
+  b.setAttribute('dir', targetLang === 'ur' ? 'rtl' : 'ltr');
+}
+
+function syncHeaderAndChromeLanguage(shadowRoot: ShadowRoot) {
+  const targetLang = getActiveWidgetLang(shadowRoot);
+  const titleEl = shadowRoot.getElementById('title');
+  if (titleEl) {
+    titleEl.textContent = targetLang === 'ur' ? 'زیپلیکس کسٹمر سپورٹ' : 'ZAPLIX Customer Support';
+    titleEl.setAttribute('data-zaplix-branded', 'true');
+  }
+
+  const statusEl = shadowRoot.getElementById('status');
+  if (statusEl) {
+    const cur = (statusEl.textContent || '').trim();
+    if (!/Recording|ریکارڈنگ|Hold|مائیک|allow|Microphone/i.test(cur)) {
+      const nextStatus = targetLang === 'ur' ? 'آن لائن · فوری جواب' : 'Online · replies instantly';
+      if (cur !== nextStatus) {
+        statusEl.textContent = nextStatus;
+      }
+    }
+  }
+
+  const inputEl = shadowRoot.getElementById('in') as HTMLInputElement | null;
+  if (inputEl) {
+    inputEl.placeholder = targetLang === 'ur' ? 'اپنا پیغام لکھیں…' : 'Type your message…';
+    inputEl.setAttribute('dir', targetLang === 'ur' ? 'rtl' : 'ltr');
+  }
 }
 
 function enhanceBotRow(row: Element, shadowRoot: ShadowRoot) {
@@ -797,8 +995,8 @@ function enhanceBotRow(row: Element, shadowRoot: ShadowRoot) {
   let prev = row.previousElementSibling;
   while (prev) {
     if (prev.classList.contains('me')) {
-      const prevB = prev.querySelector('.b');
-      userText = (prevB?.textContent || '').trim();
+      const prevB = prev.querySelector('.b') as HTMLElement | null;
+      userText = (prevB?.dataset.rawSourceText || prevB?.textContent || '').trim();
       isVoiceQuery = !!prevB?.classList.contains('voice');
       break;
     }
@@ -807,6 +1005,7 @@ function enhanceBotRow(row: Element, shadowRoot: ShadowRoot) {
 
   const isGreeting = !userText && rawText.startsWith('السلام علیکم');
   b.dataset.rawSourceText = rawText;
+  b.dataset.speakText = rawText;
   b.dataset.userQuery = userText;
   b.dataset.isGreeting = isGreeting ? '1' : '0';
 
@@ -839,9 +1038,14 @@ function enhanceBotRow(row: Element, shadowRoot: ShadowRoot) {
 
 function refreshAllBotRowsForLanguage(shadowRoot: ShadowRoot) {
   stopAllBotSpeech(shadowRoot);
+  syncHeaderAndChromeLanguage(shadowRoot);
   const targetLang = getActiveWidgetLang(shadowRoot);
   const msgsEl = shadowRoot.querySelector('#msgs');
   if (!msgsEl) return;
+
+  msgsEl.querySelectorAll('.row.me .b').forEach((el) => {
+    void renderUserBubbleInMode(el as HTMLElement, targetLang);
+  });
 
   msgsEl.querySelectorAll('.row.bot:not(.typing) .b[data-vp-enhanced="1"]').forEach((el) => {
     const b = el as HTMLElement;
@@ -1151,12 +1355,8 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
           shadowRoot.appendChild(customStyle);
         }
 
-        // 3. Set Header Title to Zaplix Customer Support (leaving #dot and #status completely untouched for voice recording)
-        const titleEl = shadowRoot.querySelector('#title');
-        if (titleEl && !titleEl.getAttribute('data-zaplix-branded')) {
-          titleEl.textContent = 'ZAPLIX Customer Support';
-          titleEl.setAttribute('data-zaplix-branded', 'true');
-        }
+        // 3. Set Header Title & Status cleanly matching current EN / اردو mode (without breaking voice recording states)
+        syncHeaderAndChromeLanguage(shadowRoot);
 
         // 4. Inject Fullscreen Toggle button on Desktop header actions if not already injected
         const actions = shadowRoot.querySelector('.head .actions');
@@ -1187,24 +1387,56 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
           }
         }
 
-        // 5. Enhance bot output messages (bullet formatting + click-to-voice) & track open state
+        // 5. Enhance bot output messages & keep user bubbles synced with EN / اردو mode
         const msgsEl = shadowRoot.querySelector('#msgs');
         let msgsObserver: MutationObserver | null = null;
         if (msgsEl) {
+          const activeLang = getActiveWidgetLang(shadowRoot);
+          msgsEl.querySelectorAll('.row.me .b').forEach((el) => {
+            void renderUserBubbleInMode(el as HTMLElement, activeLang);
+          });
           msgsEl.querySelectorAll('.row.bot:not(.typing)').forEach((r) => enhanceBotRow(r, shadowRoot));
           msgsObserver = new MutationObserver(() => {
+            const curLang = getActiveWidgetLang(shadowRoot);
+            msgsEl.querySelectorAll('.row.me .b').forEach((el) => {
+              const meB = el as HTMLElement;
+              if (!meB.dataset.rawSourceText) {
+                void renderUserBubbleInMode(meB, curLang);
+              }
+            });
             msgsEl.querySelectorAll('.row.bot:not(.typing)').forEach((r) => enhanceBotRow(r, shadowRoot));
           });
           msgsObserver.observe(msgsEl, { childList: true });
         }
 
+        // Sync #status after widget.js finishes voice recording
+        const statusEl = shadowRoot.getElementById('status');
+        let statusObserver: MutationObserver | null = null;
+        if (statusEl) {
+          statusObserver = new MutationObserver(() => {
+            if (
+              statusEl.textContent === 'Online · replies instantly' &&
+              getActiveWidgetLang(shadowRoot) === 'ur'
+            ) {
+              statusEl.textContent = 'آن لائن · فوری جواب';
+            }
+          });
+          statusObserver.observe(statusEl, { childList: true, characterData: true, subtree: true });
+        }
+
         const panel = shadowRoot.querySelector('.panel');
 
-        // Unlock Web Audio + shared HTMLAudioElement on any pointer/keyboard interaction inside panel
-        const onPanelInteract = () => unlockTtsPlayback();
+        // Silent-prime shared audio only on non-bubble taps so direct bubble clicks never race with silent WAV
+        const onPanelInteract = (e: Event) => {
+          const target = e.target as Element | null;
+          if (target?.closest?.('.bot .b')) {
+            unlockTtsPlayback(false);
+          } else {
+            unlockTtsPlayback(true);
+          }
+        };
         if (panel) {
           panel.addEventListener('pointerdown', onPanelInteract, { capture: true });
-          panel.addEventListener('click', onPanelInteract, { capture: true });
         }
 
         // Prevent widget.js native window.speechSynthesis.speak() from playing rogue English voice over ZAPLIX TTS
@@ -1282,8 +1514,8 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
           return () => {
             panelObserver.disconnect();
             if (msgsObserver) msgsObserver.disconnect();
+            if (statusObserver) statusObserver.disconnect();
             panel.removeEventListener('pointerdown', onPanelInteract, { capture: true });
-            panel.removeEventListener('click', onPanelInteract, { capture: true });
             if (micBtn) micBtn.removeEventListener('pointerdown', onMicStart, { capture: true });
             if (langBtn) langBtn.removeEventListener('click', onLangToggle);
             if (spkBtn) spkBtn.removeEventListener('click', onSpkToggle);

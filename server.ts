@@ -1392,7 +1392,10 @@ app.post('/api/translate', async (req: Request, res: Response) => {
     const langPair = `${sourceLang}|${targetLang}`;
 
     // Translate line by line to preserve bullet structure
-    const lines = rawText.split(/\n+/).map((l: string) => l.trim()).filter(Boolean);
+    const lines = rawText
+      .split(/\n+/)
+      .map((l: string) => l.replace(/^[•●▪▸‣⁃\-*]+\s*/, '').trim())
+      .filter(Boolean);
     const translatedLines: string[] = [];
 
     for (const line of lines) {
@@ -1405,7 +1408,7 @@ app.post('/api/translate', async (req: Request, res: Response) => {
           responseData?: { translatedText?: string };
         };
         const out = json?.responseData?.translatedText?.trim();
-        if (json?.responseStatus === 200 && out) {
+        if (json?.responseStatus === 200 && out && !/MYMEMORY WARNING/i.test(out)) {
           translatedLines.push(out);
           continue;
         }
