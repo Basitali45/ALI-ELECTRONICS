@@ -83,12 +83,12 @@ function getActiveWidgetLang(shadowRoot: ShadowRoot | null | undefined): WidgetL
 function formatOrderStatusForLang(status: string, lang: WidgetLang): string {
   if (lang === 'en') return status;
   const s = status.trim().toLowerCase();
-  if (s === 'pending') return 'زیرِ التواء (Pending)';
-  if (s === 'confirmed') return 'کنفرم شدہ (Confirmed)';
-  if (s === 'processing') return 'پیکنگ جاری ہے (Processing)';
-  if (s === 'shipped' || s === 'dispatched') return 'روانہ کر دیا گیا (Shipped)';
-  if (s === 'delivered') return 'ڈیلیور ہو چکا (Delivered)';
-  if (s === 'cancelled') return 'منسوخ (Cancelled)';
+  if (s === 'pending') return 'زیرِ التواء';
+  if (s === 'confirmed') return 'کنفرم شدہ';
+  if (s === 'processing') return 'پیکنگ جاری ہے';
+  if (s === 'shipped' || s === 'dispatched') return 'روانہ کر دیا گیا';
+  if (s === 'delivered') return 'ڈیلیور ہو چکا';
+  if (s === 'cancelled') return 'منسوخ';
   return status;
 }
 
@@ -104,7 +104,7 @@ function getZaplixReplyForMode(
   if (/return|ریٹرن|واپس|exchange|refund|بدل/.test(q)) {
     return isUr
       ? [
-          'ZAPLIX پر تمام آرڈرز کے لیے 7 دن کی آسان ریٹرن اور تبدیلی (Replacement) پالیسی موجود ہے۔',
+          'زیپلیکس پر تمام آرڈرز کے لیے 7 دن کی آسان ریٹرن اور تبدیلی پالیسی موجود ہے۔',
           'اگر آپ کو خراب، ٹوٹا ہوا یا غلط پروڈکٹ موصول ہو تو 7 دن کے اندر واپس یا تبدیل کروا سکتے ہیں۔',
           'واپسی کے لیے پروڈکٹ غیر استعمال شدہ اور اپنی اصل پیکنگ میں ہونا ضروری ہے۔',
           `ریٹرن کی درخواست کے لیے ہمارے آفیشل واٹس ایپ یا ہیلپ لائن ${OFFICIAL_WHATSAPP_NUMBER} پر رابطہ کریں۔`,
@@ -120,9 +120,9 @@ function getZaplixReplyForMode(
   if (/delivery|ڈیلیوری|shipping|شپنگ|چارجز|courier/.test(q)) {
     return isUr
       ? [
-          'ZAPLIX پورے پاکستان میں تمام آرڈرز پر 100% مفت ہوم ڈیلیوری (Rs. 0 چارجز) فراہم کرتا ہے۔',
-          'تمام آرڈرز پر کیش آن ڈیلیوری (Cash on Delivery) کی سہولت دستیاب ہے، پارسل ملنے پر ادائیگی کریں۔',
-          'بڑے شہروں (لاہور، کراچی، اسلام آباد، راولپنڈی) میں ڈیلیوری 2 سے 4 کاروباری دنوں میں ہوتی ہے۔',
+          'زیپلیکس پورے پاکستان میں تمام آرڈرز پر 100 فیصد مفت ہوم ڈیلیوری فراہم کرتا ہے۔',
+          'تمام آرڈرز پر کیش آن ڈیلیوری کی سہولت دستیاب ہے، پارسل ملنے پر ادائیگی کریں۔',
+          'بڑے شہروں جیسے لاہور، کراچی، اسلام آباد اور راولپنڈی میں ڈیلیوری 2 سے 4 کاروباری دنوں میں ہوتی ہے۔',
           'دیگر شہروں اور علاقوں میں پارسل 3 سے 6 کاروباری دنوں میں پہنچا دیا جاتا ہے۔',
         ]
       : [
@@ -136,7 +136,7 @@ function getZaplixReplyForMode(
   if (/track|آرڈر|order|status|parcel|کہاں/.test(q)) {
     return isUr
       ? [
-          'اپنا آرڈر ٹریک کرنے کے لیے اپنا آرڈر آئی ڈی (مثال: ZX-1234) یا نام و موبائل نمبر درج کریں۔',
+          'اپنا آرڈر ٹریک کرنے کے لیے اپنا آرڈر آئی ڈی یا اپنا نام اور موبائل نمبر درج کریں۔',
           'آرڈر کنفرم ہونے کے بعد ڈسپیچ اور کوریئر ٹریکنگ تفصیلات آپ کو فراہم کر دی جاتی ہیں۔',
           `فوری آرڈر اسٹیٹس کے لیے ہمارے آفیشل واٹس ایپ نمبر ${OFFICIAL_WHATSAPP_NUMBER} پر میسج کریں۔`,
           'ہمارا کسٹمر سپورٹ عملہ روزانہ صبح 9 بجے سے رات 11 بجے تک آپ کی رہنمائی کے لیے دستیاب ہے۔',
@@ -152,7 +152,7 @@ function getZaplixReplyForMode(
   if (/complaint|شکایت|issue|problem|مسئلہ|damaged|wrong/.test(q)) {
     return isUr
       ? [
-          'ZAPLIX کسٹمر کیئر آپ کی شکایت کو اولین ترجیح پر حل کرنے کے لیے موجود ہے۔',
+          'زیپلیکس کسٹمر کیئر آپ کی شکایت کو اولین ترجیح پر حل کرنے کے لیے موجود ہے۔',
           'براہِ کرم اپنی شکایت کی تفصیل، آرڈر نمبر اور اگر ممکن ہو تو پروڈکٹ کی تصویر شیئر کریں۔',
           `فوری حل کے لیے ہمارے آفیشل واٹس ایپ یا ہیلپ لائن ${OFFICIAL_WHATSAPP_NUMBER} پر رابطہ کریں۔`,
           'ہماری ٹیم 24 گھنٹوں کے اندر آپ کے مسئلے کا جائزہ لے کر مکمل تعاون فراہم کرے گی۔',
@@ -172,9 +172,9 @@ function getZaplixReplyForMode(
   if (/\b(cod|cash|payment|pay|پیمنٹ|کیش|ادائیگی)\b/.test(q)) {
     return isUr
       ? [
-          'ZAPLIX پر کیش آن ڈیلیوری (Cash on Delivery) کی سہولت پورے پاکستان میں دستیاب ہے۔',
+          'زیپلیکس پر کیش آن ڈیلیوری کی سہولت پورے پاکستان میں دستیاب ہے۔',
           'آپ اپنا پارسل موصول ہونے پر اپنے دروازے پر ادائیگی کر سکتے ہیں۔',
-          'تمام آرڈرز پر ہوم ڈیلیوری بالکل مفت (Rs. 0) ہے۔',
+          'تمام آرڈرز پر ہوم ڈیلیوری بالکل مفت ہے۔',
         ]
       : [
           'ZAPLIX supports convenient Cash on Delivery (COD) nationwide across Pakistan.',
@@ -186,7 +186,7 @@ function getZaplixReplyForMode(
   if (/\b(whatsapp|contact|number|phone|call|helpline|رابطہ|نمبر|واٹس ایپ)\b/.test(q)) {
     return isUr
       ? [
-          `ZAPLIX آفیشل واٹس ایپ اور ہیلپ لائن نمبر ${OFFICIAL_WHATSAPP_NUMBER} ہے۔`,
+          `زیپلیکس آفیشل واٹس ایپ اور ہیلپ لائن نمبر ${OFFICIAL_WHATSAPP_NUMBER} ہے۔`,
           'ہماری سپورٹ ٹیم روزانہ صبح 9 بجے سے رات 11 بجے تک دستیاب ہے۔',
           'آپ کسی بھی وقت آرڈر، ریٹرن یا پروڈکٹ کے متعلق معلومات حاصل کر سکتے ہیں۔',
         ]
@@ -199,8 +199,8 @@ function getZaplixReplyForMode(
 
   return isUr
     ? [
-        'خوش آمدید! ZAPLIX کسٹمر سپورٹ آپ کی خدمت کے لیے حاضر ہے۔',
-        'آپ یہاں اپنا آرڈر آئی ڈی (مثال: ZX-1234) لکھ کر آرڈر ٹریک کر سکتے ہیں یا ڈیلیوری، ریٹرن اور شکایت کے بارے میں پوچھ سکتے ہیں۔',
+        'خوش آمدید! زیپلیکس کسٹمر سپورٹ آپ کی خدمت کے لیے حاضر ہے۔',
+        'آپ یہاں اپنا آرڈر آئی ڈی لکھ کر آرڈر ٹریک کر سکتے ہیں یا ڈیلیوری، ریٹرن اور شکایت کے بارے میں پوچھ سکتے ہیں۔',
         `فوری براہِ راست مدد کے لیے ہمارے واٹس ایپ نمبر ${OFFICIAL_WHATSAPP_NUMBER} پر رابطہ کریں۔`,
       ]
     : [
@@ -210,13 +210,23 @@ function getZaplixReplyForMode(
       ];
 }
 
-function cleanTextForSpeech(text: string): string {
-  return text
+function cleanTextForSpeech(text: string, targetLang?: WidgetLang): string {
+  let out = text
     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
-    .replace(/[•▪▸‣⁃]/g, '')
-    .replace(/\bZAPLIX\b/g, 'Zaplix')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/[•▪▸‣⁃]/g, '');
+
+  if (targetLang === 'ur') {
+    out = out
+      .replace(/\bZAPLIX\b/gi, 'زیپلیکس')
+      .replace(/\bRs\.?\s*/gi, 'روپے ')
+      .replace(/\(\s*[A-Za-z0-9\s/-]+\s*\)/g, '')
+      .replace(/\bCash on Delivery\b/gi, 'کیش آن ڈیلیوری')
+      .replace(/\bFree Home Delivery\b/gi, 'مفت ہوم ڈیلیوری');
+  } else {
+    out = out.replace(/\bZAPLIX\b/g, 'Zaplix');
+  }
+
+  return out.replace(/\s+/g, ' ').trim();
 }
 
 function countScriptChars(text: string) {
@@ -274,7 +284,7 @@ function splitLongChunk(text: string, maxLen = 175): string[] {
 }
 
 function buildLanguageSpeechChunks(rawText: string, forcedLang?: WidgetLang): SpeechChunk[] {
-  const cleaned = cleanTextForSpeech(rawText);
+  const cleaned = cleanTextForSpeech(rawText, forcedLang);
   if (!cleaned) return [];
 
   const sentences = splitIntoRuleLines(cleaned);
@@ -302,16 +312,53 @@ function buildLanguageSpeechChunks(rawText: string, forcedLang?: WidgetLang): Sp
 }
 
 let activeTtsAudio: HTMLAudioElement | null = null;
+let sharedTtsAudio: HTMLAudioElement | null = null;
+let sharedAudioCtx: AudioContext | null = null;
+let activeBufferSource: AudioBufferSourceNode | null = null;
 let ttsSessionToken = 0;
+let allowZaplixWebSpeech = false;
+
+function unlockTtsPlayback() {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (AudioCtx) {
+      if (!sharedAudioCtx) {
+        sharedAudioCtx = new AudioCtx();
+      }
+      if (sharedAudioCtx.state === 'suspended') {
+        void sharedAudioCtx.resume();
+      }
+    }
+    if (!sharedTtsAudio) {
+      sharedTtsAudio = new Audio();
+      sharedTtsAudio.preload = 'auto';
+    }
+  } catch {
+    // ignore unlock issues
+  }
+}
 
 function stopAllBotSpeech(shadowRoot?: ShadowRoot | null) {
   ttsSessionToken += 1;
 
+  if (activeBufferSource) {
+    try {
+      activeBufferSource.onended = null;
+      activeBufferSource.stop();
+      activeBufferSource.disconnect();
+    } catch {
+      // ignore
+    }
+    activeBufferSource = null;
+  }
+
   if (activeTtsAudio) {
     try {
+      activeTtsAudio.onended = null;
+      activeTtsAudio.onerror = null;
       activeTtsAudio.pause();
       activeTtsAudio.currentTime = 0;
-      activeTtsAudio.src = '';
     } catch {
       // ignore
     }
@@ -343,16 +390,24 @@ function speakChunkViaWebSpeech(chunk: SpeechChunk, token: number): Promise<void
       return;
     }
 
+    const voices = window.speechSynthesis.getVoices();
+    const urduVoice = voices.find((v) => v.lang.toLowerCase().startsWith('ur'));
+
+    // Never speak Urdu text using an English fallback voice if no Urdu voice is installed
+    if (chunk.lang === 'ur' && voices.length > 0 && !urduVoice) {
+      resolve();
+      return;
+    }
+
     const utterance = new SpeechSynthesisUtterance(chunk.text);
     utterance.lang = chunk.lang === 'ur' ? 'ur-PK' : 'en-US';
     utterance.rate = 0.96;
     utterance.pitch = 1;
 
-    const voices = window.speechSynthesis.getVoices();
     if (voices.length > 0) {
       const preferredVoice =
         chunk.lang === 'ur'
-          ? voices.find((v) => v.lang.toLowerCase().startsWith('ur'))
+          ? urduVoice
           : voices.find((v) => v.lang.toLowerCase() === 'en-pk') ||
             voices.find((v) => v.lang.toLowerCase().startsWith('en-gb')) ||
             voices.find((v) => v.lang.toLowerCase().startsWith('en-us')) ||
@@ -365,20 +420,71 @@ function speakChunkViaWebSpeech(chunk: SpeechChunk, token: number): Promise<void
     utterance.onend = () => resolve();
     utterance.onerror = () => resolve();
     (window as unknown as { __vpCurrentUtterance?: SpeechSynthesisUtterance }).__vpCurrentUtterance = utterance;
-    window.speechSynthesis.speak(utterance);
+    allowZaplixWebSpeech = true;
+    try {
+      window.speechSynthesis.speak(utterance);
+    } finally {
+      allowZaplixWebSpeech = false;
+    }
   });
 }
 
-function speakChunkViaServerAudio(chunk: SpeechChunk, token: number): Promise<boolean> {
+async function speakChunkViaServerAudio(chunk: SpeechChunk, token: number): Promise<boolean> {
+  if (token !== ttsSessionToken) return true;
+
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+
+  const url = `/api/tts?lang=${chunk.lang}&text=${encodeURIComponent(chunk.text)}`;
+
+  // Primary: Web Audio API (bypasses multi-chunk / async-fetch autoplay blocks completely once unlocked)
+  try {
+    unlockTtsPlayback();
+    if (sharedAudioCtx) {
+      if (sharedAudioCtx.state === 'suspended') {
+        await sharedAudioCtx.resume();
+      }
+      const res = await fetch(url);
+      if (token !== ttsSessionToken) return true;
+      if (res.ok) {
+        const arrBuf = await res.arrayBuffer();
+        if (token !== ttsSessionToken) return true;
+        const decoded = await sharedAudioCtx.decodeAudioData(arrBuf);
+        if (token !== ttsSessionToken) return true;
+
+        return await new Promise<boolean>((resolve) => {
+          if (!sharedAudioCtx || token !== ttsSessionToken) {
+            resolve(true);
+            return;
+          }
+          const src = sharedAudioCtx.createBufferSource();
+          src.buffer = decoded;
+          src.connect(sharedAudioCtx.destination);
+          activeBufferSource = src;
+          src.onended = () => {
+            if (activeBufferSource === src) activeBufferSource = null;
+            resolve(true);
+          };
+          src.start(0);
+        });
+      }
+    }
+  } catch {
+    // fallback to shared HTMLAudioElement below
+  }
+
+  // Secondary: Reused HTMLAudioElement
   return new Promise((resolve) => {
     if (token !== ttsSessionToken) {
       resolve(true);
       return;
     }
 
-    const url = `/api/tts?lang=${chunk.lang}&text=${encodeURIComponent(chunk.text)}`;
-    const audio = new Audio(url);
+    const audio = sharedTtsAudio || new Audio();
+    sharedTtsAudio = audio;
     activeTtsAudio = audio;
+    audio.src = url;
 
     let settled = false;
     const finish = (ok: boolean) => {
@@ -390,10 +496,6 @@ function speakChunkViaServerAudio(chunk: SpeechChunk, token: number): Promise<bo
       resolve(ok);
     };
 
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-
     audio.onended = () => finish(true);
     audio.onerror = () => finish(false);
 
@@ -402,6 +504,7 @@ function speakChunkViaServerAudio(chunk: SpeechChunk, token: number): Promise<bo
 }
 
 async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot) {
+  unlockTtsPlayback();
   const wasSpeakingThis = bubbleEl.classList.contains('vp-speaking');
   stopAllBotSpeech(shadowRoot);
 
@@ -653,10 +756,13 @@ async function renderBotBubbleInMode(
     return;
   }
 
-  // Genuine remote AI reply: translate cleanly if its script does not match targetLang
-  const replyIsUrdu = isDominantlyUrdu(rawSource);
+  // Genuine remote AI reply: translate cleanly whenever target language doesn't match reply script
+  const { urduCount, englishCount } = countScriptChars(rawSource);
+  const needsUrduTranslation = targetLang === 'ur' && (urduCount === 0 || englishCount > urduCount * 0.4);
+  const needsEnglishTranslation = targetLang === 'en' && urduCount > 0;
+
   let displayText = rawSource;
-  if ((targetLang === 'ur' && !replyIsUrdu) || (targetLang === 'en' && replyIsUrdu)) {
+  if (needsUrduTranslation || needsEnglishTranslation) {
     const cacheAttr = targetLang === 'ur' ? 'translatedUr' : 'translatedEn';
     const cached = b.dataset[cacheAttr];
     if (cached) {
@@ -1092,6 +1198,27 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
           msgsObserver.observe(msgsEl, { childList: true });
         }
 
+        const panel = shadowRoot.querySelector('.panel');
+
+        // Unlock Web Audio + shared HTMLAudioElement on any pointer/keyboard interaction inside panel
+        const onPanelInteract = () => unlockTtsPlayback();
+        if (panel) {
+          panel.addEventListener('pointerdown', onPanelInteract, { capture: true });
+          panel.addEventListener('click', onPanelInteract, { capture: true });
+        }
+
+        // Prevent widget.js native window.speechSynthesis.speak() from playing rogue English voice over ZAPLIX TTS
+        let origSpeechSpeak: typeof window.speechSynthesis.speak | null = null;
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window && window.speechSynthesis) {
+          origSpeechSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
+          window.speechSynthesis.speak = (utterance: SpeechSynthesisUtterance) => {
+            if (!allowZaplixWebSpeech && panel?.classList.contains('open')) {
+              return;
+            }
+            origSpeechSpeak?.(utterance);
+          };
+        }
+
         const micBtn = shadowRoot.querySelector('#mic');
         const onMicStart = () => stopAllBotSpeech(shadowRoot);
         if (micBtn) {
@@ -1100,9 +1227,9 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
 
         const langBtn = shadowRoot.getElementById('lang');
         const onLangToggle = () => {
-          queueMicrotask(() => {
+          setTimeout(() => {
             refreshAllBotRowsForLanguage(shadowRoot);
-          });
+          }, 0);
         };
         if (langBtn) {
           langBtn.addEventListener('click', onLangToggle);
@@ -1110,11 +1237,11 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
 
         const spkBtn = shadowRoot.getElementById('spk');
         const onSpkToggle = () => {
-          queueMicrotask(() => {
+          setTimeout(() => {
             if (spkBtn?.getAttribute('aria-pressed') !== 'true') {
               stopAllBotSpeech(shadowRoot);
             }
-          });
+          }, 0);
         };
         if (spkBtn) {
           spkBtn.addEventListener('click', onSpkToggle);
@@ -1142,7 +1269,6 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
         };
         window.fetch = patchedFetch;
 
-        const panel = shadowRoot.querySelector('.panel');
         if (panel) {
           const checkOpen = () => {
             const open = panel.classList.contains('open');
@@ -1156,10 +1282,15 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
           return () => {
             panelObserver.disconnect();
             if (msgsObserver) msgsObserver.disconnect();
+            panel.removeEventListener('pointerdown', onPanelInteract, { capture: true });
+            panel.removeEventListener('click', onPanelInteract, { capture: true });
             if (micBtn) micBtn.removeEventListener('pointerdown', onMicStart, { capture: true });
             if (langBtn) langBtn.removeEventListener('click', onLangToggle);
             if (spkBtn) spkBtn.removeEventListener('click', onSpkToggle);
             if (window.fetch === patchedFetch) window.fetch = origFetch;
+            if (origSpeechSpeak && 'speechSynthesis' in window) {
+              window.speechSynthesis.speak = origSpeechSpeak;
+            }
             stopAllBotSpeech(shadowRoot);
           };
         }
