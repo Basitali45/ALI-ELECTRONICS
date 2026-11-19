@@ -1237,6 +1237,44 @@ app.post('/api/contact', (req: Request, res: Response) => {
   res.status(201).json({ success: true, message: 'Thank you! Your message has been received.', whatsappUrl });
 });
 
+app.post('/api/complaints', (req: Request, res: Response) => {
+  const { name, phone, orderNumber, details } = req.body || {};
+  if (!name || !phone || !details) {
+    return res.status(400).json({ error: 'Name, phone number, and complaint details are required.' });
+  }
+
+  const data = readData();
+  const complaintId = `CMP-${Math.floor(1000 + Math.random() * 9000)}`;
+  const cleanName = String(name).trim();
+  const cleanPhone = String(phone).trim();
+  const cleanOrder = orderNumber ? String(orderNumber).trim().toUpperCase() : '';
+  const cleanDetails = String(details).trim();
+
+  const formattedMessage = `[COMPLAINT ${complaintId}]${cleanOrder ? ` [Order: ${cleanOrder}]` : ''} ${cleanDetails}`;
+
+  const newMsg: ContactMessage = {
+    id: `cmp-${Date.now()}`,
+    name: cleanName,
+    phone: cleanPhone,
+    message: formattedMessage,
+    status: 'Unread',
+    createdAt: new Date().toISOString()
+  };
+
+  data.contactMessages.unshift(newMsg);
+  writeData(data);
+
+  res.status(201).json({
+    success: true,
+    complaintId,
+    name: cleanName,
+    phone: cleanPhone,
+    orderNumber: cleanOrder,
+    details: cleanDetails,
+    createdAt: newMsg.createdAt
+  });
+});
+
 app.get('/api/contact', requireAdmin, (_req: Request, res: Response) => {
   const data = readData();
   res.json(data.contactMessages);

@@ -273,20 +273,87 @@ function getZaplixReplyForMode(
       ];
 }
 
+const URDU_0_TO_99: string[] = [
+  'صفر', 'ایک', 'دو', 'تین', 'چار', 'پانچ', 'چھ', 'سات', 'آٹھ', 'نو',
+  'دس', 'گیارہ', 'بارہ', 'تیرہ', 'چودہ', 'پندرہ', 'سولہ', 'سترہ', 'اٹھارہ', 'انیس',
+  'بیس', 'اکیس', 'بائیس', 'تئیس', 'چوبیس', 'پچیس', 'چھبیس', 'ستائیس', 'اٹھائیس', 'انتیس',
+  'تیس', 'اکتیس', 'بتیس', 'تینتیس', 'چونتیس', 'پینتیس', 'چھتیس', 'سینتیس', 'اڑتیس', 'انتالیس',
+  'چالیس', 'اکتالیس', 'بیالیس', 'تینتالیس', 'چوالیس', 'پینتالیس', 'چھیالیس', 'سینتالیس', 'اڑتالیس', 'انچاس',
+  'پچاس', 'اکاون', 'باون', 'ترپن', 'چون', 'پچپن', 'چھپن', 'ستاون', 'اٹھاون', 'انسٹھ',
+  'ساٹھ', 'اکسٹھ', 'باسٹھ', 'ترسٹھ', 'چونسٹھ', 'پینسٹھ', 'چھیاسٹھ', 'سڑسٹھ', 'اڑسٹھ', 'انہتر',
+  'ستر', 'اکہتر', 'بہتر', 'تہتر', 'چوہتر', 'پچہتر', 'چھہتر', 'ستتر', 'اٹھتر', 'اناسی',
+  'اسی', 'اکیاسی', 'بیاسی', 'تراسی', 'چوراسی', 'پچاسی', 'چھیاسی', 'ستاسی', 'اٹھاسی', 'نوے',
+  'اکانوے', 'بانوے', 'ترانوے', 'چورانوے', 'پچانوے', 'چھیانوے', 'ستانوے', 'اٹھانوے', 'ننانوے',
+];
+
+function numberToUrduWords(num: number): string {
+  const n = Math.floor(Math.abs(num));
+  if (!Number.isFinite(n) || n > 999999999) return String(num);
+  if (n < 100) return URDU_0_TO_99[n];
+
+  const parts: string[] = [];
+  let rem = n;
+
+  const crore = Math.floor(rem / 10000000);
+  if (crore > 0) {
+    parts.push(`${numberToUrduWords(crore)} کروڑ`);
+    rem %= 10000000;
+  }
+
+  const lakh = Math.floor(rem / 100000);
+  if (lakh > 0) {
+    parts.push(`${numberToUrduWords(lakh)} لاکھ`);
+    rem %= 100000;
+  }
+
+  const thousand = Math.floor(rem / 1000);
+  if (thousand > 0) {
+    parts.push(`${numberToUrduWords(thousand)} ہزار`);
+    rem %= 1000;
+  }
+
+  const hundred = Math.floor(rem / 100);
+  if (hundred > 0) {
+    parts.push(`${URDU_0_TO_99[hundred]} سو`);
+    rem %= 100;
+  }
+
+  if (rem > 0) {
+    parts.push(URDU_0_TO_99[rem]);
+  }
+
+  return parts.join(' ');
+}
+
 function cleanTextForSpeech(text: string, targetLang?: WidgetLang): string {
   let out = text
     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
     .replace(/[•▪▸‣⁃]/g, '');
 
+  // Strip thousands commas (e.g. 1,000 -> 1000) and trailing .00 decimals so TTS never misreads 1,000 as 1.000 (1 rupee 0 paisa)
+  out = out.replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/(\d)\.00\b/g, '$1');
+
   if (targetLang === 'ur') {
     out = out
       .replace(/\bZAPLIX\b/gi, 'زیپلیکس')
-      .replace(/\bRs\.?\s*/gi, 'روپے ')
       .replace(/\(\s*[A-Za-z0-9\s/-]+\s*\)/g, '')
       .replace(/\bCash on Delivery\b/gi, 'کیش آن ڈیلیوری')
-      .replace(/\bFree Home Delivery\b/gi, 'مفت ہوم ڈیلیوری');
+      .replace(/\bFree Home Delivery\b/gi, 'مفت ہوم ڈیلیوری')
+      .replace(/(?:Rs\.?|روپے)\s*(\d+)/gi, (_m, d) => `${numberToUrduWords(Number(d))} روپے`)
+      .replace(/(\d+)\s*(?:Rs\.?|روپے)/gi, (_m, d) => `${numberToUrduWords(Number(d))} روپے`)
+      .replace(/(\d+)\s*%/g, (_m, d) => `${numberToUrduWords(Number(d))} فیصد`)
+      .replace(/(\d+)\s*فیصد/g, (_m, d) => `${numberToUrduWords(Number(d))} فیصد`)
+      .replace(/\bRs\.?\s*/gi, 'روپے ')
+      // Convert standalone non-phone numbers (1-6 digits not starting with 0) to clean Urdu words
+      .replace(/(^|[^\d+\-A-Za-z])([1-9]\d{0,5})(?![\dA-Za-z])/g, (m, pre, d) => {
+        const val = Number(d);
+        return val <= 999999 ? `${pre}${numberToUrduWords(val)}` : m;
+      });
   } else {
-    out = out.replace(/\bZAPLIX\b/g, 'Zaplix');
+    out = out
+      .replace(/\bZAPLIX\b/g, 'Zaplix')
+      .replace(/\bRs\.?\s*(\d+)/gi, (_m, d) => `${d} rupees`)
+      .replace(/(\d+)\s*Rs\.?/gi, (_m, d) => `${d} rupees`);
   }
 
   return out.replace(/\s+/g, ' ').trim();
@@ -656,8 +723,8 @@ async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot) {
 function renderGreetingBubble(b: HTMLElement, targetLang: WidgetLang) {
   const greetingText =
     targetLang === 'ur'
-      ? 'السلام علیکم! ZAPLIX کسٹمر سپورٹ میں خوش آمدید۔ آج میں آپ کی کیا مدد کر سکتا ہوں؟'
-      : 'Hello! Welcome to ZAPLIX Customer Support. How can I help you today?';
+      ? 'زیپلیکس میں خوش آمدید! میں آپ کی آرڈر ٹریکنگ، ریٹرن پالیسی، ڈیلیوری چارجز اور شکایت رجسٹریشن میں مدد کر سکتا ہوں۔ بتائیے آج میں آپ کی کیا مدد کر سکتا ہوں؟'
+      : 'Welcome to ZAPLIX! I can help you with Order Tracking, Return Policy, Delivery Charges, and Complaint Registration. How can I assist you today?';
 
   b.dataset.speakText = greetingText;
   b.dataset.speakLang = targetLang;
@@ -676,11 +743,214 @@ function renderGreetingBubble(b: HTMLElement, targetLang: WidgetLang) {
   b.setAttribute('title', targetLang === 'ur' ? 'آواز میں سننے کے لیے کلک کریں' : 'Click to hear in voice');
 }
 
+interface ComplaintSubmissionRecord {
+  complaintId: string;
+  name: string;
+  phone: string;
+  orderNumber?: string;
+  details: string;
+}
+
+function getComplaintFormDraft(b: HTMLElement) {
+  try {
+    if (b.dataset.complaintDraft) {
+      return JSON.parse(b.dataset.complaintDraft) as {
+        name?: string;
+        phone?: string;
+        orderNumber?: string;
+        details?: string;
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return {};
+}
+
+function saveComplaintFormDraft(
+  b: HTMLElement,
+  patch: Partial<{ name: string; phone: string; orderNumber: string; details: string }>
+) {
+  const cur = getComplaintFormDraft(b);
+  b.dataset.complaintDraft = JSON.stringify({ ...cur, ...patch });
+}
+
+function buildComplaintFormElement(
+  b: HTMLElement,
+  shadowRoot: ShadowRoot,
+  targetLang: WidgetLang
+): HTMLElement {
+  const isUr = targetLang === 'ur';
+  const draft = getComplaintFormDraft(b);
+
+  const form = document.createElement('form');
+  form.className = 'vp-complaint-form';
+  form.setAttribute('dir', isUr ? 'rtl' : 'ltr');
+  form.addEventListener('click', (e) => e.stopPropagation());
+
+  const title = document.createElement('div');
+  title.className = 'vp-cf-title';
+  title.textContent = isUr ? '📝 شکایت رجسٹریشن فارم' : '📝 Register Your Complaint';
+  form.appendChild(title);
+
+  const makeInput = (
+    key: 'name' | 'phone' | 'orderNumber',
+    placeholderUr: string,
+    placeholderEn: string,
+    required: boolean,
+    type = 'text'
+  ) => {
+    const inp = document.createElement('input');
+    inp.type = type;
+    inp.className = 'vp-cf-input';
+    inp.required = required;
+    inp.placeholder = isUr ? placeholderUr : placeholderEn;
+    inp.value = draft[key] || '';
+    inp.addEventListener('input', () => saveComplaintFormDraft(b, { [key]: inp.value }));
+    inp.addEventListener('click', (e) => e.stopPropagation());
+    return inp;
+  };
+
+  const nameInput = makeInput('name', 'آپ کا پورا نام *', 'Your Full Name *', true);
+  const phoneInput = makeInput('phone', 'موبائل / واٹس ایپ نمبر *', 'Mobile / WhatsApp Number *', true, 'tel');
+  const orderInput = makeInput('orderNumber', 'آرڈر آئی ڈی (اختیاری، مثلاً ZX-1234)', 'Order ID (Optional, e.g. ZX-1234)', false);
+
+  const detailsInput = document.createElement('textarea');
+  detailsInput.className = 'vp-cf-textarea';
+  detailsInput.rows = 2;
+  detailsInput.required = true;
+  detailsInput.placeholder = isUr ? 'اپنی شکایت کی تفصیل لکھیں *' : 'Describe your complaint *';
+  detailsInput.value = draft.details || '';
+  detailsInput.addEventListener('input', () => saveComplaintFormDraft(b, { details: detailsInput.value }));
+  detailsInput.addEventListener('click', (e) => e.stopPropagation());
+
+  const errEl = document.createElement('div');
+  errEl.className = 'vp-cf-err';
+  errEl.style.display = 'none';
+
+  const submitBtn = document.createElement('button');
+  submitBtn.type = 'submit';
+  submitBtn.className = 'vp-cf-submit';
+  submitBtn.textContent = isUr ? 'شکایت درج کریں' : 'Submit Complaint';
+
+  form.appendChild(nameInput);
+  form.appendChild(phoneInput);
+  form.appendChild(orderInput);
+  form.appendChild(detailsInput);
+  form.appendChild(errEl);
+  form.appendChild(submitBtn);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const curLang = getActiveWidgetLang(shadowRoot);
+    const urNow = curLang === 'ur';
+    const name = nameInput.value.trim();
+    const phone = phoneInput.value.trim();
+    const orderNumber = orderInput.value.trim().toUpperCase();
+    const details = detailsInput.value.trim();
+
+    if (!name || !phone || !details) {
+      errEl.textContent = urNow
+        ? 'براہِ کرم نام، موبائل نمبر اور شکایت کی تفصیل درج کریں۔'
+        : 'Please enter your name, phone number, and complaint details.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    errEl.style.display = 'none';
+    submitBtn.disabled = true;
+    submitBtn.textContent = urNow ? 'رجسٹر ہو رہی ہے…' : 'Registering…';
+
+    let record: ComplaintSubmissionRecord = {
+      complaintId: `CMP-${Math.floor(1000 + Math.random() * 9000)}`,
+      name,
+      phone,
+      orderNumber: orderNumber || undefined,
+      details,
+    };
+
+    try {
+      const res = await fetch('/api/complaints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, orderNumber, details }),
+      });
+      if (res.ok) {
+        const json = (await res.json()) as {
+          complaintId?: string;
+          name?: string;
+          phone?: string;
+          orderNumber?: string;
+          details?: string;
+        };
+        if (json?.complaintId) {
+          record = {
+            complaintId: json.complaintId,
+            name: json.name || name,
+            phone: json.phone || phone,
+            orderNumber: json.orderNumber || orderNumber || undefined,
+            details: json.details || details,
+          };
+        }
+      }
+    } catch {
+      // fallback to local persistence below
+    }
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('zaplix_complaints') || '[]') as ComplaintSubmissionRecord[];
+      localStorage.setItem('zaplix_complaints', JSON.stringify([record, ...existing]));
+    } catch {
+      // ignore storage errors
+    }
+
+    b.dataset.complaintRecord = JSON.stringify(record);
+    const activeNow = getActiveWidgetLang(shadowRoot);
+    const spkBtn = shadowRoot.getElementById('spk');
+    const spkOn = spkBtn?.getAttribute('aria-pressed') === 'true';
+
+    renderSubmittedComplaintBubble(b, record, activeNow);
+    if (spkOn) {
+      speakBotOutput(b, shadowRoot);
+    }
+  });
+
+  return form;
+}
+
+function renderSubmittedComplaintBubble(
+  b: HTMLElement,
+  record: ComplaintSubmissionRecord,
+  targetLang: WidgetLang
+) {
+  const isUr = targetLang === 'ur';
+  const lines = isUr
+    ? [
+        'آپ کی شکایت کامیابی کے ساتھ درج کر لی گئی ہے۔',
+        `شکایت ٹکٹ نمبر: ${record.complaintId}`,
+        `کسٹمر: ${record.name} (${record.phone})`,
+        ...(record.orderNumber ? [`آرڈر آئی ڈی: ${record.orderNumber}`] : []),
+        'زیپلیکس کسٹمر کیئر ٹیم 24 گھنٹوں کے اندر آپ سے رابطہ کر کے مسئلہ حل کرے گی۔',
+      ]
+    : [
+        'Your complaint has been registered successfully.',
+        `Complaint Ticket ID: ${record.complaintId}`,
+        `Customer: ${record.name} (${record.phone})`,
+        ...(record.orderNumber ? [`Order ID: ${record.orderNumber}`] : []),
+        'Our ZAPLIX Customer Care team will contact you within 24 hours to resolve this.',
+      ];
+
+  renderBulletBubble(b, lines, lines.join('. '), targetLang);
+}
+
 function renderBulletBubble(
   b: HTMLElement,
   lines: string[],
   speakContent: string,
-  targetLang: WidgetLang
+  targetLang: WidgetLang,
+  complaintShadowRoot?: ShadowRoot
 ) {
   b.dataset.speakText = speakContent;
   b.dataset.speakLang = targetLang;
@@ -709,6 +979,10 @@ function renderBulletBubble(
   }
 
   b.appendChild(listEl);
+
+  if (complaintShadowRoot) {
+    b.appendChild(buildComplaintFormElement(b, complaintShadowRoot, targetLang));
+  }
 
   const isUrduOutput = targetLang === 'ur';
   const listenTag = document.createElement('div');
@@ -858,9 +1132,26 @@ async function renderBotBubbleInMode(
     }
   }
 
+  if (b.dataset.complaintRecord) {
+    try {
+      const rec = JSON.parse(b.dataset.complaintRecord) as ComplaintSubmissionRecord;
+      renderSubmittedComplaintBubble(b, rec, targetLang);
+      return;
+    } catch {
+      // continue if malformed
+    }
+  }
+
+  const isComplaintQuery = /complaint|شکایت|issue|problem|مسئلہ|damaged|wrong|register/i.test(userText);
   const ruleOrFallbackLines = getZaplixReplyForMode(userText, rawSource, targetLang);
   if (ruleOrFallbackLines && ruleOrFallbackLines.length > 0) {
-    renderBulletBubble(b, ruleOrFallbackLines, ruleOrFallbackLines.join('. '), targetLang);
+    renderBulletBubble(
+      b,
+      ruleOrFallbackLines,
+      ruleOrFallbackLines.join('. '),
+      targetLang,
+      isComplaintQuery ? shadowRoot : undefined
+    );
     triggerAutoSpeak();
     return;
   }
@@ -912,46 +1203,62 @@ const CHIP_QUERY_TRANSLATIONS: Record<string, { ur: string; en: string }> = {
 };
 
 async function renderUserBubbleInMode(b: HTMLElement, targetLang: WidgetLang) {
-  if (!b.dataset.rawSourceText) {
-    b.dataset.rawSourceText = (b.textContent || '').trim();
+  const currentDom = (b.textContent || '').trim();
+  const isVoiceBubble = b.classList.contains('voice');
+
+  // Voice bubbles first display "🎤 0:02 · listening…" then update to "🎤 <transcript>"
+  if (isVoiceBubble && /listening…|سمجھ رہا ہوں…/i.test(currentDom)) {
+    b.setAttribute('dir', targetLang === 'ur' ? 'rtl' : 'ltr');
+    return;
   }
+
+  if (!b.dataset.rawSourceText || (isVoiceBubble && !b.dataset.voiceTranscriptCaptured)) {
+    b.dataset.rawSourceText = currentDom;
+    if (isVoiceBubble) {
+      b.dataset.voiceTranscriptCaptured = '1';
+    }
+  }
+
   const orig = b.dataset.rawSourceText;
-  if (!orig || b.classList.contains('voice')) return;
+  if (!orig) return;
 
   // Keep pure Order IDs untouched
   if (/^\s*ZX[-\s]?\d{3,6}\s*$/i.test(orig)) {
     return;
   }
 
-  const mapped = CHIP_QUERY_TRANSLATIONS[orig];
+  const cleanVoicePrefix = isVoiceBubble && orig.startsWith('🎤 ') ? orig.slice(2).trim() : orig;
+
+  const mapped = CHIP_QUERY_TRANSLATIONS[cleanVoicePrefix];
   if (mapped) {
-    b.textContent = mapped[targetLang];
+    b.textContent = isVoiceBubble ? `🎤 ${mapped[targetLang]}` : mapped[targetLang];
     b.setAttribute('dir', targetLang === 'ur' ? 'rtl' : 'ltr');
     return;
   }
 
-  const { urduCount } = countScriptChars(orig);
-  const hasLatin = /[A-Za-z]{2,}/.test(orig.replace(/\bZX[-\s]?\d{3,6}\b/gi, ''));
+  const { urduCount } = countScriptChars(cleanVoicePrefix);
+  const hasLatin = /[A-Za-z]{2,}/.test(cleanVoicePrefix.replace(/\bZX[-\s]?\d{3,6}\b/gi, ''));
   const needsTranslate =
     (targetLang === 'ur' && (urduCount === 0 || hasLatin)) ||
     (targetLang === 'en' && urduCount > 0);
 
   if (!needsTranslate) {
-    b.textContent = orig;
+    b.textContent = isVoiceBubble ? `🎤 ${cleanVoicePrefix}` : cleanVoicePrefix;
     b.setAttribute('dir', targetLang === 'ur' ? 'rtl' : 'ltr');
     return;
   }
 
   const cacheAttr = targetLang === 'ur' ? 'translatedUr' : 'translatedEn';
   if (b.dataset[cacheAttr]) {
-    b.textContent = b.dataset[cacheAttr]!;
+    const out = b.dataset[cacheAttr]!;
+    b.textContent = isVoiceBubble ? `🎤 ${out}` : out;
     b.setAttribute('dir', targetLang === 'ur' ? 'rtl' : 'ltr');
     return;
   }
 
-  const translated = await translateTextForMode(orig, targetLang);
+  const translated = await translateTextForMode(cleanVoicePrefix, targetLang);
   b.dataset[cacheAttr] = translated;
-  b.textContent = translated;
+  b.textContent = isVoiceBubble ? `🎤 ${translated}` : translated;
   b.setAttribute('dir', targetLang === 'ur' ? 'rtl' : 'ltr');
 }
 
@@ -1003,7 +1310,11 @@ function enhanceBotRow(row: Element, shadowRoot: ShadowRoot) {
     prev = prev.previousElementSibling;
   }
 
-  const isGreeting = !userText && rawText.startsWith('السلام علیکم');
+  const isGreeting =
+    !userText &&
+    (!row.previousElementSibling ||
+      rawText.startsWith('السلام علیکم') ||
+      /Welcome|خوش آمدید/i.test(rawText));
   b.dataset.rawSourceText = rawText;
   b.dataset.speakText = rawText;
   b.dataset.userQuery = userText;
@@ -1018,14 +1329,20 @@ function enhanceBotRow(row: Element, shadowRoot: ShadowRoot) {
     window.speechSynthesis.cancel();
   }
 
-  // Enable click & keyboard accessibility to hear the output in voice
+  // Enable click & keyboard accessibility to hear the output in voice (ignore form inputs inside bubble)
   b.setAttribute('role', 'button');
   b.setAttribute('tabindex', '0');
   b.addEventListener('click', (e) => {
+    if ((e.target as Element | null)?.closest?.('.vp-complaint-form')) {
+      return;
+    }
     e.stopPropagation();
     speakBotOutput(b, shadowRoot);
   });
   b.addEventListener('keydown', (e) => {
+    if ((e.target as Element | null)?.closest?.('.vp-complaint-form')) {
+      return;
+    }
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       speakBotOutput(b, shadowRoot);
@@ -1351,6 +1668,67 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
               opacity: 1 !important;
               border-top-color: #c7d2fe !important;
             }
+
+            /* INTERACTIVE COMPLAINT REGISTRATION FORM INSIDE AGENT */
+            .vp-complaint-form {
+              margin-top: 10px !important;
+              padding: 10px !important;
+              border-radius: 12px !important;
+              background: #f8fafc !important;
+              border: 1px solid #cbd5e1 !important;
+              display: flex !important;
+              flex-direction: column !important;
+              gap: 7px !important;
+              cursor: default !important;
+            }
+
+            .vp-cf-title {
+              font-size: 12px !important;
+              font-weight: 800 !important;
+              color: #0f172a !important;
+            }
+
+            .vp-cf-input,
+            .vp-cf-textarea {
+              width: 100% !important;
+              box-sizing: border-box !important;
+              padding: 7px 10px !important;
+              border-radius: 8px !important;
+              border: 1px solid #cbd5e1 !important;
+              background: #ffffff !important;
+              color: #0f172a !important;
+              font-size: 12px !important;
+              font-family: inherit !important;
+              outline: none !important;
+            }
+
+            .vp-cf-input:focus,
+            .vp-cf-textarea:focus {
+              border-color: #4f46e5 !important;
+              box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15) !important;
+            }
+
+            .vp-cf-err {
+              font-size: 11px !important;
+              font-weight: 600 !important;
+              color: #dc2626 !important;
+            }
+
+            .vp-cf-submit {
+              padding: 8px 12px !important;
+              border-radius: 9px !important;
+              border: none !important;
+              background: linear-gradient(135deg, #4f46e5, #0f172a) !important;
+              color: #ffffff !important;
+              font-size: 12px !important;
+              font-weight: 700 !important;
+              cursor: pointer !important;
+            }
+
+            .vp-cf-submit:disabled {
+              opacity: 0.6 !important;
+              cursor: not-allowed !important;
+            }
           `;
           shadowRoot.appendChild(customStyle);
         }
@@ -1396,17 +1774,32 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
             void renderUserBubbleInMode(el as HTMLElement, activeLang);
           });
           msgsEl.querySelectorAll('.row.bot:not(.typing)').forEach((r) => enhanceBotRow(r, shadowRoot));
-          msgsObserver = new MutationObserver(() => {
+          msgsObserver = new MutationObserver((mutations) => {
             const curLang = getActiveWidgetLang(shadowRoot);
+            for (const m of mutations) {
+              const targetEl = m.target instanceof Element ? m.target : m.target?.parentElement;
+              const meVoiceB = targetEl?.closest?.('.row.me .b.voice') as HTMLElement | null;
+              if (meVoiceB && !meVoiceB.dataset.voiceTranscriptCaptured) {
+                const txt = (meVoiceB.textContent || '').trim();
+                if (txt && !/listening…|سمجھ رہا ہوں…/i.test(txt)) {
+                  void renderUserBubbleInMode(meVoiceB, curLang);
+                }
+              }
+            }
             msgsEl.querySelectorAll('.row.me .b').forEach((el) => {
               const meB = el as HTMLElement;
-              if (!meB.dataset.rawSourceText) {
+              if (meB.classList.contains('voice')) {
+                const txt = (meB.textContent || '').trim();
+                if (!meB.dataset.voiceTranscriptCaptured && txt && !/listening…|سمجھ رہا ہوں…/i.test(txt)) {
+                  void renderUserBubbleInMode(meB, curLang);
+                }
+              } else if (!meB.dataset.rawSourceText) {
                 void renderUserBubbleInMode(meB, curLang);
               }
             });
             msgsEl.querySelectorAll('.row.bot:not(.typing)').forEach((r) => enhanceBotRow(r, shadowRoot));
           });
-          msgsObserver.observe(msgsEl, { childList: true });
+          msgsObserver.observe(msgsEl, { childList: true, subtree: true, characterData: true });
         }
 
         // Sync #status after widget.js finishes voice recording
