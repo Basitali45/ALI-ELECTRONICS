@@ -26,6 +26,7 @@ interface CustomerSupportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenVoiceAgent: () => void;
+  onOpenTrackOrder?: () => void;
   settings?: StoreSettings;
 }
 
@@ -33,6 +34,7 @@ export function CustomerSupportModal({
   isOpen,
   onClose,
   onOpenVoiceAgent,
+  onOpenTrackOrder,
   settings,
 }: CustomerSupportModalProps) {
   if (!isOpen) return null;
@@ -48,9 +50,14 @@ export function CustomerSupportModal({
   const quickQuestions = [
     {
       title: 'Order Tracking & Status',
-      desc: 'Ask about dispatch status & tracking number',
+      desc: 'View live visual timeline (Pending, Confirmed, Shipped, Delivered)',
       action: () => {
-        window.open(getWhatsAppUrl('Hello Zaplix Support, I want to track my order status. My phone number is: '), '_blank');
+        onClose();
+        if (onOpenTrackOrder) {
+          onOpenTrackOrder();
+        } else {
+          window.dispatchEvent(new CustomEvent('zaplix:open-track-order'));
+        }
       },
     },
     {

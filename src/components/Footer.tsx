@@ -11,9 +11,10 @@ interface FooterProps {
   onOpenPolicy: (p: PolicyKey) => void;
   onOpenInstagram?: () => void;
   onOpenSupport?: () => void;
+  onOpenTrackOrder?: () => void;
 }
 
-export function Footer({ settings, onOpenPolicy, onOpenInstagram, onOpenSupport }: FooterProps) {
+export function Footer({ settings, onOpenPolicy, onOpenInstagram, onOpenSupport, onOpenTrackOrder }: FooterProps) {
   const brand = settings.businessName || 'ZAPLIX';
   const phone = settings.phone1 || OFFICIAL_WHATSAPP_NUMBER;
   const [email, setEmail] = useState('');
@@ -198,6 +199,14 @@ export function Footer({ settings, onOpenPolicy, onOpenInstagram, onOpenSupport 
               <button onClick={() => onOpenPolicy('returns')} className={linkBtn}>
                 Return Policy
               </button>
+              {onOpenTrackOrder && (
+                <>
+                  <Dot />
+                  <button onClick={onOpenTrackOrder} className={linkBtn}>
+                    Track Order
+                  </button>
+                </>
+              )}
               <Dot />
               <button onClick={() => onOpenPolicy('faqs')} className={linkBtn}>
                 FAQs

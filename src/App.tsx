@@ -28,9 +28,10 @@ import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { InstagramModal } from './components/InstagramModal';
 import { CustomerSupportModal } from './components/CustomerSupportModal';
+import { TrackOrderModal } from './components/TrackOrderModal';
 import { AdminLoginModal } from './admin/AdminLoginModal';
 import { AdminDashboard } from './admin/AdminDashboard';
-import { Product, Category, Offer, HomepageConfig, StoreSettings } from './types';
+import { Product, Category, Offer, HomepageConfig, StoreSettings, Order } from './types';
 import { api } from './services/api';
 import { initialSettings, initialHomepage } from './services/seedData';
 import { toWhatsAppNumber, getWhatsAppUrl } from './lib/policy';
@@ -53,6 +54,12 @@ function MainContent() {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isInstagramOpen, setIsInstagramOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [trackOrderState, setTrackOrderState] = useState<{
+    isOpen: boolean;
+    orderId?: string;
+    order?: Order | null;
+    language?: 'en' | 'ur';
+  }>({ isOpen: false });
   const [policy, setPolicy] = useState<PolicyKey | null>(null);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
@@ -61,6 +68,31 @@ function MainContent() {
   const handleOpenVoiceAgent = useCallback(() => {
     window.dispatchEvent(new CustomEvent('zaplix:open-voice-agent'));
   }, []);
+
+  const handleOpenTrackOrder = useCallback(
+    (opts?: { orderId?: string; order?: Order | null; language?: 'en' | 'ur' }) => {
+      setTrackOrderState({
+        isOpen: true,
+        orderId: opts?.orderId,
+        order: opts?.order || null,
+        language: opts?.language || 'en',
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    const onOpenTrackEvent = (e: Event) => {
+      const detail = (e as CustomEvent<{ orderId?: string; order?: Order | null; lang?: 'en' | 'ur' }>).detail || {};
+      handleOpenTrackOrder({
+        orderId: detail.orderId,
+        order: detail.order || null,
+        language: detail.lang || 'en',
+      });
+    };
+    window.addEventListener('zaplix:open-track-order', onOpenTrackEvent);
+    return () => window.removeEventListener('zaplix:open-track-order', onOpenTrackEvent);
+  }, [handleOpenTrackOrder]);
 
   // Catalogue filter synchronization
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
@@ -146,6 +178,7 @@ function MainContent() {
         onSelectCategory={handleSelectCategory}
         onOpenInstagram={() => setIsInstagramOpen(true)}
         onOpenSupport={() => setIsSupportModalOpen(true)}
+        onOpenTrackOrder={() => handleOpenTrackOrder()}
       />
 
       <main className="flex-1 flex flex-col">
@@ -230,6 +263,7 @@ function MainContent() {
         onOpenPolicy={setPolicy}
         onOpenInstagram={() => setIsInstagramOpen(true)}
         onOpenSupport={() => setIsSupportModalOpen(true)}
+        onOpenTrackOrder={() => handleOpenTrackOrder()}
       />
 
       {settings.whatsappFloatingEnabled && (
@@ -281,6 +315,16 @@ function MainContent() {
         isOpen={isSupportModalOpen}
         onClose={() => setIsSupportModalOpen(false)}
         onOpenVoiceAgent={handleOpenVoiceAgent}
+        onOpenTrackOrder={() => handleOpenTrackOrder()}
+        settings={settings}
+      />
+
+      <TrackOrderModal
+        isOpen={trackOrderState.isOpen}
+        onClose={() => setTrackOrderState((prev) => ({ ...prev, isOpen: false }))}
+        initialOrderId={trackOrderState.orderId}
+        initialOrder={trackOrderState.order}
+        language={trackOrderState.language}
         settings={settings}
       />
 
@@ -303,7 +347,10 @@ function MainContent() {
       )}
 
       <CartDrawer settings={settings} />
-      <CheckoutModal settings={settings} />
+      <CheckoutModal
+        settings={settings}
+        onOpenTrackOrder={(order) => handleOpenTrackOrder({ orderId: order.orderNumber, order })}
+      />
     </div>
   );
 }

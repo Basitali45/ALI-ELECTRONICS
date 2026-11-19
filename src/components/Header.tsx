@@ -18,6 +18,7 @@ interface HeaderProps {
   onSelectCategory: (categoryName: string) => void;
   onOpenInstagram?: () => void;
   onOpenSupport?: () => void;
+  onOpenTrackOrder?: () => void;
 }
 
 export function Header({
@@ -30,6 +31,7 @@ export function Header({
   onSelectCategory,
   onOpenInstagram,
   onOpenSupport,
+  onOpenTrackOrder,
 }: HeaderProps) {
   const { totalItems, setIsCartOpen } = useCart();
   const { isAuthenticated } = useAuth();
@@ -298,6 +300,17 @@ export function Header({
                 <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                   24/7 Live
                 </span>
+              </button>
+            )}
+            {onOpenTrackOrder && (
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenTrackOrder();
+                }}
+                className="block w-full text-left py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800/60 cursor-pointer"
+              >
+                Track Order
               </button>
             )}
             <button

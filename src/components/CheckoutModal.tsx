@@ -23,9 +23,10 @@ import ZaplixLogo from './ZaplixLogo';
 
 interface CheckoutModalProps {
   settings: StoreSettings;
+  onOpenTrackOrder?: (order: Order) => void;
 }
 
-export function CheckoutModal({ settings }: CheckoutModalProps) {
+export function CheckoutModal({ settings, onOpenTrackOrder }: CheckoutModalProps) {
   const { 
     items, 
     subtotal, 
@@ -273,6 +274,21 @@ export function CheckoutModal({ settings }: CheckoutModalProps) {
                   <Printer className="w-4 h-4" />
                   <span>View / Print Invoice</span>
                 </button>
+
+                {onOpenTrackOrder && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const orderToTrack = placedOrder;
+                      handleClose();
+                      onOpenTrackOrder(orderToTrack);
+                    }}
+                    className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <Truck className="w-4 h-4" />
+                    <span>Track Order</span>
+                  </button>
+                )}
 
                 <button
                   onClick={handleClose}

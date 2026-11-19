@@ -136,16 +136,12 @@ function getZaplixReplyForMode(
   if (/track|آرڈر|order|status|parcel|کہاں/.test(q)) {
     return isUr
       ? [
-          'اپنا آرڈر ٹریک کرنے کے لیے اپنا آرڈر آئی ڈی یا اپنا نام اور موبائل نمبر درج کریں۔',
-          'آرڈر کنفرم ہونے کے بعد ڈسپیچ اور کوریئر ٹریکنگ تفصیلات آپ کو فراہم کر دی جاتی ہیں۔',
-          `فوری آرڈر اسٹیٹس کے لیے ہمارے آفیشل واٹس ایپ نمبر ${OFFICIAL_WHATSAPP_NUMBER} پر میسج کریں۔`,
-          'ہمارا کسٹمر سپورٹ عملہ روزانہ صبح 9 بجے سے رات 11 بجے تک آپ کی رہنمائی کے لیے دستیاب ہے۔',
+          'آپ کی آرڈر ٹریکنگ ٹائم لائن کھول دی گئی ہے — وہاں اپنا آرڈر آئی ڈی (مثلاً ZX-1234) یا فون نمبر درج کریں۔',
+          'ٹائم لائن میں آپ کو Pending، Confirmed، Shipped اور Delivered کے تمام مراحل واضح نظر آئیں گے۔',
         ]
       : [
-          'Please share your Order ID (e.g. ZX-1234) or your full name and phone number to check your parcel status.',
-          'Once your order is confirmed and dispatched, courier tracking details are shared directly with you.',
-          `For instant live tracking updates, message our official WhatsApp desk at ${OFFICIAL_WHATSAPP_NUMBER}.`,
-          'Our support team is available 7 days a week from 9:00 AM to 11:00 PM.',
+          'Your visual Track Order timeline is ready — enter your Order ID (e.g. ZX-1234) or phone number to view live progress.',
+          'You will see your order stages across Pending, Confirmed, Shipped, and Delivered.',
         ];
   }
 
@@ -945,12 +941,56 @@ function renderSubmittedComplaintBubble(
   renderBulletBubble(b, lines, lines.join('. '), targetLang);
 }
 
+function dispatchOpenTrackOrderModal(
+  orderId?: string,
+  order?: TrackedOrderRecord | null,
+  lang?: WidgetLang
+) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent('zaplix:open-track-order', {
+      detail: { orderId, order: order || null, lang },
+    })
+  );
+}
+
+function buildTrackOrderActionElement(
+  targetLang: WidgetLang,
+  orderId?: string,
+  order?: TrackedOrderRecord | null
+): HTMLElement {
+  const isUr = targetLang === 'ur';
+  const wrap = document.createElement('div');
+  wrap.className = 'vp-track-action';
+  wrap.setAttribute('dir', isUr ? 'rtl' : 'ltr');
+  wrap.addEventListener('click', (e) => e.stopPropagation());
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'vp-track-btn';
+  if (orderId) {
+    btn.textContent = isUr
+      ? `آرڈر ٹریکنگ ٹائم لائن دیکھیں (${orderId})`
+      : `View Track Order Timeline (${orderId})`;
+  } else {
+    btn.textContent = isUr ? 'ٹریک آرڈر ٹائم لائن کھولیں' : 'Open Track Order Timeline';
+  }
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dispatchOpenTrackOrderModal(orderId, order || null, targetLang);
+  });
+
+  wrap.appendChild(btn);
+  return wrap;
+}
+
 function renderBulletBubble(
   b: HTMLElement,
   lines: string[],
   speakContent: string,
   targetLang: WidgetLang,
-  complaintShadowRoot?: ShadowRoot
+  complaintShadowRoot?: ShadowRoot,
+  trackAction?: { orderId?: string; order?: TrackedOrderRecord | null }
 ) {
   b.dataset.speakText = speakContent;
   b.dataset.speakLang = targetLang;
@@ -984,6 +1024,10 @@ function renderBulletBubble(
     b.appendChild(buildComplaintFormElement(b, complaintShadowRoot, targetLang));
   }
 
+  if (trackAction) {
+    b.appendChild(buildTrackOrderActionElement(targetLang, trackAction.orderId, trackAction.order));
+  }
+
   const isUrduOutput = targetLang === 'ur';
   const listenTag = document.createElement('div');
   listenTag.className = 'vp-listen-tag';
@@ -1006,6 +1050,17 @@ async function lookupLocalOrder(orderNumberQuery: string): Promise<TrackedOrderR
   const normalized = orderNumberQuery.toUpperCase().replace(/^ZX\s*-?\s*/, 'ZX-');
 
   try {
+    const res = await fetch('/api/orders');
+    if (res.ok) {
+      const list = (await res.json()) as TrackedOrderRecord[];
+      const match = list.find((o) => o.orderNumber?.toUpperCase() === normalized);
+      if (match) return match;
+    }
+  } catch {
+    // ignore network errors and fallback to browser cache
+  }
+
+  try {
     const raw = localStorage.getItem('zaplix_orders') || localStorage.getItem('zyvara_orders');
     if (raw) {
       const localList = JSON.parse(raw) as TrackedOrderRecord[];
@@ -1014,17 +1069,6 @@ async function lookupLocalOrder(orderNumberQuery: string): Promise<TrackedOrderR
     }
   } catch {
     // ignore storage errors
-  }
-
-  try {
-    const res = await fetch('/api/orders');
-    if (res.ok) {
-      const list = (await res.json()) as TrackedOrderRecord[];
-      const match = list.find((o) => o.orderNumber?.toUpperCase() === normalized);
-      if (match) return match;
-    }
-  } catch {
-    // ignore network errors
   }
 
   return null;
@@ -1075,61 +1119,31 @@ async function renderBotBubbleInMode(
 
   const orderIdMatch = userText.match(/\b(ZX[-\s]?\d{3,6})\b/i);
   if (orderIdMatch) {
-    const queriedId = orderIdMatch[1];
-    const order = await lookupLocalOrder(queriedId);
+    const normalized = orderIdMatch[1].toUpperCase().replace(/^ZX\s*-?\s*/, 'ZX-');
+    const order = await lookupLocalOrder(normalized);
     if (b.dataset.renderToken !== renderToken) return;
 
-    if (order) {
-      const dateStr = order.createdAt
-        ? new Date(order.createdAt).toLocaleDateString('en-PK', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          })
-        : targetLang === 'ur'
-          ? 'حالیہ'
-          : 'Recent';
-      const statusText = formatOrderStatusForLang(order.status || 'Pending', targetLang);
-      const amount = Number(order.totalAmount || 0).toLocaleString();
-      const lines =
-        targetLang === 'ur'
-          ? [
-              `آرڈر آئی ڈی: ${order.orderNumber}`,
-              `اسٹیٹس: ${statusText}`,
-              `کسٹمر: ${order.customerName || 'Customer'}${order.city ? ` (${order.city})` : ''}`,
-              `کل رقم: Rs. ${amount} (کیش آن ڈیلیوری · مفت ہوم ڈیلیوری)`,
-              `آرڈر کی تاریخ: ${dateStr}`,
-            ]
-          : [
-              `Order ID: ${order.orderNumber}`,
-              `Current Status: ${statusText}`,
-              `Customer: ${order.customerName || 'Customer'}${order.city ? ` (${order.city})` : ''}`,
-              `Total Amount: Rs. ${amount} (Cash on Delivery · Free Home Delivery)`,
-              `Order Date: ${dateStr}`,
-            ];
-      renderBulletBubble(b, lines, lines.join('. '), targetLang);
-      triggerAutoSpeak();
-      return;
+    const statusLabel = order ? formatOrderStatusForLang(order.status || 'Pending', targetLang) : '';
+    const promptLines = order
+      ? targetLang === 'ur'
+        ? [`آرڈر ${order.orderNumber} کی ٹریکنگ ٹائم لائن تیار ہے (موجودہ اسٹیٹس: ${statusLabel})۔`]
+        : [`Visual tracking timeline opened for Order ${order.orderNumber} (${statusLabel}).`]
+      : targetLang === 'ur'
+        ? [`آرڈر ${normalized} کے لیے ٹریک آرڈر ٹائم لائن کھول دی گئی ہے تاکہ آپ اسٹیٹس چیک کر سکیں۔`]
+        : [`Opened the Track Order timeline to check Order ${normalized}.`];
+
+    renderBulletBubble(b, promptLines, promptLines.join('. '), targetLang, undefined, {
+      orderId: order?.orderNumber || normalized,
+      order: order || null,
+    });
+
+    if (b.dataset.trackModalAutoOpened !== '1') {
+      b.dataset.trackModalAutoOpened = '1';
+      dispatchOpenTrackOrderModal(order?.orderNumber || normalized, order || null, targetLang);
     }
 
-    if (/not allowed|something went wrong|connection problem|could not|error/i.test(rawSource)) {
-      const normalized = queriedId.toUpperCase().replace(/^ZX\s*-?\s*/, 'ZX-');
-      const notFoundLines =
-        targetLang === 'ur'
-          ? [
-              `آرڈر آئی ڈی ${normalized} ہمارے ریکارڈ میں فی الحال دستیاب نہیں ہے۔`,
-              'براہِ کرم اپنا صحیح آرڈر نمبر چیک کریں (مثال: ZX-1234)۔',
-              `مزید معلومات کے لیے ہمارے آفیشل واٹس ایپ نمبر ${OFFICIAL_WHATSAPP_NUMBER} پر رابطہ کریں۔`,
-            ]
-          : [
-              `Order ID ${normalized} was not found in our current order records.`,
-              'Please verify your Order ID (for example: ZX-1234) and try again.',
-              `For further assistance, message our WhatsApp helpline at ${OFFICIAL_WHATSAPP_NUMBER}.`,
-            ];
-      renderBulletBubble(b, notFoundLines, notFoundLines.join('. '), targetLang);
-      triggerAutoSpeak();
-      return;
-    }
+    triggerAutoSpeak();
+    return;
   }
 
   if (b.dataset.complaintRecord) {
@@ -1143,6 +1157,7 @@ async function renderBotBubbleInMode(
   }
 
   const isComplaintQuery = /complaint|شکایت|issue|problem|مسئلہ|damaged|wrong|register/i.test(userText);
+  const isTrackQuery = /track|آرڈر|order|status|parcel|کہاں/i.test(userText);
   const ruleOrFallbackLines = getZaplixReplyForMode(userText, rawSource, targetLang);
   if (ruleOrFallbackLines && ruleOrFallbackLines.length > 0) {
     renderBulletBubble(
@@ -1150,8 +1165,13 @@ async function renderBotBubbleInMode(
       ruleOrFallbackLines,
       ruleOrFallbackLines.join('. '),
       targetLang,
-      isComplaintQuery ? shadowRoot : undefined
+      isComplaintQuery ? shadowRoot : undefined,
+      isTrackQuery ? {} : undefined
     );
+    if (isTrackQuery && b.dataset.trackModalAutoOpened !== '1') {
+      b.dataset.trackModalAutoOpened = '1';
+      dispatchOpenTrackOrderModal(undefined, null, targetLang);
+    }
     triggerAutoSpeak();
     return;
   }
@@ -1333,14 +1353,14 @@ function enhanceBotRow(row: Element, shadowRoot: ShadowRoot) {
   b.setAttribute('role', 'button');
   b.setAttribute('tabindex', '0');
   b.addEventListener('click', (e) => {
-    if ((e.target as Element | null)?.closest?.('.vp-complaint-form')) {
+    if ((e.target as Element | null)?.closest?.('.vp-complaint-form, .vp-track-action')) {
       return;
     }
     e.stopPropagation();
     speakBotOutput(b, shadowRoot);
   });
   b.addEventListener('keydown', (e) => {
-    if ((e.target as Element | null)?.closest?.('.vp-complaint-form')) {
+    if ((e.target as Element | null)?.closest?.('.vp-complaint-form, .vp-track-action')) {
       return;
     }
     if (e.key === 'Enter' || e.key === ' ') {
@@ -1431,7 +1451,7 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
 
             /* 2. BASE PANEL SPECIFICATION - NO TOP CROPPING */
             .panel {
-              z-index: 2147483647 !important;
+              z-index: 9990 !important;
               box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.45) !important;
               background: #ffffff !important;
               color: #0f172a !important;
@@ -1728,6 +1748,29 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
             .vp-cf-submit:disabled {
               opacity: 0.6 !important;
               cursor: not-allowed !important;
+            }
+
+            /* TRACK ORDER MODAL LAUNCHER BUTTON INSIDE BUBBLE */
+            .vp-track-action {
+              margin-top: 10px !important;
+            }
+
+            .vp-track-btn {
+              width: 100% !important;
+              padding: 9px 14px !important;
+              border-radius: 10px !important;
+              border: none !important;
+              background: linear-gradient(135deg, #2563eb, #0f172a) !important;
+              color: #ffffff !important;
+              font-size: 12px !important;
+              font-weight: 700 !important;
+              cursor: pointer !important;
+              text-align: center !important;
+              transition: opacity 0.16s ease !important;
+            }
+
+            .vp-track-btn:hover {
+              opacity: 0.92 !important;
             }
           `;
           shadowRoot.appendChild(customStyle);
