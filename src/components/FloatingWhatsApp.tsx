@@ -117,6 +117,19 @@ function getZaplixReplyForMode(
         ];
   }
 
+  if (/\bcod\b|cash on delivery|کیش آن ڈیلیوری|charges|چارجز|\bfee\b|\bfees\b/i.test(q)) {
+    return isUr
+      ? [
+          '2,500 روپے سے زائد کے تمام آرڈرز پر ڈیلیوری 100 فیصد بالکل مفت ہے!',
+          '2,500 روپے سے کم کے آرڈرز پر پورے پاکستان میں صرف 250 روپے فلیٹ ڈیلیوری چارجز لاگو ہوتے ہیں۔',
+          'زیپلیکس پورے پاکستان میں کیش آن ڈیلیوری کی سہولت فراہم کرتا ہے — پارسل موصول ہونے پر اپنے دروازے پر ادائیگی کریں۔',
+        ]
+      : [
+          'Delivery is 100% FREE on all orders above Rs. 2,500! For orders under Rs. 2,500, we charge a flat delivery rate of Rs. 250 nationwide.',
+          'Cash on Delivery (COD) is available across Pakistan — pay conveniently at your doorstep when your parcel arrives.',
+        ];
+  }
+
   if (/delivery|ڈیلیوری|shipping|شپنگ|چارجز|courier/.test(q)) {
     return isUr
       ? [
@@ -137,7 +150,7 @@ function getZaplixReplyForMode(
     return isUr
       ? [
           'آپ کی آرڈر ٹریکنگ ٹائم لائن کھول دی گئی ہے — وہاں اپنا آرڈر آئی ڈی (مثلاً ZX-1234) یا فون نمبر درج کریں۔',
-          'ٹائم لائن میں آپ کو Pending، Confirmed، Shipped اور Delivered کے تمام مراحل واضح نظر آئیں گے۔',
+          'ٹائم لائن میں آپ کو زیرِ التواء، کنفرم، روانہ اور ڈیلیور کے تمام مراحل واضح نظر آئیں گے۔',
         ]
       : [
           'Your visual Track Order timeline is ready — enter your Order ID (e.g. ZX-1234) or phone number to view live progress.',
@@ -332,7 +345,7 @@ function cleanTextForSpeech(text: string, targetLang?: WidgetLang): string {
   if (targetLang === 'ur') {
     out = out
       .replace(/\bZAPLIX\b/gi, 'زیپلیکس')
-      .replace(/\(\s*[A-Za-z0-9\s/-]+\s*\)/g, '')
+      .replace(/\(\s*(?!(?:ZX|CMP)[-\s]?\d)[A-Za-z0-9\s/-]+\s*\)/g, '')
       .replace(/\bCash on Delivery\b/gi, 'کیش آن ڈیلیوری')
       .replace(/\bFree Home Delivery\b/gi, 'مفت ہوم ڈیلیوری')
       .replace(/(?:Rs\.?|روپے)\s*(\d+)/gi, (_m, d) => `${numberToUrduWords(Number(d))} روپے`)
@@ -439,6 +452,7 @@ function buildLanguageSpeechChunks(rawText: string, forcedLang?: WidgetLang): Sp
 
 let activeTtsAudio: HTMLAudioElement | null = null;
 let activeAudioResolver: ((result: 'ok' | 'blocked' | 'error') => void) | null = null;
+let activeObjectUrl: string | null = null;
 let sharedTtsAudio: HTMLAudioElement | null = null;
 let sharedTtsUnlocked = false;
 let sharedAudioCtx: AudioContext | null = null;
@@ -446,8 +460,20 @@ let activeBufferSource: AudioBufferSourceNode | null = null;
 let ttsSessionToken = 0;
 let allowZaplixWebSpeech = false;
 
+// Standard 46-byte 16-bit mono 44.1kHz silent PCM WAV (fmt chunk = 16 bytes, 1 zero sample)
 const SILENT_WAV_DATA_URI =
-  'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+  'data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQIAAAAAAA==';
+
+function revokeActiveObjectUrl() {
+  if (activeObjectUrl) {
+    try {
+      URL.revokeObjectURL(activeObjectUrl);
+    } catch {
+      // ignore
+    }
+    activeObjectUrl = null;
+  }
+}
 
 function unlockTtsPlayback(withSilentPrime = false) {
   if (typeof window === 'undefined') return;
@@ -460,14 +486,24 @@ function unlockTtsPlayback(withSilentPrime = false) {
         sharedAudioCtx = new AudioCtx();
       }
       if (sharedAudioCtx.state === 'suspended') {
-        void sharedAudioCtx.resume();
+        void sharedAudioCtx.resume().catch(() => {});
+      }
+      // Always wake Web Audio API with a 1-sample silent buffer inside every user gesture
+      try {
+        const buf = sharedAudioCtx.createBuffer(1, 1, 22050);
+        const src = sharedAudioCtx.createBufferSource();
+        src.buffer = buf;
+        src.connect(sharedAudioCtx.destination);
+        src.start(0);
+      } catch {
+        // ignore
       }
     }
     if (!sharedTtsAudio) {
       sharedTtsAudio = new Audio();
       sharedTtsAudio.preload = 'auto';
     }
-    // Only prime with silent WAV on non-bubble interactions so we never interrupt direct TTS playback
+    // Only prime sharedTtsAudio once on non-bubble interactions so direct TTS clicks are never interrupted
     if (withSilentPrime && !sharedTtsUnlocked && !activeTtsAudio) {
       sharedTtsUnlocked = true;
       sharedTtsAudio.src = SILENT_WAV_DATA_URI;
@@ -506,6 +542,8 @@ function stopAllBotSpeech(shadowRoot?: ShadowRoot | null) {
     activeTtsAudio = null;
   }
 
+  revokeActiveObjectUrl();
+
   if (activeAudioResolver) {
     const r = activeAudioResolver;
     activeAudioResolver = null;
@@ -530,55 +568,91 @@ function stopAllBotSpeech(shadowRoot?: ShadowRoot | null) {
   }
 }
 
-function speakChunkViaWebSpeech(chunk: SpeechChunk, token: number): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window) || token !== ttsSessionToken) {
-      resolve();
-      return;
-    }
+async function getLoadedVoices(): Promise<SpeechSynthesisVoice[]> {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return [];
+  const immediate = window.speechSynthesis.getVoices();
+  if (immediate.length > 0) return immediate;
 
-    const voices = window.speechSynthesis.getVoices();
-    const urduVoice = voices.find((v) => v.lang.toLowerCase().startsWith('ur'));
-
-    // Never speak Urdu text using an English fallback voice if no Urdu voice is installed
-    if (chunk.lang === 'ur' && voices.length > 0 && !urduVoice) {
-      resolve();
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(chunk.text);
-    utterance.lang = chunk.lang === 'ur' ? 'ur-PK' : 'en-US';
-    utterance.rate = 0.96;
-    utterance.pitch = 1;
-
-    if (voices.length > 0) {
-      const preferredVoice =
-        chunk.lang === 'ur'
-          ? urduVoice
-          : voices.find((v) => v.lang.toLowerCase() === 'en-pk') ||
-            voices.find((v) => v.lang.toLowerCase().startsWith('en-gb')) ||
-            voices.find((v) => v.lang.toLowerCase().startsWith('en-us')) ||
-            voices.find((v) => v.lang.toLowerCase().startsWith('en'));
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-      }
-    }
-
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
-    (window as unknown as { __vpCurrentUtterance?: SpeechSynthesisUtterance }).__vpCurrentUtterance = utterance;
-    allowZaplixWebSpeech = true;
-    try {
-      window.speechSynthesis.speak(utterance);
-    } finally {
-      allowZaplixWebSpeech = false;
-    }
+  return await new Promise((resolve) => {
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      window.speechSynthesis.removeEventListener?.('voiceschanged', done);
+      resolve(window.speechSynthesis.getVoices());
+    };
+    window.speechSynthesis.addEventListener?.('voiceschanged', done);
+    setTimeout(done, 160);
   });
 }
 
-function playViaHtmlAudioSync(url: string, token: number): Promise<'ok' | 'blocked' | 'error'> {
+function speakChunkViaWebSpeech(chunk: SpeechChunk, token: number): Promise<void> {
+  return new Promise((resolve) => {
+    void (async () => {
+      if (typeof window === 'undefined' || !('speechSynthesis' in window) || token !== ttsSessionToken) {
+        resolve();
+        return;
+      }
+
+      const voices = await getLoadedVoices();
+      if (token !== ttsSessionToken) {
+        resolve();
+        return;
+      }
+
+      const urduVoice = voices.find((v) => v.lang.toLowerCase().startsWith('ur'));
+
+      // Never speak Urdu text using a non-Urdu/English default voice
+      if (chunk.lang === 'ur' && !urduVoice) {
+        resolve();
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(chunk.text);
+      utterance.lang = chunk.lang === 'ur' ? 'ur-PK' : 'en-US';
+      utterance.rate = 0.96;
+      utterance.pitch = 1;
+
+      if (voices.length > 0) {
+        const preferredVoice =
+          chunk.lang === 'ur'
+            ? urduVoice
+            : voices.find((v) => v.lang.toLowerCase() === 'en-pk') ||
+              voices.find((v) => v.lang.toLowerCase().startsWith('en-gb')) ||
+              voices.find((v) => v.lang.toLowerCase().startsWith('en-us')) ||
+              voices.find((v) => v.lang.toLowerCase().startsWith('en'));
+        if (preferredVoice) {
+          utterance.voice = preferredVoice;
+        }
+      }
+
+      utterance.onend = () => resolve();
+      utterance.onerror = () => resolve();
+      (window as unknown as { __vpCurrentUtterance?: SpeechSynthesisUtterance }).__vpCurrentUtterance = utterance;
+      allowZaplixWebSpeech = true;
+      try {
+        window.speechSynthesis.speak(utterance);
+      } finally {
+        allowZaplixWebSpeech = false;
+      }
+    })();
+  });
+}
+
+function playViaHtmlAudioSync(
+  url: string,
+  token: number,
+  options?: { noReferrer?: boolean; isObjectUrl?: boolean }
+): Promise<'ok' | 'blocked' | 'error'> {
   return new Promise((resolve) => {
     if (token !== ttsSessionToken) {
+      if (options?.isObjectUrl) {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+      }
       resolve('ok');
       return;
     }
@@ -588,9 +662,11 @@ function playViaHtmlAudioSync(url: string, token: number): Promise<'ok' | 'block
     activeTtsAudio = audio;
 
     let settled = false;
+    let safetyTimer: ReturnType<typeof setTimeout> | null = null;
     const finish = (result: 'ok' | 'blocked' | 'error') => {
       if (settled) return;
       settled = true;
+      if (safetyTimer) clearTimeout(safetyTimer);
       audio.onended = null;
       audio.onerror = null;
       if (activeAudioResolver === finish) {
@@ -599,13 +675,37 @@ function playViaHtmlAudioSync(url: string, token: number): Promise<'ok' | 'block
       if (activeTtsAudio === audio) {
         activeTtsAudio = null;
       }
+      if (options?.isObjectUrl) {
+        if (activeObjectUrl === url) activeObjectUrl = null;
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+      }
       resolve(result);
     };
 
+    safetyTimer = setTimeout(() => finish('error'), 15000);
     activeAudioResolver = finish;
     audio.onended = () => finish('ok');
     audio.onerror = () => finish('error');
+
+    try {
+      audio.pause();
+    } catch {
+      // ignore
+    }
+    audio.setAttribute(
+      'referrerpolicy',
+      options?.noReferrer ? 'no-referrer' : 'strict-origin-when-cross-origin'
+    );
     audio.src = url;
+    try {
+      audio.load();
+    } catch {
+      // ignore
+    }
 
     // Called synchronously inside click call-stack so browser autoplay policy never blocks chunk playback
     const playPromise = audio.play();
@@ -622,19 +722,42 @@ function playViaHtmlAudioSync(url: string, token: number): Promise<'ok' | 'block
   });
 }
 
-async function playViaAudioContextFallback(url: string, token: number): Promise<boolean> {
+async function fetchTtsArrayBuffer(url: string, token: number): Promise<ArrayBuffer | null> {
+  if (token !== ttsSessionToken) return null;
+  try {
+    const res = await fetch(url, { credentials: 'same-origin' });
+    if (!res.ok || token !== ttsSessionToken) return null;
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+    if (ct && !ct.includes('audio') && !ct.includes('octet-stream')) {
+      return null;
+    }
+    const arrBuf = await res.arrayBuffer();
+    if (arrBuf.byteLength < 128) return null;
+    // Reject HTML/JSON documents returned by static SPA fallback rewrites
+    const headByte = new Uint8Array(arrBuf, 0, 1)[0];
+    if (headByte === 0x3c || headByte === 0x7b) return null;
+    return arrBuf;
+  } catch {
+    return null;
+  }
+}
+
+async function playArrayBufferViaAudioContext(arrBuf: ArrayBuffer, token: number): Promise<boolean> {
   if (token !== ttsSessionToken) return true;
   try {
     unlockTtsPlayback(false);
     if (!sharedAudioCtx) return false;
     if (sharedAudioCtx.state === 'suspended') {
-      await sharedAudioCtx.resume();
+      await Promise.race([
+        sharedAudioCtx.resume().catch(() => {}),
+        new Promise<void>((r) => setTimeout(r, 300)),
+      ]);
+      if ((sharedAudioCtx.state as AudioContextState) !== 'running') {
+        return false;
+      }
     }
-    const res = await fetch(url);
-    if (!res.ok || token !== ttsSessionToken) return false;
-    const arrBuf = await res.arrayBuffer();
-    if (token !== ttsSessionToken) return true;
-    const decoded = await sharedAudioCtx.decodeAudioData(arrBuf);
+    // Clone ArrayBuffer because decodeAudioData detaches the passed buffer
+    const decoded = await sharedAudioCtx.decodeAudioData(arrBuf.slice(0));
     if (token !== ttsSessionToken) return true;
 
     return await new Promise<boolean>((resolve) => {
@@ -657,38 +780,69 @@ async function playViaAudioContextFallback(url: string, token: number): Promise<
   }
 }
 
-async function speakChunkViaServerAudio(chunk: SpeechChunk, token: number): Promise<boolean> {
+async function speakChunkViaServerAudio(
+  chunk: SpeechChunk,
+  token: number,
+  preferAudioContext = false
+): Promise<boolean> {
   if (token !== ttsSessionToken) return true;
 
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
 
-  const url = `/api/tts?lang=${chunk.lang}&text=${encodeURIComponent(chunk.text)}`;
+  const serverUrl = `/api/tts?lang=${chunk.lang}&text=${encodeURIComponent(chunk.text)}`;
 
-  // Primary: Synchronous HTMLAudioElement.play() — preserves user click gesture immediately
-  const htmlResult = await playViaHtmlAudioSync(url, token);
-  if (htmlResult === 'ok') return true;
+  // 1. Direct synchronous <audio> attempt when triggered right from user click
+  if (!preferAudioContext) {
+    const syncRes = await playViaHtmlAudioSync(serverUrl, token);
+    if (syncRes === 'ok' || token !== ttsSessionToken) return true;
+  }
+
+  // 2. Fetch audio bytes cleanly (carries same-origin cookies & validates real audio payload)
+  const arrBuf = await fetchTtsArrayBuffer(serverUrl, token);
   if (token !== ttsSessionToken) return true;
 
-  // Backup: Web Audio API decode (works after async fetches once AudioContext is resumed)
-  return await playViaAudioContextFallback(url, token);
+  if (arrBuf) {
+    // 2a. Web Audio API decode & play (immune to HTMLAudio autoplay timeout after async waits)
+    const ctxOk = await playArrayBufferViaAudioContext(arrBuf, token);
+    if (ctxOk || token !== ttsSessionToken) return true;
+
+    // 2b. Unlocked Blob URL playback via HTMLAudioElement
+    const blobUrl = URL.createObjectURL(new Blob([arrBuf], { type: 'audio/mpeg' }));
+    revokeActiveObjectUrl();
+    activeObjectUrl = blobUrl;
+    const blobRes = await playViaHtmlAudioSync(blobUrl, token, { isObjectUrl: true });
+    if (blobRes === 'ok' || token !== ttsSessionToken) return true;
+  }
+
+  // 3. Direct external HTTPS TTS <audio> fallback (works even on static hosts where /api/tts returns index.html)
+  const encoded = encodeURIComponent(chunk.text);
+  const directCandidates = [
+    `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=${chunk.lang}&client=gtx&q=${encoded}`,
+    `https://translate.google.com/translate_tts?ie=UTF-8&tl=${chunk.lang}&client=tw-ob&q=${encoded}`,
+  ];
+  for (const directUrl of directCandidates) {
+    if (token !== ttsSessionToken) return true;
+    const directRes = await playViaHtmlAudioSync(directUrl, token, { noReferrer: true });
+    if (directRes === 'ok' || token !== ttsSessionToken) return true;
+  }
+
+  return false;
 }
 
-async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot) {
-  unlockTtsPlayback();
+async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot, isAutoTriggered = false) {
+  // Wake Web Audio synchronously inside user click/tap before any async work
+  unlockTtsPlayback(false);
+
   const wasSpeakingThis = bubbleEl.classList.contains('vp-speaking');
   stopAllBotSpeech(shadowRoot);
 
-  if (wasSpeakingThis) {
+  if (wasSpeakingThis && !isAutoTriggered) {
     return;
   }
 
   const activeLang = getActiveWidgetLang(shadowRoot);
-  const rawSpeak = bubbleEl.dataset.speakText || bubbleEl.textContent || '';
-  const chunks = buildLanguageSpeechChunks(rawSpeak, activeLang);
-  if (chunks.length === 0) return;
-
   const isUrUI = activeLang === 'ur';
   const myToken = ttsSessionToken;
 
@@ -698,12 +852,56 @@ async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot) {
     listenTag.textContent = isUrUI ? '🔊 سن رہے ہیں… (روکنے کے لیے کلک کریں)' : '🔊 Speaking… (tap to stop)';
   }
 
-  for (const chunk of chunks) {
-    if (myToken !== ttsSessionToken) break;
+  let rawSpeak = (bubbleEl.dataset.speakText || bubbleEl.textContent || '').trim();
 
-    const playedViaServer = await speakChunkViaServerAudio(chunk, myToken);
+  // Guarantee speech script strictly matches EN / اردو mode before generating TTS chunks
+  const strippedLatin = rawSpeak
+    .replace(/\b(?:ZX|CMP)[-\s]?\d{3,6}\b/gi, '')
+    .replace(/\bRs\.?\b/gi, '')
+    .replace(/\bZAPLIX\b/gi, '');
+  const { urduCount } = countScriptChars(rawSpeak);
+  const hasForeignEnglish = /[A-Za-z]{2,}/.test(strippedLatin);
+  const needsUrNow = activeLang === 'ur' && (urduCount === 0 || hasForeignEnglish);
+  const needsEnNow = activeLang === 'en' && urduCount > 0;
+
+  let translatedDuringSpeech = false;
+  if (rawSpeak && (needsUrNow || needsEnNow)) {
+    const cacheAttr = activeLang === 'ur' ? 'translatedUr' : 'translatedEn';
+    if (bubbleEl.dataset[cacheAttr]) {
+      rawSpeak = bubbleEl.dataset[cacheAttr]!;
+    } else {
+      // Prime sharedTtsAudio synchronously before awaiting /api/translate so user gesture survives
+      if (!isAutoTriggered && !sharedTtsUnlocked) {
+        unlockTtsPlayback(true);
+      }
+      translatedDuringSpeech = true;
+      const converted = await translateTextForMode(rawSpeak, activeLang);
+      if (myToken !== ttsSessionToken) return;
+      rawSpeak =
+        activeLang === 'ur'
+          ? converted.replace(/\bZAPLIX\b/gi, 'زیپلیکس').replace(/\bRs\.?\s*/gi, 'روپے ')
+          : converted;
+      bubbleEl.dataset[cacheAttr] = rawSpeak;
+      bubbleEl.dataset.speakText = rawSpeak;
+    }
+  }
+
+  const chunks = buildLanguageSpeechChunks(rawSpeak, activeLang);
+  if (chunks.length === 0) {
+    if (myToken === ttsSessionToken) {
+      bubbleEl.classList.remove('vp-speaking');
+      const tag = bubbleEl.querySelector('.vp-listen-tag');
+      if (tag) tag.textContent = isUrUI ? '🔊 آواز میں سنیں' : '🔊 Tap to listen';
+    }
+    return;
+  }
+
+  for (let i = 0; i < chunks.length; i++) {
+    if (myToken !== ttsSessionToken) break;
+    const preferCtx = isAutoTriggered || translatedDuringSpeech || i > 0;
+    const playedViaServer = await speakChunkViaServerAudio(chunks[i], myToken, preferCtx);
     if (!playedViaServer && myToken === ttsSessionToken) {
-      await speakChunkViaWebSpeech(chunk, myToken);
+      await speakChunkViaWebSpeech(chunks[i], myToken);
     }
   }
 
@@ -1109,7 +1307,7 @@ async function renderBotBubbleInMode(
     if (!autoSpeakIfPending || b.dataset.vpAutoSpoken === '1') return;
     if (b.dataset.renderToken !== renderToken) return;
     b.dataset.vpAutoSpoken = '1';
-    speakBotOutput(b, shadowRoot);
+    void speakBotOutput(b, shadowRoot, true);
   };
 
   if (isGreeting) {
@@ -1220,7 +1418,60 @@ const CHIP_QUERY_TRANSLATIONS: Record<string, { ur: string; en: string }> = {
   'How long does delivery take?': { ur: 'ڈیلیوری میں کتنے دن لگتے ہیں؟', en: 'How long does delivery take?' },
   'میں شکایت درج کرانا چاہتا ہوں': { ur: 'میں شکایت درج کرانا چاہتا ہوں', en: 'I want to make a complaint' },
   'I want to make a complaint': { ur: 'میں شکایت درج کرانا چاہتا ہوں', en: 'I want to make a complaint' },
+  'کیش آن ڈیلیوری اور چارجز کیا ہیں؟': {
+    ur: 'کیش آن ڈیلیوری اور چارجز کیا ہیں؟',
+    en: 'What are the COD and delivery charges?',
+  },
+  'What are the COD and delivery charges?': {
+    ur: 'کیش آن ڈیلیوری اور چارجز کیا ہیں؟',
+    en: 'What are the COD and delivery charges?',
+  },
 };
+
+function syncCodChip(shadowRoot: ShadowRoot) {
+  const chipsEl = shadowRoot.getElementById('chips');
+  if (!chipsEl) return;
+
+  const nativeChipCount = chipsEl.querySelectorAll('.chip:not(#vp-cod-chip)').length;
+  const existing = shadowRoot.getElementById('vp-cod-chip') as HTMLButtonElement | null;
+
+  if (nativeChipCount === 0) {
+    if (existing) existing.remove();
+    return;
+  }
+
+  const targetLang = getActiveWidgetLang(shadowRoot);
+  const label = targetLang === 'ur' ? '💵 COD اور چارجز' : '💵 COD & Charges';
+
+  if (existing) {
+    if (existing.textContent !== label) {
+      existing.textContent = label;
+    }
+    return;
+  }
+
+  const btn = document.createElement('button');
+  btn.id = 'vp-cod-chip';
+  btn.type = 'button';
+  btn.className = 'chip';
+  btn.textContent = label;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    unlockTtsPlayback(true);
+    const activeNow = getActiveWidgetLang(shadowRoot);
+    const query =
+      activeNow === 'ur'
+        ? 'کیش آن ڈیلیوری اور چارجز کیا ہیں؟'
+        : 'What are the COD and delivery charges?';
+    const inputEl = shadowRoot.getElementById('in') as HTMLInputElement | null;
+    const formEl = shadowRoot.getElementById('form') as HTMLFormElement | null;
+    if (inputEl && formEl) {
+      inputEl.value = query;
+      formEl.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }
+  });
+  chipsEl.appendChild(btn);
+}
 
 async function renderUserBubbleInMode(b: HTMLElement, targetLang: WidgetLang) {
   const currentDom = (b.textContent || '').trim();
@@ -1306,6 +1557,8 @@ function syncHeaderAndChromeLanguage(shadowRoot: ShadowRoot) {
     inputEl.placeholder = targetLang === 'ur' ? 'اپنا پیغام لکھیں…' : 'Type your message…';
     inputEl.setAttribute('dir', targetLang === 'ur' ? 'rtl' : 'ltr');
   }
+
+  syncCodChip(shadowRoot);
 }
 
 function enhanceBotRow(row: Element, shadowRoot: ShadowRoot) {
@@ -1401,9 +1654,15 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
   const waUrl = getWhatsAppUrl('Hello Zaplix Customer Support! I would like to inquire about your products.');
 
   useEffect(() => {
-    // Warm up speech synthesis voice list
+    // Warm up speech synthesis voice list (including delayed Chrome/Edge OS voice loading)
+    const warmVoices = () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.getVoices();
+      }
+    };
+    warmVoices();
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.getVoices();
+      window.speechSynthesis.addEventListener?.('voiceschanged', warmVoices);
     }
 
     // Customize VoicePilot widget: hide default purple button, inject Zaplix branding and fullscreen rules
@@ -1808,6 +2067,12 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
           }
         }
 
+        // Guard against duplicate observer/listener registration on the same VoicePilot host
+        if (host.dataset.zaplixSetupDone === '1') {
+          return undefined;
+        }
+        host.dataset.zaplixSetupDone = '1';
+
         // 5. Enhance bot output messages & keep user bubbles synced with EN / اردو mode
         const msgsEl = shadowRoot.querySelector('#msgs');
         let msgsObserver: MutationObserver | null = null;
@@ -1860,9 +2125,20 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
           statusObserver.observe(statusEl, { childList: true, characterData: true, subtree: true });
         }
 
+        // Keep COD & Charges quick chip synced whenever widget.js renders/toggles #chips
+        const chipsEl = shadowRoot.getElementById('chips');
+        let chipsObserver: MutationObserver | null = null;
+        if (chipsEl) {
+          syncCodChip(shadowRoot);
+          chipsObserver = new MutationObserver(() => {
+            syncCodChip(shadowRoot);
+          });
+          chipsObserver.observe(chipsEl, { childList: true });
+        }
+
         const panel = shadowRoot.querySelector('.panel');
 
-        // Silent-prime shared audio only on non-bubble taps so direct bubble clicks never race with silent WAV
+        // Silent-prime shared audio & AudioContext across taps and keyboard Enter submits
         const onPanelInteract = (e: Event) => {
           const target = e.target as Element | null;
           if (target?.closest?.('.bot .b')) {
@@ -1871,20 +2147,29 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
             unlockTtsPlayback(true);
           }
         };
+        const onPanelKeyUnlock = () => unlockTtsPlayback(true);
         if (panel) {
           panel.addEventListener('pointerdown', onPanelInteract, { capture: true });
+          panel.addEventListener('keydown', onPanelKeyUnlock, { capture: true });
         }
 
         // Prevent widget.js native window.speechSynthesis.speak() from playing rogue English voice over ZAPLIX TTS
         let origSpeechSpeak: typeof window.speechSynthesis.speak | null = null;
+        let speechPatched = false;
         if (typeof window !== 'undefined' && 'speechSynthesis' in window && window.speechSynthesis) {
-          origSpeechSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
-          window.speechSynthesis.speak = (utterance: SpeechSynthesisUtterance) => {
-            if (!allowZaplixWebSpeech && panel?.classList.contains('open')) {
-              return;
-            }
-            origSpeechSpeak?.(utterance);
-          };
+          try {
+            origSpeechSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
+            const wrappedSpeak = (utterance: SpeechSynthesisUtterance) => {
+              if (!allowZaplixWebSpeech && panel?.classList.contains('open')) {
+                return;
+              }
+              origSpeechSpeak?.(utterance);
+            };
+            window.speechSynthesis.speak = wrappedSpeak;
+            speechPatched = window.speechSynthesis.speak === wrappedSpeak;
+          } catch {
+            speechPatched = false;
+          }
         }
 
         const micBtn = shadowRoot.querySelector('#mic');
@@ -1895,6 +2180,7 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
 
         const langBtn = shadowRoot.getElementById('lang');
         const onLangToggle = () => {
+          unlockTtsPlayback(true);
           setTimeout(() => {
             refreshAllBotRowsForLanguage(shadowRoot);
           }, 0);
@@ -1905,6 +2191,7 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
 
         const spkBtn = shadowRoot.getElementById('spk');
         const onSpkToggle = () => {
+          unlockTtsPlayback(true);
           setTimeout(() => {
             if (spkBtn?.getAttribute('aria-pressed') !== 'true') {
               stopAllBotSpeech(shadowRoot);
@@ -1915,7 +2202,8 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
           spkBtn.addEventListener('click', onSpkToggle);
         }
 
-        // Sync outgoing VoicePilot chat/voice language with the top EN / اردو button
+        // Safely sync outgoing VoicePilot chat/voice language without throwing when window.fetch is getter-only
+        const origFetchDesc = Object.getOwnPropertyDescriptor(window, 'fetch');
         const origFetch = window.fetch.bind(window);
         const patchedFetch: typeof window.fetch = (input, init) => {
           try {
@@ -1935,7 +2223,23 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
           }
           return origFetch(input, init);
         };
-        window.fetch = patchedFetch;
+        let fetchPatched = false;
+        try {
+          if (!origFetchDesc || origFetchDesc.writable) {
+            window.fetch = patchedFetch;
+            fetchPatched = window.fetch === patchedFetch;
+          } else if (origFetchDesc.configurable) {
+            Object.defineProperty(window, 'fetch', {
+              configurable: true,
+              enumerable: origFetchDesc.enumerable ?? true,
+              writable: true,
+              value: patchedFetch,
+            });
+            fetchPatched = window.fetch === patchedFetch;
+          }
+        } catch {
+          fetchPatched = false;
+        }
 
         if (panel) {
           const checkOpen = () => {
@@ -1948,20 +2252,38 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
           const panelObserver = new MutationObserver(checkOpen);
           panelObserver.observe(panel, { attributes: true, attributeFilter: ['class'] });
           return () => {
+            delete host.dataset.zaplixSetupDone;
             panelObserver.disconnect();
             if (msgsObserver) msgsObserver.disconnect();
             if (statusObserver) statusObserver.disconnect();
+            if (chipsObserver) chipsObserver.disconnect();
             panel.removeEventListener('pointerdown', onPanelInteract, { capture: true });
+            panel.removeEventListener('keydown', onPanelKeyUnlock, { capture: true });
             if (micBtn) micBtn.removeEventListener('pointerdown', onMicStart, { capture: true });
             if (langBtn) langBtn.removeEventListener('click', onLangToggle);
             if (spkBtn) spkBtn.removeEventListener('click', onSpkToggle);
-            if (window.fetch === patchedFetch) window.fetch = origFetch;
-            if (origSpeechSpeak && 'speechSynthesis' in window) {
-              window.speechSynthesis.speak = origSpeechSpeak;
+            if (fetchPatched) {
+              try {
+                if (origFetchDesc) {
+                  Object.defineProperty(window, 'fetch', origFetchDesc);
+                } else {
+                  window.fetch = origFetch;
+                }
+              } catch {
+                // ignore restore failure
+              }
+            }
+            if (speechPatched && origSpeechSpeak && 'speechSynthesis' in window) {
+              try {
+                window.speechSynthesis.speak = origSpeechSpeak;
+              } catch {
+                // ignore
+              }
             }
             stopAllBotSpeech(shadowRoot);
           };
         }
+        delete host.dataset.zaplixSetupDone;
       }
       return undefined;
     };
@@ -1985,12 +2307,16 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
     return () => {
       clearInterval(interval);
       clearTimeout(timeout);
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.removeEventListener?.('voiceschanged', warmVoices);
+      }
       window.removeEventListener('zaplix:open-voice-agent', handleExternalOpen);
       if (cleanup) cleanup();
     };
   }, []);
 
   const handleToggleAgent = () => {
+    unlockTtsPlayback(true);
     const host = findVoicePilotHost();
     if (host && host.shadowRoot) {
       const launcher = (host.shadowRoot.querySelector('#launch') ||

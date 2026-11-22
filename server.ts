@@ -1373,34 +1373,110 @@ app.get('/api/admin/stats', requireAdmin, (_req: Request, res: Response) => {
 });
 
 // --- BILINGUAL TTS AUDIO PROXY (Urdu & English) ---
+const ttsAudioCache = new Map<string, Buffer>();
+
+function isValidAudioPayload(contentType: string, buf: Buffer): boolean {
+  if (buf.length < 128) return false;
+  // Reject HTML / JSON error pages masquerading as 200 OK
+  const headAscii = buf.subarray(0, 16).toString('utf8').trimStart();
+  if (headAscii.startsWith('<') || headAscii.startsWith('{')) return false;
+  if (contentType && !contentType.includes('audio') && !contentType.includes('octet-stream')) {
+    return false;
+  }
+  return true;
+}
+
+async function fetchUpstreamTtsMp3(text: string, lang: 'ur' | 'en'): Promise<Buffer | null> {
+  const encoded = encodeURIComponent(text);
+  const candidates: Array<{ url: string; headers: Record<string, string> }> = [
+    {
+      url: `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encoded}`,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        Referer: 'https://translate.google.com/',
+      },
+    },
+    {
+      url: `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=${lang}&client=gtx&q=${encoded}`,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    },
+    {
+      url: `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=dict-chrome-ex&q=${encoded}`,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    },
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      const upstream = await fetch(candidate.url, { headers: candidate.headers });
+      if (!upstream.ok) continue;
+      const ct = (upstream.headers.get('content-type') || '').toLowerCase();
+      const buf = Buffer.from(await upstream.arrayBuffer());
+      if (isValidAudioPayload(ct, buf)) {
+        return buf;
+      }
+    } catch {
+      // try next upstream TTS provider
+    }
+  }
+  return null;
+}
+
 app.get('/api/tts', async (req: Request, res: Response) => {
   try {
     const rawText = typeof req.query.text === 'string' ? req.query.text.trim() : '';
     const langParam = typeof req.query.lang === 'string' ? req.query.lang.trim().toLowerCase() : 'en';
-    const lang = langParam === 'ur' ? 'ur' : 'en';
+    const lang: 'ur' | 'en' = langParam === 'ur' ? 'ur' : 'en';
 
     if (!rawText) {
       return res.status(400).json({ error: 'Missing text parameter' });
     }
 
     const text = rawText.slice(0, 200);
-    const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(text)}`;
+    const cacheKey = `${lang}:${text}`;
+    let audioBuffer = ttsAudioCache.get(cacheKey) || null;
 
-    const upstream = await fetch(ttsUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        Referer: 'https://translate.google.com/',
-      },
-    });
-
-    if (!upstream.ok) {
-      return res.status(upstream.status).json({ error: 'TTS upstream unavailable' });
+    if (!audioBuffer) {
+      audioBuffer = await fetchUpstreamTtsMp3(text, lang);
+      if (!audioBuffer) {
+        return res.status(502).json({ error: 'TTS upstream unavailable' });
+      }
+      if (ttsAudioCache.size > 250) {
+        const firstKey = ttsAudioCache.keys().next().value;
+        if (firstKey) ttsAudioCache.delete(firstKey);
+      }
+      ttsAudioCache.set(cacheKey, audioBuffer);
     }
 
-    const arrayBuffer = await upstream.arrayBuffer();
+    const totalLength = audioBuffer.length;
     res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.send(Buffer.from(arrayBuffer));
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+
+    const rangeHeader = req.headers.range;
+    if (rangeHeader) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader);
+      if (match) {
+        const start = match[1] ? parseInt(match[1], 10) : 0;
+        const end = match[2] ? Math.min(parseInt(match[2], 10), totalLength - 1) : totalLength - 1;
+        if (start >= 0 && start <= end && start < totalLength) {
+          const chunk = audioBuffer.subarray(start, end + 1);
+          res.status(206);
+          res.setHeader('Content-Range', `bytes ${start}-${end}/${totalLength}`);
+          res.setHeader('Content-Length', String(chunk.length));
+          return res.send(chunk);
+        }
+      }
+    }
+
+    res.setHeader('Content-Length', String(totalLength));
+    return res.send(audioBuffer);
   } catch (err) {
     console.error('TTS error:', err);
     res.status(500).json({ error: 'TTS generation failed' });
@@ -1410,11 +1486,57 @@ app.get('/api/tts', async (req: Request, res: Response) => {
 // --- BILINGUAL TRANSLATION PROXY (Urdu <-> English) ---
 const translationCache = new Map<string, string>();
 
+async function translateSnippetUpstream(
+  snippet: string,
+  sourceLang: 'en' | 'ur',
+  targetLang: 'en' | 'ur'
+): Promise<string | null> {
+  // Primary: Google Translate gtx endpoint (fast, accurate for Urdu + mixed product names)
+  try {
+    const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(snippet)}`;
+    const gRes = await fetch(gtxUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+    });
+    if (gRes.ok) {
+      const gJson = (await gRes.json()) as unknown;
+      if (Array.isArray(gJson) && Array.isArray(gJson[0])) {
+        const joined = (gJson[0] as unknown[])
+          .map((seg) => (Array.isArray(seg) && typeof seg[0] === 'string' ? seg[0] : ''))
+          .join('')
+          .trim();
+        if (joined) return joined;
+      }
+    }
+  } catch {
+    // fallback to MyMemory below
+  }
+
+  // Backup: MyMemory
+  try {
+    const langPair = `${sourceLang}|${targetLang}`;
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(snippet)}&langpair=${encodeURIComponent(langPair)}`;
+    const upstream = await fetch(url);
+    if (upstream.ok) {
+      const json = (await upstream.json()) as {
+        responseStatus?: number;
+        responseData?: { translatedText?: string };
+      };
+      const out = json?.responseData?.translatedText?.trim();
+      if (json?.responseStatus === 200 && out && !/MYMEMORY WARNING/i.test(out)) {
+        return out;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 app.post('/api/translate', async (req: Request, res: Response) => {
   try {
     const rawText = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
     const toParam = typeof req.body?.to === 'string' ? req.body.to.trim().toLowerCase() : 'en';
-    const targetLang = toParam === 'ur' ? 'ur' : 'en';
+    const targetLang: 'en' | 'ur' = toParam === 'ur' ? 'ur' : 'en';
 
     if (!rawText) {
       return res.status(400).json({ error: 'Missing text parameter' });
@@ -1426,8 +1548,7 @@ app.post('/api/translate', async (req: Request, res: Response) => {
       return res.json({ translatedText: cached, targetLang });
     }
 
-    const sourceLang = targetLang === 'ur' ? 'en' : 'ur';
-    const langPair = `${sourceLang}|${targetLang}`;
+    const sourceLang: 'en' | 'ur' = targetLang === 'ur' ? 'en' : 'ur';
 
     // Translate line by line to preserve bullet structure
     const lines = rawText
@@ -1438,20 +1559,31 @@ app.post('/api/translate', async (req: Request, res: Response) => {
 
     for (const line of lines) {
       const snippet = line.slice(0, 480);
-      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(snippet)}&langpair=${encodeURIComponent(langPair)}`;
-      const upstream = await fetch(url);
-      if (upstream.ok) {
-        const json = (await upstream.json()) as {
-          responseStatus?: number;
-          responseData?: { translatedText?: string };
-        };
-        const out = json?.responseData?.translatedText?.trim();
-        if (json?.responseStatus === 200 && out && !/MYMEMORY WARNING/i.test(out)) {
-          translatedLines.push(out);
-          continue;
+
+      // If target is Urdu and line mixes Urdu script with English words (e.g. product names),
+      // translate the embedded English phrases separately so the full sentence speaks in Urdu.
+      const hasUrduScript = /[\u0600-\u06FF]/.test(snippet);
+      const hasLatinWords = /[A-Za-z]{2,}/.test(
+        snippet.replace(/\b(?:ZX|CMP)[-\s]?\d{3,6}\b/gi, '').replace(/\b(?:Rs|COD|ZAPLIX)\b/gi, '')
+      );
+
+      if (targetLang === 'ur' && hasUrduScript && hasLatinWords) {
+        let updated = snippet;
+        const phraseMatches = snippet.match(/[A-Za-z][A-Za-z0-9\s&'-]{1,40}[A-Za-z0-9]|[A-Za-z]{2,}/g) || [];
+        for (const phrase of phraseMatches) {
+          const cleanPhrase = phrase.trim();
+          if (/^(?:ZX|CMP|Rs|ZAPLIX|Zaplix|COD)$/i.test(cleanPhrase)) continue;
+          const pOut = await translateSnippetUpstream(cleanPhrase, 'en', 'ur');
+          if (pOut) {
+            updated = updated.replace(phrase, pOut);
+          }
         }
+        translatedLines.push(updated);
+        continue;
       }
-      translatedLines.push(line);
+
+      const out = await translateSnippetUpstream(snippet, sourceLang, targetLang);
+      translatedLines.push(out || line);
     }
 
     const result = translatedLines.join('\n');
