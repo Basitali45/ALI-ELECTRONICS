@@ -343,6 +343,13 @@ function cleanTextForSpeech(text: string, targetLang?: WidgetLang): string {
   out = out.replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/(\d)\.00\b/g, '$1');
 
   if (targetLang === 'ur') {
+    const protectedPhones: string[] = [];
+    out = out.replace(/\+?92[\s-]?\d{3}[\s-]?\d{7}|\b03\d{2}[\s-]?\d{7}\b/g, (phone) => {
+      const idx = protectedPhones.length;
+      protectedPhones.push(phone);
+      return `__PHONE_${idx}__`;
+    });
+
     out = out
       .replace(/\bZAPLIX\b/gi, 'زیپلیکس')
       .replace(/\(\s*(?!(?:ZX|CMP)[-\s]?\d)[A-Za-z0-9\s/-]+\s*\)/g, '')
@@ -354,10 +361,11 @@ function cleanTextForSpeech(text: string, targetLang?: WidgetLang): string {
       .replace(/(\d+)\s*فیصد/g, (_m, d) => `${numberToUrduWords(Number(d))} فیصد`)
       .replace(/\bRs\.?\s*/gi, 'روپے ')
       // Convert standalone non-phone numbers (1-6 digits not starting with 0) to clean Urdu words
-      .replace(/(^|[^\d+\-A-Za-z])([1-9]\d{0,5})(?![\dA-Za-z])/g, (m, pre, d) => {
+      .replace(/(^|[^\d+\-A-Za-z_])([1-9]\d{0,5})(?![\dA-Za-z_])/g, (m, pre, d) => {
         const val = Number(d);
         return val <= 999999 ? `${pre}${numberToUrduWords(val)}` : m;
-      });
+      })
+      .replace(/__PHONE_(\d+)__/g, (_m, idx) => protectedPhones[Number(idx)] || '');
   } else {
     out = out
       .replace(/\bZAPLIX\b/g, 'Zaplix')
@@ -688,9 +696,10 @@ function playViaHtmlAudioSync(
 
     safetyTimer = setTimeout(() => finish('error'), 15000);
     activeAudioResolver = finish;
-    audio.onended = () => finish('ok');
-    audio.onerror = () => finish('error');
 
+    // Detach prior handlers before resetting src/load so stale media events never reject the new track
+    audio.onended = null;
+    audio.onerror = null;
     try {
       audio.pause();
     } catch {
@@ -701,6 +710,8 @@ function playViaHtmlAudioSync(
       options?.noReferrer ? 'no-referrer' : 'strict-origin-when-cross-origin'
     );
     audio.src = url;
+    audio.onended = () => finish('ok');
+    audio.onerror = () => finish('error');
     try {
       audio.load();
     } catch {
@@ -1355,7 +1366,13 @@ async function renderBotBubbleInMode(
   }
 
   const isComplaintQuery = /complaint|شکایت|issue|problem|مسئلہ|damaged|wrong|register/i.test(userText);
-  const isTrackQuery = /track|آرڈر|order|status|parcel|کہاں/i.test(userText);
+  const isPolicyOrChargeQuery =
+    /\bcod\b|cash on delivery|کیش آن ڈیلیوری|charges|چارجز|\bfee\b|\bfees\b|return|ریٹرن|واپس|exchange|refund|بدل|delivery|ڈیلیوری|shipping|شپنگ|courier/i.test(
+      userText
+    );
+  const isTrackQuery =
+    /track|ٹریک|status|اسٹیٹس|parcel|پارسل|کہاں/i.test(userText) ||
+    (/\border\b|آرڈر/i.test(userText) && !isComplaintQuery && !isPolicyOrChargeQuery);
   const ruleOrFallbackLines = getZaplixReplyForMode(userText, rawSource, targetLang);
   if (ruleOrFallbackLines && ruleOrFallbackLines.length > 0) {
     renderBulletBubble(
