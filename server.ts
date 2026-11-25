@@ -1388,24 +1388,33 @@ function isValidAudioPayload(contentType: string, buf: Buffer): boolean {
 
 async function fetchUpstreamTtsMp3(text: string, lang: 'ur' | 'en'): Promise<Buffer | null> {
   const encoded = encodeURIComponent(text);
+  const tlPrimary = lang;
+  const tlAlt = lang === 'ur' ? 'ur-PK' : 'en-US';
   const candidates: Array<{ url: string; headers: Record<string, string> }> = [
     {
-      url: `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encoded}`,
+      url: `https://translate.google.com/translate_tts?ie=UTF-8&tl=${tlPrimary}&client=tw-ob&q=${encoded}`,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         Referer: 'https://translate.google.com/',
       },
     },
     {
-      url: `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=${lang}&client=gtx&q=${encoded}`,
+      url: `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=${tlPrimary}&client=gtx&q=${encoded}`,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       },
     },
     {
-      url: `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=dict-chrome-ex&q=${encoded}`,
+      url: `https://translate.google.com/translate_tts?ie=UTF-8&tl=${tlPrimary}&client=dict-chrome-ex&q=${encoded}`,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    },
+    {
+      url: `https://translate.google.com/translate_tts?ie=UTF-8&tl=${tlAlt}&client=tw-ob&q=${encoded}`,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        Referer: 'https://translate.google.com/',
       },
     },
   ];
@@ -1426,6 +1435,49 @@ async function fetchUpstreamTtsMp3(text: string, lang: 'ur' | 'en'): Promise<Buf
   return null;
 }
 
+async function getCachedOrFetchTtsMp3(rawText: string, lang: 'ur' | 'en'): Promise<Buffer | null> {
+  const text = rawText.slice(0, 200);
+  const cacheKey = `${lang}:${text}`;
+  const cached = ttsAudioCache.get(cacheKey);
+  if (cached) return cached;
+
+  const audioBuffer = await fetchUpstreamTtsMp3(text, lang);
+  if (!audioBuffer) return null;
+
+  if (ttsAudioCache.size > 250) {
+    const firstKey = ttsAudioCache.keys().next().value;
+    if (firstKey) ttsAudioCache.delete(firstKey);
+  }
+  ttsAudioCache.set(cacheKey, audioBuffer);
+  return audioBuffer;
+}
+
+app.post('/api/tts', async (req: Request, res: Response) => {
+  try {
+    const rawText = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
+    const langParam = typeof req.body?.lang === 'string' ? req.body.lang.trim().toLowerCase() : 'en';
+    const lang: 'ur' | 'en' = langParam === 'ur' || langParam === 'urdu' ? 'ur' : 'en';
+
+    if (!rawText) {
+      return res.status(400).json({ error: 'Missing text parameter' });
+    }
+
+    const audioBuffer = await getCachedOrFetchTtsMp3(rawText, lang);
+    if (!audioBuffer) {
+      return res.status(502).json({ error: 'TTS upstream unavailable' });
+    }
+
+    return res.json({
+      audioBase64: audioBuffer.toString('base64'),
+      mimeType: 'audio/mpeg',
+      lang,
+    });
+  } catch (err) {
+    console.error('POST TTS error:', err);
+    res.status(500).json({ error: 'TTS generation failed' });
+  }
+});
+
 app.get('/api/tts', async (req: Request, res: Response) => {
   try {
     const rawText = typeof req.query.text === 'string' ? req.query.text.trim() : '';
@@ -1436,20 +1488,9 @@ app.get('/api/tts', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing text parameter' });
     }
 
-    const text = rawText.slice(0, 200);
-    const cacheKey = `${lang}:${text}`;
-    let audioBuffer = ttsAudioCache.get(cacheKey) || null;
-
+    const audioBuffer = await getCachedOrFetchTtsMp3(rawText, lang);
     if (!audioBuffer) {
-      audioBuffer = await fetchUpstreamTtsMp3(text, lang);
-      if (!audioBuffer) {
-        return res.status(502).json({ error: 'TTS upstream unavailable' });
-      }
-      if (ttsAudioCache.size > 250) {
-        const firstKey = ttsAudioCache.keys().next().value;
-        if (firstKey) ttsAudioCache.delete(firstKey);
-      }
-      ttsAudioCache.set(cacheKey, audioBuffer);
+      return res.status(502).json({ error: 'TTS upstream unavailable' });
     }
 
     const totalLength = audioBuffer.length;

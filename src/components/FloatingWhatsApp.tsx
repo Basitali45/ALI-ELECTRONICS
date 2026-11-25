@@ -507,13 +507,37 @@ let activeBufferSource: AudioBufferSourceNode | null = null;
 let ttsSessionToken = 0;
 let allowZaplixWebSpeech = false;
 
+interface CachedTtsAudio {
+  arrayBuffer: ArrayBuffer;
+  dataUri: string;
+}
+
 // In-memory pre-fetched TTS audio cache so clicking any Urdu/English bubble plays synchronously with 0ms network delay
-const clientTtsInflight = new Map<string, Promise<ArrayBuffer | null>>();
-const clientTtsResolved = new Map<string, ArrayBuffer>();
+const clientTtsInflight = new Map<string, Promise<CachedTtsAudio | null>>();
+const clientTtsResolved = new Map<string, CachedTtsAudio>();
 
 // Standard 46-byte 16-bit mono 44.1kHz silent PCM WAV (fmt chunk = 16 bytes, 1 zero sample)
 const SILENT_WAV_DATA_URI =
   'data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQIAAAAAAA==';
+
+function base64ToArrayBuffer(b64: string): ArrayBuffer {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) {
+    bytes[i] = bin.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+function arrayBufferToDataUri(arrBuf: ArrayBuffer, mimeType = 'audio/mpeg'): string {
+  const bytes = new Uint8Array(arrBuf);
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return `data:${mimeType};base64,${btoa(binary)}`;
+}
 
 function revokeActiveObjectUrl() {
   if (activeObjectUrl) {
@@ -526,7 +550,16 @@ function revokeActiveObjectUrl() {
   }
 }
 
-function getOrFetchTtsBuffer(chunk: SpeechChunk): Promise<ArrayBuffer | null> {
+function cacheTtsAudio(key: string, entry: CachedTtsAudio): CachedTtsAudio {
+  if (clientTtsResolved.size > 80) {
+    const firstKey = clientTtsResolved.keys().next().value;
+    if (firstKey) clientTtsResolved.delete(firstKey);
+  }
+  clientTtsResolved.set(key, entry);
+  return entry;
+}
+
+function getOrFetchTtsBuffer(chunk: SpeechChunk): Promise<CachedTtsAudio | null> {
   const key = `${chunk.lang}:${chunk.text}`;
   const cached = clientTtsResolved.get(key);
   if (cached) return Promise.resolve(cached);
@@ -534,10 +567,34 @@ function getOrFetchTtsBuffer(chunk: SpeechChunk): Promise<ArrayBuffer | null> {
   const existing = clientTtsInflight.get(key);
   if (existing) return existing;
 
-  const url = `/api/tts?lang=${chunk.lang}&text=${encodeURIComponent(chunk.text)}`;
+  const getUrl = `/api/tts?lang=${chunk.lang}&text=${encodeURIComponent(chunk.text)}`;
   const promise = (async () => {
     try {
-      const res = await fetch(url, { credentials: 'same-origin' });
+      // Primary: JSON POST /api/tts -> reliable across AI Studio preview proxies & yields instant data URI + ArrayBuffer
+      try {
+        const postRes = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ text: chunk.text, lang: chunk.lang }),
+        });
+        if (postRes.ok) {
+          const json = (await postRes.json()) as { audioBase64?: string; mimeType?: string };
+          if (json?.audioBase64 && json.audioBase64.length >= 160) {
+            const mime = json.mimeType || 'audio/mpeg';
+            const arrayBuffer = base64ToArrayBuffer(json.audioBase64);
+            if (arrayBuffer.byteLength >= 128) {
+              const dataUri = `data:${mime};base64,${json.audioBase64}`;
+              return cacheTtsAudio(key, { arrayBuffer, dataUri });
+            }
+          }
+        }
+      } catch {
+        // fallback to GET /api/tts binary endpoint below
+      }
+
+      // Secondary: GET /api/tts binary audio/mpeg
+      const res = await fetch(getUrl, { credentials: 'same-origin' });
       if (!res.ok) return null;
       const ct = (res.headers.get('content-type') || '').toLowerCase();
       if (ct && !ct.includes('audio') && !ct.includes('octet-stream')) {
@@ -548,12 +605,8 @@ function getOrFetchTtsBuffer(chunk: SpeechChunk): Promise<ArrayBuffer | null> {
       const headByte = new Uint8Array(arrBuf, 0, 1)[0];
       if (headByte === 0x3c || headByte === 0x7b) return null;
 
-      if (clientTtsResolved.size > 80) {
-        const firstKey = clientTtsResolved.keys().next().value;
-        if (firstKey) clientTtsResolved.delete(firstKey);
-      }
-      clientTtsResolved.set(key, arrBuf);
-      return arrBuf;
+      const dataUri = arrayBufferToDataUri(arrBuf, 'audio/mpeg');
+      return cacheTtsAudio(key, { arrayBuffer: arrBuf, dataUri });
     } catch {
       return null;
     } finally {
@@ -689,17 +742,17 @@ async function getLoadedVoices(): Promise<SpeechSynthesisVoice[]> {
   });
 }
 
-function speakChunkViaWebSpeech(chunk: SpeechChunk, token: number): Promise<void> {
+function speakChunkViaWebSpeech(chunk: SpeechChunk, token: number): Promise<boolean> {
   return new Promise((resolve) => {
     void (async () => {
       if (typeof window === 'undefined' || !('speechSynthesis' in window) || token !== ttsSessionToken) {
-        resolve();
+        resolve(false);
         return;
       }
 
       const voices = await getLoadedVoices();
       if (token !== ttsSessionToken) {
-        resolve();
+        resolve(false);
         return;
       }
 
@@ -707,7 +760,7 @@ function speakChunkViaWebSpeech(chunk: SpeechChunk, token: number): Promise<void
 
       // Never speak Urdu text using a non-Urdu/English default voice
       if (chunk.lang === 'ur' && !urduVoice) {
-        resolve();
+        resolve(false);
         return;
       }
 
@@ -729,8 +782,8 @@ function speakChunkViaWebSpeech(chunk: SpeechChunk, token: number): Promise<void
         }
       }
 
-      utterance.onend = () => resolve();
-      utterance.onerror = () => resolve();
+      utterance.onend = () => resolve(true);
+      utterance.onerror = () => resolve(false);
       (window as unknown as { __vpCurrentUtterance?: SpeechSynthesisUtterance }).__vpCurrentUtterance = utterance;
       allowZaplixWebSpeech = true;
       try {
@@ -745,7 +798,7 @@ function speakChunkViaWebSpeech(chunk: SpeechChunk, token: number): Promise<void
 function playViaHtmlAudioSync(
   url: string,
   token: number,
-  options?: { noReferrer?: boolean; isObjectUrl?: boolean }
+  options?: { noReferrer?: boolean; isObjectUrl?: boolean; useFreshElement?: boolean }
 ): Promise<'ok' | 'blocked' | 'error'> {
   return new Promise((resolve) => {
     if (token !== ttsSessionToken) {
@@ -760,8 +813,13 @@ function playViaHtmlAudioSync(
       return;
     }
 
-    const audio = sharedTtsAudio || new Audio();
-    sharedTtsAudio = audio;
+    const useFresh = Boolean(options?.useFreshElement);
+    const audio = useFresh ? new Audio() : sharedTtsAudio || new Audio();
+    if (!useFresh) {
+      sharedTtsAudio = audio;
+    } else {
+      audio.preload = 'auto';
+    }
     activeTtsAudio = audio;
 
     let settled = false;
@@ -795,17 +853,20 @@ function playViaHtmlAudioSync(
     // Detach prior handlers cleanly before setting src (no audio.load() call so Chrome never aborts play())
     audio.onended = null;
     audio.onerror = null;
-    try {
-      audio.pause();
-    } catch {
-      // ignore
+    if (!useFresh) {
+      try {
+        audio.pause();
+      } catch {
+        // ignore
+      }
     }
     audio.muted = false;
     audio.volume = 1;
-    audio.setAttribute(
-      'referrerpolicy',
-      options?.noReferrer ? 'no-referrer' : 'strict-origin-when-cross-origin'
-    );
+    if (options?.noReferrer) {
+      audio.setAttribute('referrerpolicy', 'no-referrer');
+    } else {
+      audio.removeAttribute('referrerpolicy');
+    }
     audio.src = url;
     audio.onended = () => finish('ok');
     audio.onerror = () => finish('error');
@@ -873,37 +934,48 @@ async function speakChunkViaServerAudio(
   }
 
   const cacheKey = `${chunk.lang}:${chunk.text}`;
-  const cachedBuf = clientTtsResolved.get(cacheKey);
+  const cached = clientTtsResolved.get(cacheKey);
   const serverUrl = `/api/tts?lang=${chunk.lang}&text=${encodeURIComponent(chunk.text)}`;
 
-  // 0. If cached in memory, play Blob URL synchronously inside the click gesture (0ms network delay)
-  if (cachedBuf && !preferAudioContext) {
-    const blobUrl = URL.createObjectURL(new Blob([cachedBuf], { type: 'audio/mpeg' }));
+  // 0. If cached in memory on direct click, play data URI synchronously on a clean Audio() instance (0ms delay)
+  if (cached && !preferAudioContext) {
+    const freshDataRes = await playViaHtmlAudioSync(cached.dataUri, token, { useFreshElement: true });
+    if (freshDataRes === 'ok' || token !== ttsSessionToken) return true;
+
+    const blobUrl = URL.createObjectURL(new Blob([cached.arrayBuffer], { type: 'audio/mpeg' }));
     revokeActiveObjectUrl();
     activeObjectUrl = blobUrl;
-    const syncBlobRes = await playViaHtmlAudioSync(blobUrl, token, { isObjectUrl: true });
+    const syncBlobRes = await playViaHtmlAudioSync(blobUrl, token, { isObjectUrl: true, useFreshElement: true });
     if (syncBlobRes === 'ok' || token !== ttsSessionToken) return true;
   }
 
-  // 1. Fetch clean audio bytes through window.fetch (uses preview auth/session & avoids media proxy issues)
-  const arrBuf = cachedBuf || (await getOrFetchTtsBuffer(chunk));
+  // 1. Fetch clean audio via POST JSON (or fallback GET)
+  const resolved = cached || (await getOrFetchTtsBuffer(chunk));
   if (token !== ttsSessionToken) return true;
 
-  if (arrBuf) {
-    // 1a. Try Web Audio API decode & play (works reliably across async boundaries)
-    const ctxOk = await playArrayBufferViaAudioContext(arrBuf, token);
+  if (resolved) {
+    // 1a. Try Web Audio API decode & play (works reliably even after async network fetch)
+    const ctxOk = await playArrayBufferViaAudioContext(resolved.arrayBuffer, token);
     if (ctxOk || token !== ttsSessionToken) return true;
 
-    // 1b. Play via unlocked HTMLAudioElement Blob URL
-    const blobUrl = URL.createObjectURL(new Blob([arrBuf], { type: 'audio/mpeg' }));
+    // 1b. Play via unlocked shared HTMLAudioElement with data URI (bypasses blob: CSP restrictions)
+    const unlockedDataRes = await playViaHtmlAudioSync(resolved.dataUri, token, { useFreshElement: false });
+    if (unlockedDataRes === 'ok' || token !== ttsSessionToken) return true;
+
+    // 1c. Play via fresh HTMLAudioElement with data URI
+    const freshRes = await playViaHtmlAudioSync(resolved.dataUri, token, { useFreshElement: true });
+    if (freshRes === 'ok' || token !== ttsSessionToken) return true;
+
+    // 1d. Play via unlocked HTMLAudioElement Blob URL
+    const blobUrl = URL.createObjectURL(new Blob([resolved.arrayBuffer], { type: 'audio/mpeg' }));
     revokeActiveObjectUrl();
     activeObjectUrl = blobUrl;
-    const blobRes = await playViaHtmlAudioSync(blobUrl, token, { isObjectUrl: true });
+    const blobRes = await playViaHtmlAudioSync(blobUrl, token, { isObjectUrl: true, useFreshElement: false });
     if (blobRes === 'ok' || token !== ttsSessionToken) return true;
   }
 
   // 2. Direct server URL <audio> fallback
-  const serverRes = await playViaHtmlAudioSync(serverUrl, token);
+  const serverRes = await playViaHtmlAudioSync(serverUrl, token, { useFreshElement: false });
   if (serverRes === 'ok' || token !== ttsSessionToken) return true;
 
   // 3. Direct external HTTPS TTS <audio> fallback
@@ -914,7 +986,7 @@ async function speakChunkViaServerAudio(
   ];
   for (const directUrl of directCandidates) {
     if (token !== ttsSessionToken) return true;
-    const directRes = await playViaHtmlAudioSync(directUrl, token, { noReferrer: true });
+    const directRes = await playViaHtmlAudioSync(directUrl, token, { noReferrer: true, useFreshElement: false });
     if (directRes === 'ok' || token !== ttsSessionToken) return true;
   }
 
@@ -922,8 +994,8 @@ async function speakChunkViaServerAudio(
 }
 
 async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot, isAutoTriggered = false) {
-  // Wake AudioContext synchronously inside click/tap; avoid interrupting if chunk 0 is already cached
-  const activeLang = getActiveWidgetLang(shadowRoot);
+  // Respect per-bubble language when already rendered in that mode, otherwise use current header toggle
+  const activeLang = ((bubbleEl.dataset.speakLang as WidgetLang | undefined) || getActiveWidgetLang(shadowRoot));
   const preText = (bubbleEl.dataset.speakText || bubbleEl.textContent || '').trim();
   const preChunks = preText ? buildLanguageSpeechChunks(preText, activeLang) : [];
   const firstCached =
@@ -944,7 +1016,13 @@ async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot, isA
   bubbleEl.classList.add('vp-speaking');
   const listenTag = bubbleEl.querySelector('.vp-listen-tag');
   if (listenTag) {
-    listenTag.textContent = isUrUI ? '🔊 سن رہے ہیں… (روکنے کے لیے کلک کریں)' : '🔊 Speaking… (tap to stop)';
+    listenTag.textContent = firstCached
+      ? isUrUI
+        ? '🔊 سن رہے ہیں… (روکنے کے لیے کلک کریں)'
+        : '🔊 Speaking… (tap to stop)'
+      : isUrUI
+        ? '🔊 آواز لوڈ ہو رہی ہے…'
+        : '🔊 Loading audio…';
   }
 
   let rawSpeak = (bubbleEl.dataset.speakText || bubbleEl.textContent || '').trim();
@@ -955,8 +1033,7 @@ async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot, isA
     .replace(/\bRs\.?\b/gi, '')
     .replace(/\b(?:COD|ZAPLIX)\b/gi, '');
   const { urduCount } = countScriptChars(rawSpeak);
-  const hasForeignEnglish = /[A-Za-z]{2,}/.test(strippedLatin);
-  const needsUrNow = activeLang === 'ur' && (urduCount === 0 || hasForeignEnglish);
+  const needsUrNow = activeLang === 'ur' && !isDominantlyUrdu(strippedLatin);
   const needsEnNow = activeLang === 'en' && urduCount > 0;
 
   let translatedDuringSpeech = false;
@@ -995,12 +1072,21 @@ async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot, isA
     void getOrFetchTtsBuffer(upcoming);
   }
 
+  let anyAudioSpoken = false;
   for (let i = 0; i < chunks.length; i++) {
     if (myToken !== ttsSessionToken) break;
+    if (i === 0 && listenTag) {
+      listenTag.textContent = isUrUI ? '🔊 سن رہے ہیں… (روکنے کے لیے کلک کریں)' : '🔊 Speaking… (tap to stop)';
+    }
     const preferCtx = isAutoTriggered || translatedDuringSpeech || i > 0;
     const playedViaServer = await speakChunkViaServerAudio(chunks[i], myToken, preferCtx);
-    if (!playedViaServer && myToken === ttsSessionToken) {
-      await speakChunkViaWebSpeech(chunks[i], myToken);
+    if (playedViaServer) {
+      anyAudioSpoken = true;
+    } else if (myToken === ttsSessionToken) {
+      const spokeViaWeb = await speakChunkViaWebSpeech(chunks[i], myToken);
+      if (spokeViaWeb) {
+        anyAudioSpoken = true;
+      }
     }
   }
 
@@ -1008,7 +1094,16 @@ async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot, isA
     bubbleEl.classList.remove('vp-speaking');
     const tag = bubbleEl.querySelector('.vp-listen-tag');
     if (tag) {
-      tag.textContent = isUrUI ? '🔊 آواز میں سنیں' : '🔊 Tap to listen';
+      if (!anyAudioSpoken && !isAutoTriggered) {
+        tag.textContent = isUrUI ? '⚠️ آواز چلائی نہیں جا سکی — دوبارہ کلک کریں' : '⚠️ Audio blocked — tap again';
+        setTimeout(() => {
+          if (!bubbleEl.classList.contains('vp-speaking')) {
+            tag.textContent = isUrUI ? '🔊 آواز میں سنیں' : '🔊 Tap to listen';
+          }
+        }, 2200);
+      } else {
+        tag.textContent = isUrUI ? '🔊 آواز میں سنیں' : '🔊 Tap to listen';
+      }
     }
   }
 }
@@ -1029,7 +1124,8 @@ function renderGreetingBubble(b: HTMLElement, targetLang: WidgetLang) {
   textSpan.textContent = greetingText;
   b.appendChild(textSpan);
 
-  const listenTag = document.createElement('div');
+  const listenTag = document.createElement('button');
+  listenTag.type = 'button';
   listenTag.className = 'vp-listen-tag';
   listenTag.textContent = targetLang === 'ur' ? '🔊 آواز میں سنیں' : '🔊 Tap to listen';
   b.appendChild(listenTag);
@@ -1328,7 +1424,8 @@ function renderBulletBubble(
   }
 
   const isUrduOutput = targetLang === 'ur';
-  const listenTag = document.createElement('div');
+  const listenTag = document.createElement('button');
+  listenTag.type = 'button';
   listenTag.className = 'vp-listen-tag';
   listenTag.textContent = isUrduOutput ? '🔊 آواز میں سنیں' : '🔊 Tap to listen';
   b.appendChild(listenTag);
@@ -1490,8 +1587,7 @@ async function renderBotBubbleInMode(
     .replace(/\bRs\.?\b/gi, '')
     .replace(/\bZAPLIX\b/gi, '');
   const { urduCount } = countScriptChars(rawSource);
-  const hasForeignEnglish = /[A-Za-z]{2,}/.test(strippedLatin);
-  const needsUrduTranslation = targetLang === 'ur' && (urduCount === 0 || hasForeignEnglish);
+  const needsUrduTranslation = targetLang === 'ur' && !isDominantlyUrdu(strippedLatin);
   const needsEnglishTranslation = targetLang === 'en' && urduCount > 0;
 
   let displayText = rawSource;
@@ -1676,7 +1772,10 @@ function enhanceBotRow(row: Element, shadowRoot: ShadowRoot) {
   const b = row.querySelector('.b') as HTMLElement | null;
   if (!b || b.getAttribute('data-vp-enhanced') === '1') return;
 
-  const rawText = (b.textContent || '').trim();
+  const txtEl = b.querySelector('.b-txt') as HTMLElement | null;
+  const rawText = ((txtEl ? txtEl.textContent : b.textContent) || '')
+    .replace(/🔊\s*(?:سننے کے لیے ٹیپ کریں|Tap to listen|آواز میں سنیں).*$/i, '')
+    .trim();
   if (!rawText) return;
 
   // Locate preceding user query bubble & whether it came from voice
@@ -1720,15 +1819,15 @@ function enhanceBotRow(row: Element, shadowRoot: ShadowRoot) {
       return;
     }
     e.stopPropagation();
-    speakBotOutput(b, shadowRoot);
+    void speakBotOutput(b, shadowRoot);
   });
   b.addEventListener('keydown', (e) => {
-    if ((e.target as Element | null)?.closest?.('.vp-complaint-form, .vp-track-action')) {
+    if ((e.target as Element | null)?.closest?.('.vp-complaint-form, .vp-track-action, .vp-listen-tag')) {
       return;
     }
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      speakBotOutput(b, shadowRoot);
+      void speakBotOutput(b, shadowRoot);
     }
   });
 
@@ -1997,12 +2096,18 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
             /* PROFESSIONAL BULLET-POINT OUTPUT & CLICK-TO-VOICE INTERACTION */
             .bot .b[data-vp-enhanced="1"] {
               cursor: pointer !important;
-              transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease !important;
+              touch-action: manipulation !important;
+              -webkit-tap-highlight-color: transparent !important;
+              transition: transform 0.12s ease, border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease !important;
             }
 
             .bot .b[data-vp-enhanced="1"]:hover {
               border-color: #6366f1 !important;
               box-shadow: 0 4px 14px rgba(79, 70, 229, 0.12) !important;
+            }
+
+            .bot .b[data-vp-enhanced="1"]:active {
+              transform: scale(0.988) !important;
             }
 
             .bot .b.vp-speaking {
@@ -2031,6 +2136,7 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
               font-size: 16px !important;
               line-height: 1.4 !important;
               flex-shrink: 0 !important;
+              user-select: none !important;
             }
 
             .vp-line-text {
@@ -2040,16 +2146,30 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
             }
 
             .vp-listen-tag {
+              width: 100% !important;
               margin-top: 8px !important;
-              padding-top: 6px !important;
+              padding: 7px 2px 2px 2px !important;
+              background: transparent !important;
+              border: none !important;
               border-top: 1px dashed #e2e8f0 !important;
-              font-size: 11px !important;
-              font-weight: 600 !important;
+              font-family: inherit !important;
+              font-size: 11.5px !important;
+              font-weight: 700 !important;
               color: #4f46e5 !important;
               display: flex !important;
               align-items: center !important;
+              justify-content: flex-start !important;
               gap: 5px !important;
-              opacity: 0.85 !important;
+              opacity: 0.92 !important;
+              cursor: pointer !important;
+              user-select: none !important;
+              touch-action: manipulation !important;
+              -webkit-tap-highlight-color: transparent !important;
+            }
+
+            .vp-listen-tag:hover {
+              opacity: 1 !important;
+              color: #3730a3 !important;
             }
 
             .bot .b.vp-speaking .vp-listen-tag {
@@ -2251,9 +2371,14 @@ export function FloatingWhatsApp({ settings: _settings, onOpenSupportModal }: Fl
         // Preload catalog products silently so product queries in Urdu/English answer with real store prices
         void ensureCatalogProductsLoaded();
 
-        // Prime both Web Audio API and shared HTMLAudioElement on every pointer/key interaction inside the panel
-        const onPanelInteract = () => {
-          unlockTtsPlayback(true);
+        // Prime AudioContext on pointerdown without colliding with click playback on bot bubbles
+        const onPanelInteract = (e: Event) => {
+          const target = e.target as Element | null;
+          if (target?.closest?.('.bot .b')) {
+            unlockTtsPlayback(false);
+          } else {
+            unlockTtsPlayback(true);
+          }
         };
         const onPanelKeyUnlock = () => unlockTtsPlayback(true);
         if (panel) {
