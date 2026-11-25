@@ -1389,7 +1389,14 @@ function isValidAudioPayload(contentType: string, buf: Buffer): boolean {
   return true;
 }
 
-async function fetchUpstreamTtsMp3(text: string, lang: 'ur' | 'en'): Promise<Buffer | null> {
+async function fetchUpstreamTtsMp3(rawInput: string, lang: 'ur' | 'en', allowSplitRetry = true): Promise<Buffer | null> {
+  const text = rawInput
+    .replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 200);
+  if (!text) return null;
+
   const encoded = encodeURIComponent(text);
   const tlPrimary = lang;
   const tlAlt = lang === 'ur' ? 'ur-PK' : 'en-US';
@@ -1408,9 +1415,22 @@ async function fetchUpstreamTtsMp3(text: string, lang: 'ur' | 'en'): Promise<Buf
       },
     },
     {
+      url: `https://translate.google.com/translate_tts?ie=UTF-8&tl=${tlPrimary}&client=webapp&q=${encoded}`,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        Referer: 'https://translate.google.com/',
+      },
+    },
+    {
       url: `https://translate.google.com/translate_tts?ie=UTF-8&tl=${tlPrimary}&client=dict-chrome-ex&q=${encoded}`,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    },
+    {
+      url: `https://translate.google.com/translate_tts?ie=UTF-8&tl=${tlPrimary}&client=at&q=${encoded}`,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/126.0.0.0 Mobile Safari/537.36',
       },
     },
     {
@@ -1424,7 +1444,10 @@ async function fetchUpstreamTtsMp3(text: string, lang: 'ur' | 'en'): Promise<Buf
 
   for (const candidate of candidates) {
     try {
-      const upstream = await fetch(candidate.url, { headers: candidate.headers });
+      const upstream = await fetch(candidate.url, {
+        headers: candidate.headers,
+        signal: AbortSignal.timeout(5500),
+      });
       if (!upstream.ok) continue;
       const ct = (upstream.headers.get('content-type') || '').toLowerCase();
       const buf = Buffer.from(await upstream.arrayBuffer());
@@ -1435,6 +1458,21 @@ async function fetchUpstreamTtsMp3(text: string, lang: 'ur' | 'en'): Promise<Buf
       // try next upstream TTS provider
     }
   }
+
+  // If a longer snippet was rejected upstream, split once and concatenate MP3 frames
+  if (allowSplitRetry && text.length > 90) {
+    const mid = Math.floor(text.length / 2);
+    let splitIdx = text.lastIndexOf(' ', mid + 15);
+    if (splitIdx < 20) splitIdx = text.indexOf(' ', mid - 15);
+    if (splitIdx > 10 && splitIdx < text.length - 10) {
+      const firstHalf = await fetchUpstreamTtsMp3(text.slice(0, splitIdx), lang, false);
+      const secondHalf = await fetchUpstreamTtsMp3(text.slice(splitIdx + 1), lang, false);
+      if (firstHalf && secondHalf) {
+        return Buffer.concat([firstHalf, secondHalf]);
+      }
+    }
+  }
+
   return null;
 }
 
@@ -1492,7 +1530,7 @@ function transcodeMp3ToWav(mp3Buffer: Buffer): Promise<Buffer | null> {
           'wav',
           'pipe:1',
         ],
-        { encoding: 'buffer', maxBuffer: 8 * 1024 * 1024, timeout: 4000 },
+        { encoding: 'buffer', maxBuffer: 8 * 1024 * 1024, timeout: 8000 },
         (err, stdout) => {
           if (
             err ||
@@ -1546,8 +1584,8 @@ app.post('/api/tts', async (req: Request, res: Response) => {
     const rawText = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
     const langParam = typeof req.body?.lang === 'string' ? req.body.lang.trim().toLowerCase() : 'en';
     const lang: 'ur' | 'en' = langParam === 'ur' || langParam === 'urdu' ? 'ur' : 'en';
-    const formatParam = typeof req.body?.format === 'string' ? req.body.format.trim().toLowerCase() : 'wav';
-    const preferWav = formatParam !== 'mp3';
+    const formatParam = typeof req.body?.format === 'string' ? req.body.format.trim().toLowerCase() : 'mp3';
+    const preferWav = formatParam === 'wav';
 
     if (!rawText) {
       return res.status(400).json({ error: 'Missing text parameter' });
