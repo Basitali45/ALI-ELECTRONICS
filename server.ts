@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
 import { 
   Product, 
@@ -1374,6 +1375,8 @@ app.get('/api/admin/stats', requireAdmin, (_req: Request, res: Response) => {
 
 // --- BILINGUAL TTS AUDIO PROXY (Urdu & English) ---
 const ttsAudioCache = new Map<string, Buffer>();
+const ttsWavCache = new Map<string, Buffer>();
+const ttsInflight = new Map<string, Promise<Buffer | null>>();
 
 function isValidAudioPayload(contentType: string, buf: Buffer): boolean {
   if (buf.length < 128) return false;
@@ -1441,15 +1444,101 @@ async function getCachedOrFetchTtsMp3(rawText: string, lang: 'ur' | 'en'): Promi
   const cached = ttsAudioCache.get(cacheKey);
   if (cached) return cached;
 
-  const audioBuffer = await fetchUpstreamTtsMp3(text, lang);
-  if (!audioBuffer) return null;
+  const existing = ttsInflight.get(cacheKey);
+  if (existing) return existing;
 
-  if (ttsAudioCache.size > 250) {
-    const firstKey = ttsAudioCache.keys().next().value;
-    if (firstKey) ttsAudioCache.delete(firstKey);
+  const promise = (async () => {
+    try {
+      const audioBuffer = await fetchUpstreamTtsMp3(text, lang);
+      if (!audioBuffer) return null;
+
+      if (ttsAudioCache.size > 250) {
+        const firstKey = ttsAudioCache.keys().next().value;
+        if (firstKey) ttsAudioCache.delete(firstKey);
+      }
+      ttsAudioCache.set(cacheKey, audioBuffer);
+      return audioBuffer;
+    } finally {
+      ttsInflight.delete(cacheKey);
+    }
+  })();
+
+  ttsInflight.set(cacheKey, promise);
+  return promise;
+}
+
+function transcodeMp3ToWav(mp3Buffer: Buffer): Promise<Buffer | null> {
+  return new Promise((resolve) => {
+    try {
+      const child = execFile(
+        'ffmpeg',
+        [
+          '-hide_banner',
+          '-loglevel',
+          'error',
+          '-f',
+          'mp3',
+          '-i',
+          'pipe:0',
+          '-ar',
+          '16000',
+          '-ac',
+          '1',
+          '-map_metadata',
+          '-1',
+          '-fflags',
+          '+bitexact',
+          '-f',
+          'wav',
+          'pipe:1',
+        ],
+        { encoding: 'buffer', maxBuffer: 8 * 1024 * 1024, timeout: 4000 },
+        (err, stdout) => {
+          if (
+            err ||
+            !stdout ||
+            stdout.length < 256 ||
+            stdout.subarray(0, 4).toString('ascii') !== 'RIFF'
+          ) {
+            resolve(null);
+            return;
+          }
+          resolve(stdout);
+        }
+      );
+      child.stdin?.end(mp3Buffer);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+async function getCachedTtsPayload(
+  rawText: string,
+  lang: 'ur' | 'en',
+  preferWav: boolean
+): Promise<{ buffer: Buffer; mimeType: 'audio/wav' | 'audio/mpeg' } | null> {
+  const mp3Buffer = await getCachedOrFetchTtsMp3(rawText, lang);
+  if (!mp3Buffer) return null;
+
+  if (preferWav) {
+    const cacheKey = `${lang}:${rawText.slice(0, 200)}`;
+    const cachedWav = ttsWavCache.get(cacheKey);
+    if (cachedWav) {
+      return { buffer: cachedWav, mimeType: 'audio/wav' };
+    }
+    const wavBuffer = await transcodeMp3ToWav(mp3Buffer);
+    if (wavBuffer) {
+      if (ttsWavCache.size > 160) {
+        const firstKey = ttsWavCache.keys().next().value;
+        if (firstKey) ttsWavCache.delete(firstKey);
+      }
+      ttsWavCache.set(cacheKey, wavBuffer);
+      return { buffer: wavBuffer, mimeType: 'audio/wav' };
+    }
   }
-  ttsAudioCache.set(cacheKey, audioBuffer);
-  return audioBuffer;
+
+  return { buffer: mp3Buffer, mimeType: 'audio/mpeg' };
 }
 
 app.post('/api/tts', async (req: Request, res: Response) => {
@@ -1457,19 +1546,21 @@ app.post('/api/tts', async (req: Request, res: Response) => {
     const rawText = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
     const langParam = typeof req.body?.lang === 'string' ? req.body.lang.trim().toLowerCase() : 'en';
     const lang: 'ur' | 'en' = langParam === 'ur' || langParam === 'urdu' ? 'ur' : 'en';
+    const formatParam = typeof req.body?.format === 'string' ? req.body.format.trim().toLowerCase() : 'wav';
+    const preferWav = formatParam !== 'mp3';
 
     if (!rawText) {
       return res.status(400).json({ error: 'Missing text parameter' });
     }
 
-    const audioBuffer = await getCachedOrFetchTtsMp3(rawText, lang);
-    if (!audioBuffer) {
+    const payload = await getCachedTtsPayload(rawText, lang, preferWav);
+    if (!payload) {
       return res.status(502).json({ error: 'TTS upstream unavailable' });
     }
 
     return res.json({
-      audioBase64: audioBuffer.toString('base64'),
-      mimeType: 'audio/mpeg',
+      audioBase64: payload.buffer.toString('base64'),
+      mimeType: payload.mimeType,
       lang,
     });
   } catch (err) {
@@ -1483,18 +1574,21 @@ app.get('/api/tts', async (req: Request, res: Response) => {
     const rawText = typeof req.query.text === 'string' ? req.query.text.trim() : '';
     const langParam = typeof req.query.lang === 'string' ? req.query.lang.trim().toLowerCase() : 'en';
     const lang: 'ur' | 'en' = langParam === 'ur' ? 'ur' : 'en';
+    const formatParam = typeof req.query.format === 'string' ? req.query.format.trim().toLowerCase() : 'mp3';
+    const preferWav = formatParam === 'wav';
 
     if (!rawText) {
       return res.status(400).json({ error: 'Missing text parameter' });
     }
 
-    const audioBuffer = await getCachedOrFetchTtsMp3(rawText, lang);
-    if (!audioBuffer) {
+    const payload = await getCachedTtsPayload(rawText, lang, preferWav);
+    if (!payload) {
       return res.status(502).json({ error: 'TTS upstream unavailable' });
     }
 
+    const audioBuffer = payload.buffer;
     const totalLength = audioBuffer.length;
-    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Type', payload.mimeType);
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Cache-Control', 'public, max-age=86400');
     res.setHeader('Access-Control-Allow-Origin', '*');

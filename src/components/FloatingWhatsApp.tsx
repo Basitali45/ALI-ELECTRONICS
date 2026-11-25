@@ -510,15 +510,38 @@ let allowZaplixWebSpeech = false;
 interface CachedTtsAudio {
   arrayBuffer: ArrayBuffer;
   dataUri: string;
+  mimeType: string;
 }
 
 // In-memory pre-fetched TTS audio cache so clicking any Urdu/English bubble plays synchronously with 0ms network delay
 const clientTtsInflight = new Map<string, Promise<CachedTtsAudio | null>>();
 const clientTtsResolved = new Map<string, CachedTtsAudio>();
+const prefetchQueue: SpeechChunk[] = [];
+let activePrefetches = 0;
 
 // Standard 46-byte 16-bit mono 44.1kHz silent PCM WAV (fmt chunk = 16 bytes, 1 zero sample)
 const SILENT_WAV_DATA_URI =
   'data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQIAAAAAAA==';
+
+function getOrCreateSharedDomAudio(): HTMLAudioElement | null {
+  if (typeof document === 'undefined') return null;
+  if (sharedTtsAudio) return sharedTtsAudio;
+  const existing = document.getElementById('zaplix-tts-audio') as HTMLAudioElement | null;
+  if (existing) {
+    sharedTtsAudio = existing;
+    return existing;
+  }
+  const el = document.createElement('audio');
+  el.id = 'zaplix-tts-audio';
+  el.preload = 'auto';
+  (el as unknown as { playsInline?: boolean }).playsInline = true;
+  el.setAttribute('playsinline', '');
+  el.setAttribute('webkit-playsinline', '');
+  el.style.cssText = 'position:fixed;width:0;height:0;opacity:0;pointer-events:none;';
+  document.body?.appendChild(el);
+  sharedTtsAudio = el;
+  return el;
+}
 
 function base64ToArrayBuffer(b64: string): ArrayBuffer {
   const bin = atob(b64);
@@ -567,25 +590,25 @@ function getOrFetchTtsBuffer(chunk: SpeechChunk): Promise<CachedTtsAudio | null>
   const existing = clientTtsInflight.get(key);
   if (existing) return existing;
 
-  const getUrl = `/api/tts?lang=${chunk.lang}&text=${encodeURIComponent(chunk.text)}`;
+  const getUrl = `/api/tts?lang=${chunk.lang}&format=wav&text=${encodeURIComponent(chunk.text)}`;
   const promise = (async () => {
     try {
-      // Primary: JSON POST /api/tts -> reliable across AI Studio preview proxies & yields instant data URI + ArrayBuffer
+      // Primary: JSON POST /api/tts -> returns canonical 16kHz PCM WAV (or MP3 fallback)
       try {
         const postRes = await fetch('/api/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ text: chunk.text, lang: chunk.lang }),
+          body: JSON.stringify({ text: chunk.text, lang: chunk.lang, format: 'wav' }),
         });
         if (postRes.ok) {
           const json = (await postRes.json()) as { audioBase64?: string; mimeType?: string };
           if (json?.audioBase64 && json.audioBase64.length >= 160) {
-            const mime = json.mimeType || 'audio/mpeg';
+            const mime = json.mimeType || 'audio/wav';
             const arrayBuffer = base64ToArrayBuffer(json.audioBase64);
             if (arrayBuffer.byteLength >= 128) {
               const dataUri = `data:${mime};base64,${json.audioBase64}`;
-              return cacheTtsAudio(key, { arrayBuffer, dataUri });
+              return cacheTtsAudio(key, { arrayBuffer, dataUri, mimeType: mime });
             }
           }
         }
@@ -593,7 +616,7 @@ function getOrFetchTtsBuffer(chunk: SpeechChunk): Promise<CachedTtsAudio | null>
         // fallback to GET /api/tts binary endpoint below
       }
 
-      // Secondary: GET /api/tts binary audio/mpeg
+      // Secondary: GET /api/tts binary
       const res = await fetch(getUrl, { credentials: 'same-origin' });
       if (!res.ok) return null;
       const ct = (res.headers.get('content-type') || '').toLowerCase();
@@ -605,8 +628,9 @@ function getOrFetchTtsBuffer(chunk: SpeechChunk): Promise<CachedTtsAudio | null>
       const headByte = new Uint8Array(arrBuf, 0, 1)[0];
       if (headByte === 0x3c || headByte === 0x7b) return null;
 
-      const dataUri = arrayBufferToDataUri(arrBuf, 'audio/mpeg');
-      return cacheTtsAudio(key, { arrayBuffer: arrBuf, dataUri });
+      const mimeType = ct.includes('wav') ? 'audio/wav' : 'audio/mpeg';
+      const dataUri = arrayBufferToDataUri(arrBuf, mimeType);
+      return cacheTtsAudio(key, { arrayBuffer: arrBuf, dataUri, mimeType });
     } catch {
       return null;
     } finally {
@@ -618,12 +642,30 @@ function getOrFetchTtsBuffer(chunk: SpeechChunk): Promise<CachedTtsAudio | null>
   return promise;
 }
 
+function drainPrefetchQueue() {
+  while (activePrefetches < 2 && prefetchQueue.length > 0) {
+    const next = prefetchQueue.shift();
+    if (!next) break;
+    const key = `${next.lang}:${next.text}`;
+    if (clientTtsResolved.has(key) || clientTtsInflight.has(key)) continue;
+    activePrefetches += 1;
+    void getOrFetchTtsBuffer(next).finally(() => {
+      activePrefetches = Math.max(0, activePrefetches - 1);
+      drainPrefetchQueue();
+    });
+  }
+}
+
 function prefetchSpeechChunks(rawText: string, targetLang: WidgetLang) {
   if (!rawText || typeof fetch === 'undefined') return;
   const chunks = buildLanguageSpeechChunks(rawText, targetLang);
-  for (const chunk of chunks.slice(0, 5)) {
-    void getOrFetchTtsBuffer(chunk);
+  for (const chunk of chunks.slice(0, 4)) {
+    const key = `${chunk.lang}:${chunk.text}`;
+    if (!clientTtsResolved.has(key) && !clientTtsInflight.has(key)) {
+      prefetchQueue.push(chunk);
+    }
   }
+  drainPrefetchQueue();
 }
 
 function unlockTtsPlayback(withSilentPrime = false) {
@@ -649,15 +691,13 @@ function unlockTtsPlayback(withSilentPrime = false) {
         // ignore
       }
     }
-    if (!sharedTtsAudio) {
-      sharedTtsAudio = new Audio();
-      sharedTtsAudio.preload = 'auto';
-    }
+    const domAudio = getOrCreateSharedDomAudio() || sharedTtsAudio || new Audio();
+    sharedTtsAudio = domAudio;
     if (withSilentPrime && !sharedTtsUnlocked && !activeTtsAudio) {
-      sharedTtsAudio.muted = false;
-      sharedTtsAudio.volume = 1;
-      sharedTtsAudio.src = SILENT_WAV_DATA_URI;
-      const p = sharedTtsAudio.play();
+      domAudio.muted = false;
+      domAudio.volume = 1;
+      domAudio.src = SILENT_WAV_DATA_URI;
+      const p = domAudio.play();
       if (p && typeof p.then === 'function') {
         p.then(() => {
           sharedTtsUnlocked = true;
@@ -814,11 +854,15 @@ function playViaHtmlAudioSync(
     }
 
     const useFresh = Boolean(options?.useFreshElement);
-    const audio = useFresh ? new Audio() : sharedTtsAudio || new Audio();
+    const audio = useFresh
+      ? new Audio()
+      : getOrCreateSharedDomAudio() || sharedTtsAudio || new Audio();
     if (!useFresh) {
       sharedTtsAudio = audio;
     } else {
       audio.preload = 'auto';
+      (audio as unknown as { playsInline?: boolean }).playsInline = true;
+      audio.setAttribute('playsinline', '');
     }
     activeTtsAudio = audio;
 
@@ -885,7 +929,68 @@ function playViaHtmlAudioSync(
   });
 }
 
-async function playArrayBufferViaAudioContext(arrBuf: ArrayBuffer, token: number): Promise<boolean> {
+function decodeWavPcmToAudioBuffer(ctx: AudioContext, arrBuf: ArrayBuffer): AudioBuffer | null {
+  try {
+    if (arrBuf.byteLength < 44) return null;
+    const view = new DataView(arrBuf);
+    // Check "RIFF" and "WAVE"
+    if (view.getUint32(0, false) !== 0x52494646 || view.getUint32(8, false) !== 0x57415645) {
+      return null;
+    }
+    let offset = 12;
+    let audioFormat = 1;
+    let channels = 1;
+    let sampleRate = 16000;
+    let bitsPerSample = 16;
+    let dataOffset = -1;
+    let dataSize = 0;
+
+    while (offset + 8 <= arrBuf.byteLength) {
+      const chunkId = view.getUint32(offset, false);
+      const chunkSize = view.getUint32(offset + 4, true);
+      const bodyStart = offset + 8;
+      if (chunkId === 0x666d7420 && bodyStart + 16 <= arrBuf.byteLength) {
+        // "fmt "
+        audioFormat = view.getUint16(bodyStart, true);
+        channels = view.getUint16(bodyStart + 2, true);
+        sampleRate = view.getUint32(bodyStart + 4, true);
+        bitsPerSample = view.getUint16(bodyStart + 14, true);
+      } else if (chunkId === 0x64617461) {
+        // "data"
+        dataOffset = bodyStart;
+        dataSize = Math.min(chunkSize, arrBuf.byteLength - bodyStart);
+        break;
+      }
+      offset = bodyStart + chunkSize + (chunkSize % 2);
+    }
+
+    if (audioFormat !== 1 || bitsPerSample !== 16 || dataOffset < 0 || dataSize < 4 || channels < 1) {
+      return null;
+    }
+
+    const totalSamples = Math.floor(dataSize / (2 * channels));
+    if (totalSamples <= 0) return null;
+
+    const audioBuf = ctx.createBuffer(channels, totalSamples, sampleRate);
+    for (let ch = 0; ch < channels; ch++) {
+      const out = audioBuf.getChannelData(ch);
+      for (let i = 0; i < totalSamples; i++) {
+        const byteIdx = dataOffset + (i * channels + ch) * 2;
+        const sample = view.getInt16(byteIdx, true);
+        out[i] = sample / 32768;
+      }
+    }
+    return audioBuf;
+  } catch {
+    return null;
+  }
+}
+
+async function playArrayBufferViaAudioContext(
+  arrBuf: ArrayBuffer,
+  mimeType: string,
+  token: number
+): Promise<boolean> {
   if (token !== ttsSessionToken) return true;
   try {
     unlockTtsPlayback(false);
@@ -899,12 +1004,19 @@ async function playArrayBufferViaAudioContext(arrBuf: ArrayBuffer, token: number
         return false;
       }
     }
-    const decoded = await sharedAudioCtx.decodeAudioData(arrBuf.slice(0));
-    if (token !== ttsSessionToken) return true;
+
+    let decoded: AudioBuffer | null = null;
+    if (mimeType.includes('wav')) {
+      decoded = decodeWavPcmToAudioBuffer(sharedAudioCtx, arrBuf);
+    }
+    if (!decoded) {
+      decoded = await sharedAudioCtx.decodeAudioData(arrBuf.slice(0));
+    }
+    if (!decoded || token !== ttsSessionToken) return token !== ttsSessionToken;
 
     return await new Promise<boolean>((resolve) => {
-      if (!sharedAudioCtx || token !== ttsSessionToken) {
-        resolve(true);
+      if (!sharedAudioCtx || token !== ttsSessionToken || (sharedAudioCtx.state as string) !== 'running') {
+        resolve(false);
         return;
       }
       const src = sharedAudioCtx.createBufferSource();
@@ -935,18 +1047,18 @@ async function speakChunkViaServerAudio(
 
   const cacheKey = `${chunk.lang}:${chunk.text}`;
   const cached = clientTtsResolved.get(cacheKey);
-  const serverUrl = `/api/tts?lang=${chunk.lang}&text=${encodeURIComponent(chunk.text)}`;
+  const serverUrl = `/api/tts?lang=${chunk.lang}&format=wav&text=${encodeURIComponent(chunk.text)}`;
 
-  // 0. If cached in memory on direct click, play data URI synchronously on a clean Audio() instance (0ms delay)
+  // 0. If cached in memory on direct click, play Blob URL synchronously on a clean Audio() instance (0ms delay)
   if (cached && !preferAudioContext) {
-    const freshDataRes = await playViaHtmlAudioSync(cached.dataUri, token, { useFreshElement: true });
-    if (freshDataRes === 'ok' || token !== ttsSessionToken) return true;
-
-    const blobUrl = URL.createObjectURL(new Blob([cached.arrayBuffer], { type: 'audio/mpeg' }));
+    const blobUrl = URL.createObjectURL(new Blob([cached.arrayBuffer], { type: cached.mimeType }));
     revokeActiveObjectUrl();
     activeObjectUrl = blobUrl;
     const syncBlobRes = await playViaHtmlAudioSync(blobUrl, token, { isObjectUrl: true, useFreshElement: true });
     if (syncBlobRes === 'ok' || token !== ttsSessionToken) return true;
+
+    const freshDataRes = await playViaHtmlAudioSync(cached.dataUri, token, { useFreshElement: true });
+    if (freshDataRes === 'ok' || token !== ttsSessionToken) return true;
   }
 
   // 1. Fetch clean audio via POST JSON (or fallback GET)
@@ -954,24 +1066,27 @@ async function speakChunkViaServerAudio(
   if (token !== ttsSessionToken) return true;
 
   if (resolved) {
-    // 1a. Try Web Audio API decode & play (works reliably even after async network fetch)
-    const ctxOk = await playArrayBufferViaAudioContext(resolved.arrayBuffer, token);
-    if (ctxOk || token !== ttsSessionToken) return true;
+    // 1a. Play via unlocked DOM-mounted HTMLAudioElement Blob URL (uses native hardware/iframe media channel)
+    const blobUrl = URL.createObjectURL(new Blob([resolved.arrayBuffer], { type: resolved.mimeType }));
+    revokeActiveObjectUrl();
+    activeObjectUrl = blobUrl;
+    const unlockedBlobRes = await playViaHtmlAudioSync(blobUrl, token, {
+      isObjectUrl: true,
+      useFreshElement: false,
+    });
+    if (unlockedBlobRes === 'ok' || token !== ttsSessionToken) return true;
 
-    // 1b. Play via unlocked shared HTMLAudioElement with data URI (bypasses blob: CSP restrictions)
+    // 1b. Play via unlocked DOM-mounted HTMLAudioElement with data URI (bypasses blob: CSP restrictions)
     const unlockedDataRes = await playViaHtmlAudioSync(resolved.dataUri, token, { useFreshElement: false });
     if (unlockedDataRes === 'ok' || token !== ttsSessionToken) return true;
 
-    // 1c. Play via fresh HTMLAudioElement with data URI
+    // 1c. Try Web Audio API direct PCM synthesis / decodeAudioData (plays cleanly even after async fetch)
+    const ctxOk = await playArrayBufferViaAudioContext(resolved.arrayBuffer, resolved.mimeType, token);
+    if (ctxOk || token !== ttsSessionToken) return true;
+
+    // 1d. Play via fresh HTMLAudioElement with data URI
     const freshRes = await playViaHtmlAudioSync(resolved.dataUri, token, { useFreshElement: true });
     if (freshRes === 'ok' || token !== ttsSessionToken) return true;
-
-    // 1d. Play via unlocked HTMLAudioElement Blob URL
-    const blobUrl = URL.createObjectURL(new Blob([resolved.arrayBuffer], { type: 'audio/mpeg' }));
-    revokeActiveObjectUrl();
-    activeObjectUrl = blobUrl;
-    const blobRes = await playViaHtmlAudioSync(blobUrl, token, { isObjectUrl: true, useFreshElement: false });
-    if (blobRes === 'ok' || token !== ttsSessionToken) return true;
   }
 
   // 2. Direct server URL <audio> fallback
@@ -994,8 +1109,11 @@ async function speakChunkViaServerAudio(
 }
 
 async function speakBotOutput(bubbleEl: HTMLElement, shadowRoot: ShadowRoot, isAutoTriggered = false) {
-  // Respect per-bubble language when already rendered in that mode, otherwise use current header toggle
-  const activeLang = ((bubbleEl.dataset.speakLang as WidgetLang | undefined) || getActiveWidgetLang(shadowRoot));
+  const headerLang = getActiveWidgetLang(shadowRoot);
+  const activeLang: WidgetLang =
+    bubbleEl.dataset.speakLang === 'ur' || bubbleEl.dataset.speakLang === 'en'
+      ? (bubbleEl.dataset.speakLang as WidgetLang)
+      : headerLang;
   const preText = (bubbleEl.dataset.speakText || bubbleEl.textContent || '').trim();
   const preChunks = preText ? buildLanguageSpeechChunks(preText, activeLang) : [];
   const firstCached =
@@ -1502,6 +1620,7 @@ async function renderBotBubbleInMode(
 ) {
   const renderToken = String((Number(b.dataset.renderToken || '0') || 0) + 1);
   b.dataset.renderToken = renderToken;
+  b.dataset.speakLang = targetLang;
 
   const triggerAutoSpeak = () => {
     if (!autoSpeakIfPending || b.dataset.vpAutoSpoken === '1') return;
